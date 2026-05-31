@@ -44,13 +44,21 @@ export default function Home() {
     cargarClientes()
   }
 
-  async function eliminarCliente(id: string) {
-  const confirmar = confirm('¿Seguro? Se borrarán también todas sus sesiones.')
-  if (!confirmar) return
-  await supabase.from('sesiones').delete().eq('cliente_id', id)
-  await supabase.from('clientes').delete().eq('id', id)
-  cargarClientes()
-  cargarSesiones()
+  <h2>
+  Clientes ({clientes.length})
+  <button onClick={() => setMostrarClientes(!mostrarClientes)} style={{ marginLeft: '10px', fontSize: '14px' }}>
+    {mostrarClientes ? 'Ocultar' : 'Ver'}
+  </button>
+</h2>
+{mostrarClientes && (
+  <ul>
+    {clientes.map(c => (
+      <li key={c.id}>
+        {c.nombre} - {c.telefono}
+        <button onClick={() => eliminarCliente(c.id)} style={{ marginLeft: '10px', color: 'red' }}>Eliminar</button>
+      </li>
+    ))}
+  </ul>
 }
 
   async function agregarSesion() {
