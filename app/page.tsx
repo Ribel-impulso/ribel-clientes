@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 
 export default function Home() {
   const [clientes, setClientes] = useState<any[]>([])
+  const [sesiones, setSesiones] = useState<any[]>([])
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [clienteSeleccionado, setClienteSeleccionado] = useState('')
@@ -14,6 +15,7 @@ export default function Home() {
 
   useEffect(() => {
     cargarClientes()
+    cargarSesiones()
   }, [])
 
   async function cargarClientes() {
@@ -21,10 +23,20 @@ export default function Home() {
     setClientes(data || [])
   }
 
+  async function cargarSesiones() {
+    const { data } = await supabase.from('sesiones').select('*, clientes(nombre)')
+    setSesiones(data || [])
+  }
+
   async function agregarCliente() {
     await supabase.from('clientes').insert([{ nombre, telefono }])
     setNombre('')
     setTelefono('')
+    cargarClientes()
+  }
+
+  async function eliminarCliente(id: string) {
+    await supabase.from('clientes').delete().eq('id', id)
     cargarClientes()
   }
 
@@ -40,6 +52,7 @@ export default function Home() {
     setTipoMasaje('')
     setMonto('')
     alert('Sesión registrada!')
+    cargarSesiones()
   }
 
   return (
@@ -50,6 +63,16 @@ export default function Home() {
       <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} />
       <input placeholder="Teléfono" value={telefono} onChange={e => setTelefono(e.target.value)} />
       <button onClick={agregarCliente}>Agregar Cliente</button>
+
+      <h2>Clientes ({clientes.length})</h2>
+      <ul>
+        {clientes.map(c => (
+          <li key={c.id}>
+            {c.nombre} - {c.telefono}
+            <button onClick={() => eliminarCliente(c.id)} style={{ marginLeft: '10px', color: 'red' }}>Eliminar</button>
+          </li>
+        ))}
+      </ul>
 
       <h2>Registrar Sesión</h2>
       <select onChange={e => setClienteSeleccionado(e.target.value)}>
@@ -65,9 +88,13 @@ export default function Home() {
       </select>
       <button onClick={agregarSesion}>Registrar Sesión</button>
 
-      <h2>Clientes ({clientes.length})</h2>
+      <h2>Sesiones registradas</h2>
       <ul>
-        {clientes.map(c => <li key={c.id}>{c.nombre} - {c.telefono}</li>)}
+        {sesiones.map(s => (
+          <li key={s.id}>
+            {s.clientes?.nombre} — {s.fecha} — {s.tipo_masaje} — ${s.monto} — {s.forma_pago}
+          </li>
+        ))}
       </ul>
     </main>
   )
