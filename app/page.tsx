@@ -28,8 +28,8 @@ export default function Home() {
     const { data } = await supabase
       .from('sesiones')
       .select('*, clientes(nombre)')
-      .gte('fecha', ${mesSeleccionado}-01)
-      .lte('fecha', ${mesSeleccionado}-31)
+      .gte('fecha', `${mesSeleccionado}-01`)
+      .lte('fecha', `${mesSeleccionado}-31`)
       .order('fecha', { ascending: false })
     setSesiones(data || [])
   }
