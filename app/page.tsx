@@ -45,9 +45,13 @@ export default function Home() {
   }
 
   async function eliminarCliente(id: string) {
-    await supabase.from('clientes').delete().eq('id', id)
-    cargarClientes()
-  }
+  const confirmar = confirm('¿Seguro? Se borrarán también todas sus sesiones.')
+  if (!confirmar) return
+  await supabase.from('sesiones').delete().eq('cliente_id', id)
+  await supabase.from('clientes').delete().eq('id', id)
+  cargarClientes()
+  cargarSesiones()
+}
 
   async function agregarSesion() {
     await supabase.from('sesiones').insert([{
