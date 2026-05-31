@@ -14,6 +14,9 @@ export default function Home() {
   const [formaPago, setFormaPago] = useState('efectivo')
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
 
+  const th: React.CSSProperties = { border: '1px solid #ccc', padding: '8px', textAlign: 'left', backgroundColor: '#f0f0f0' }
+  const td: React.CSSProperties = { border: '1px solid #ccc', padding: '8px' }
+
   useEffect(() => {
     cargarClientes()
     cargarSesiones()
@@ -102,16 +105,32 @@ export default function Home() {
       <input type="month" value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} />
       <p>💵 Efectivo: ${totalEfectivo}</p>
       <p>🏦 Transferencia: ${totalTransferencia}</p>
-      <p><strong>Total: ${totalMes}</strong></p>
+      <p><strong>💰 Total: ${totalMes}</strong></p>
 
       <h2>Sesiones de {mesSeleccionado}</h2>
-      <ul>
-        {sesiones.map(s => (
-          <li key={s.id}>
-            <strong>{s.clientes?.nombre}</strong> — {s.fecha} — {s.tipo_masaje} — ${s.monto} — {s.forma_pago}
-          </li>
-        ))}
-      </ul>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+        <thead>
+          <tr>
+            <th style={th}>Cliente</th>
+            <th style={th}>Fecha</th>
+            <th style={th}>Servicio</th>
+            <th style={th}>Monto</th>
+            <th style={th}>Pago</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sesiones.map(s => (
+            <tr key={s.id}>
+              <td style={td}>{s.clientes?.nombre}</td>
+              <td style={td}>{s.fecha}</td>
+              <td style={td}>{s.tipo_masaje}</td>
+              <td style={td}>${s.monto}</td>
+              <td style={td}>{s.forma_pago}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
     </main>
   )
 }
