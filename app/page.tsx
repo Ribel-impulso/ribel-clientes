@@ -12,11 +12,12 @@ export default function Home() {
   const [tipoMasaje, setTipoMasaje] = useState('')
   const [monto, setMonto] = useState('')
   const [formaPago, setFormaPago] = useState('efectivo')
+  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
 
   useEffect(() => {
     cargarClientes()
     cargarSesiones()
-  }, [])
+  }, [mesSeleccionado])
 
   async function cargarClientes() {
     const { data } = await supabase.from('clientes').select('*')
@@ -24,7 +25,12 @@ export default function Home() {
   }
 
   async function cargarSesiones() {
-    const { data } = await supabase.from('sesiones').select('*, clientes(nombre)')
+    const { data } = await supabase
+      .from('sesiones')
+      .select('*, clientes(nombre)')
+      .gte('fecha', ${mesSeleccionado}-01)
+      .lte('fecha', ${mesSeleccionado}-31)
+      .order('fecha', { ascending: false })
     setSesiones(data || [])
   }
 
@@ -54,6 +60,10 @@ export default function Home() {
     alert('Sesión registrada!')
     cargarSesiones()
   }
+
+  const totalEfectivo = sesiones.filter(s => s.forma_pago === 'efectivo').reduce((sum, s) => sum + (s.monto || 0), 0)
+  const totalTransferencia = sesiones.filter(s => s.forma_pago === 'transferencia').reduce((sum, s) => sum + (s.monto || 0), 0)
+  const totalMes = totalEfectivo + totalTransferencia
 
   return (
     <main style={{ padding: '20px', fontFamily: 'Arial' }}>
@@ -88,11 +98,17 @@ export default function Home() {
       </select>
       <button onClick={agregarSesion}>Registrar Sesión</button>
 
-      <h2>Sesiones registradas</h2>
+      <h2>Resumen del mes</h2>
+      <input type="month" value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} />
+      <p>💵 Efectivo: ${totalEfectivo}</p>
+      <p>🏦 Transferencia: ${totalTransferencia}</p>
+      <p><strong>Total: ${totalMes}</strong></p>
+
+      <h2>Sesiones de {mesSeleccionado}</h2>
       <ul>
         {sesiones.map(s => (
           <li key={s.id}>
-            {s.clientes?.nombre} — {s.fecha} — {s.tipo_masaje} — ${s.monto} — {s.forma_pago}
+            <strong>{s.clientes?.nombre}</strong> — {s.fecha} — {s.tipo_masaje} — ${s.monto} — {s.forma_pago}
           </li>
         ))}
       </ul>
