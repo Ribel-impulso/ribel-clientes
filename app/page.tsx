@@ -13,6 +13,7 @@ export default function Home() {
   const [monto, setMonto] = useState('')
   const [formaPago, setFormaPago] = useState('efectivo')
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
+  const [mostrarClientes, setMostrarClientes] = useState(false)
 
   const th: React.CSSProperties = { border: '1px solid #ccc', padding: '8px', textAlign: 'left', backgroundColor: '#f0f0f0' }
   const td: React.CSSProperties = { border: '1px solid #ccc', padding: '8px' }
@@ -44,22 +45,14 @@ export default function Home() {
     cargarClientes()
   }
 
-  <h2>
-  Clientes ({clientes.length})
-  <button onClick={() => setMostrarClientes(!mostrarClientes)} style={{ marginLeft: '10px', fontSize: '14px' }}>
-    {mostrarClientes ? 'Ocultar' : 'Ver'}
-  </button>
-</h2>
-{mostrarClientes && (
-  <ul>
-    {clientes.map(c => (
-      <li key={c.id}>
-        {c.nombre} - {c.telefono}
-        <button onClick={() => eliminarCliente(c.id)} style={{ marginLeft: '10px', color: 'red' }}>Eliminar</button>
-      </li>
-    ))}
-  </ul>
-}
+  async function eliminarCliente(id: string) {
+    const confirmar = confirm('¿Seguro? Se borrarán también todas sus sesiones.')
+    if (!confirmar) return
+    await supabase.from('sesiones').delete().eq('cliente_id', id)
+    await supabase.from('clientes').delete().eq('id', id)
+    cargarClientes()
+    cargarSesiones()
+  }
 
   async function agregarSesion() {
     await supabase.from('sesiones').insert([{
@@ -89,15 +82,22 @@ export default function Home() {
       <input placeholder="Teléfono" value={telefono} onChange={e => setTelefono(e.target.value)} />
       <button onClick={agregarCliente}>Agregar Cliente</button>
 
-      <h2>Clientes ({clientes.length})</h2>
-      <ul>
-        {clientes.map(c => (
-          <li key={c.id}>
-            {c.nombre} - {c.telefono}
-            <button onClick={() => eliminarCliente(c.id)} style={{ marginLeft: '10px', color: 'red' }}>Eliminar</button>
-          </li>
-        ))}
-      </ul>
+      <h2>
+        Clientes ({clientes.length})
+        <button onClick={() => setMostrarClientes(!mostrarClientes)} style={{ marginLeft: '10px', fontSize: '14px' }}>
+          {mostrarClientes ? 'Ocultar' : 'Ver'}
+        </button>
+      </h2>
+      {mostrarClientes && (
+        <ul>
+          {clientes.map(c => (
+            <li key={c.id}>
+              {c.nombre} - {c.telefono}
+              <button onClick={() => eliminarCliente(c.id)} style={{ marginLeft: '10px', color: 'red' }}>Eliminar</button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h2>Registrar Sesión</h2>
       <select onChange={e => setClienteSeleccionado(e.target.value)}>
