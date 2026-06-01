@@ -134,8 +134,6 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (userId) cargarGastos(userId)
-      
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
         window.location.href = '/login'
@@ -144,13 +142,13 @@ export default function Home() {
         cargarClientes(data.user.id)
         cargarSesiones(data.user.id)
         cargarServicios(data.user.id)
-        cargarGastos(data.user.id)
+        cargarGastos(data.user.id, mesGastos)
       }
     })
   }, [mesSeleccionado])
 
   useEffect(() => {
-    if (userId) cargarGastos(userId)
+    if (userId) cargarGastos(userId, mesGastos)
   }, [mesGastos, userId])
 
   async function cargarClientes(uid: string) {
@@ -174,14 +172,16 @@ export default function Home() {
     setServicios(data || [])
   }
 
-  async function cargarGastos(uid: string) {
-    const { data } = await supabase
+  async function cargarGastos(uid: string, mes: string) {
+    const ultimoDia = new Date(parseInt(mes.slice(0,4)), parseInt(mes.slice(5,7)), 0).toISOString().slice(0,10)
+    const { data, error } = await supabase
       .from('gastos')
       .select('*')
       .eq('user_id', uid)
-      .gte('fecha', mesGastos + '-01')
-      .lte('fecha', new Date(parseInt(mesGastos.slice(0,4)), parseInt(mesGastos.slice(5,7)), 0).toISOString().slice(0,10))
+      .gte('fecha', mes + '-01')
+      .lte('fecha', ultimoDia)
       .order('fecha', { ascending: false })
+    if (error) console.log('Error gastos:', error.message)
     setGastos(data || [])
   }
 
@@ -280,25 +280,29 @@ export default function Home() {
 
   async function agregarGasto() {
     if (!userId) return
-    await supabase.from('gastos').insert([{
+    const { error } = await supabase.from('gastos').insert([{
       fecha: gastoFecha,
       descripcion: gastoDescripcion,
       monto: parseFloat(gastoMonto),
       tipo: gastoTipo,
       user_id: userId
     }])
+    if (error) {
+      alert('Error: ' + error.message)
+      return
+    }
     setGastoFecha('')
     setGastoDescripcion('')
     setGastoMonto('')
     setGastoTipo('egreso')
-    cargarGastos(userId)
+    cargarGastos(userId, mesGastos)
   }
 
   async function eliminarGasto(id: string) {
     const confirmar = confirm('¿Eliminar este registro?')
     if (!confirmar) return
     await supabase.from('gastos').delete().eq('id', id)
-    cargarGastos(userId!)
+    cargarGastos(userId!, mesGastos)
   }
 
   async function cerrarSesion() {
@@ -315,8 +319,8 @@ export default function Home() {
   const totalTransferencia = sesiones.filter(s => s.forma_pago === 'transferencia').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalMes = totalEfectivo + totalTransferencia
   const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes
-const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
-const balanceNeto = totalIngresos - totalEgresos
+  const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
+  const balanceNeto = totalIngresos - totalEgresos
 
   const rankingServicios = Object.entries(
     sesiones.reduce((acc, s) => {
