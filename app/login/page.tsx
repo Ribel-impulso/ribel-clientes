@@ -50,7 +50,7 @@ export default function Login() {
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <span style={{ fontSize: '28px' }}>🌿</span>
+          <span style={{ fontSize: '28px' }}>📂</span>
         </div>
 
         <h1 style={{ color: '#161616', margin: '0 0 4px', fontSize: '24px' }}>Mis Registros</h1>
