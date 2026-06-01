@@ -69,13 +69,23 @@ export default function Home() {
     cargarSesiones()
   }
 
+  async function cerrarSesion() {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
   const totalEfectivo = sesiones.filter(s => s.forma_pago === 'efectivo').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalTransferencia = sesiones.filter(s => s.forma_pago === 'transferencia').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalMes = totalEfectivo + totalTransferencia
 
   return (
     <main style={{ padding: '20px', fontFamily: 'Arial' }}>
-      <h1>Ribel Clientes</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Mis Registros</h1>
+        <button onClick={cerrarSesion} style={{ padding: '8px 16px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+          Cerrar Sesión
+        </button>
+      </div>
 
       <h2>Agregar Cliente</h2>
       <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} />
@@ -142,7 +152,6 @@ export default function Home() {
           ))}
         </tbody>
       </table>
-
     </main>
   )
 }
