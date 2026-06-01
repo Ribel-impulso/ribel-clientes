@@ -20,6 +20,11 @@ export default function Home() {
   const [nuevoServicioCodigo, setNuevoServicioCodigo] = useState('')
   const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [editFecha, setEditFecha] = useState('')
+  const [editServicio, setEditServicio] = useState('')
+  const [editMonto, setEditMonto] = useState('')
+  const [editFormaPago, setEditFormaPago] = useState('efectivo')
 
   const card: React.CSSProperties = {
     backgroundColor: '#ffffff',
@@ -92,8 +97,8 @@ export default function Home() {
       .from('sesiones')
       .select('*, clientes(nombre)')
       .eq('user_id', uid)
-      .gte('fecha', `${mesSeleccionado}-01`)
-      .lte('fecha', `${mesSeleccionado}-31`)
+      .gte('fecha', mesSeleccionado + '-01')
+      .lte('fecha', mesSeleccionado + '-31')
       .order('fecha', { ascending: false })
     setSesiones(data || [])
   }
@@ -112,7 +117,7 @@ export default function Home() {
   }
 
   async function eliminarCliente(id: string) {
-    const confirmar = confirm('¿Seguro? Se borrarán también todas sus sesiones.')
+    const confirmar = confirm('¿Seguro? Se borrarán también todos sus turnos.')
     if (!confirmar) return
     await supabase.from('sesiones').delete().eq('cliente_id', id)
     await supabase.from('clientes').delete().eq('id', id)
@@ -154,8 +159,34 @@ export default function Home() {
     setServicioSeleccionado('')
     setBusquedaServicio('')
     setMonto('')
-    alert('Sesión registrada!')
+    alert('Turno registrado!')
     cargarSesiones(userId)
+  }
+
+  async function eliminarSesion(id: string) {
+    const confirmar = confirm('¿Eliminar este turno?')
+    if (!confirmar) return
+    await supabase.from('sesiones').delete().eq('id', id)
+    cargarSesiones(userId!)
+  }
+
+  function iniciarEdicion(s: any) {
+    setEditandoId(s.id)
+    setEditFecha(s.fecha)
+    setEditServicio(s.tipo_masaje || '')
+    setEditMonto(s.monto?.toString() || '')
+    setEditFormaPago(s.forma_pago || 'efectivo')
+  }
+
+  async function guardarEdicion(id: string) {
+    await supabase.from('sesiones').update({
+      fecha: editFecha,
+      tipo_masaje: editServicio,
+      monto: parseFloat(editMonto),
+      forma_pago: editFormaPago
+    }).eq('id', id)
+    setEditandoId(null)
+    cargarSesiones(userId!)
   }
 
   async function cerrarSesion() {
@@ -239,9 +270,9 @@ export default function Home() {
         )}
       </div>
 
-      {/* REGISTRAR SESIÓN */}
+      {/* REGISTRAR TURNO */}
       <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Sesión</h2>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Turno</h2>
         <select onChange={e => setClienteSeleccionado(e.target.value)} style={input}>
           <option value="">Seleccionar cliente</option>
           {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -270,7 +301,7 @@ export default function Home() {
           <option value="transferencia">Transferencia</option>
         </select>
         <br />
-        <button onClick={agregarSesion} style={btnPrimary}>Registrar Sesión</button>
+        <button onClick={agregarSesion} style={btnPrimary}>Registrar Turno</button>
       </div>
 
       {/* RESUMEN DEL MES */}
@@ -297,7 +328,7 @@ export default function Home() {
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Servicios del mes</h2>
         {rankingServicios.length === 0 ? (
-          <p style={{ color: '#161616' }}>No hay sesiones este mes.</p>
+          <p style={{ color: '#161616' }}>No hay turnos este mes.</p>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -318,9 +349,9 @@ export default function Home() {
         )}
       </div>
 
-      {/* SESIONES */}
+      {/* TURNOS */}
       <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Sesiones de {mesSeleccionado}</h2>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Turnos de {mesSeleccionado}</h2>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
@@ -329,17 +360,47 @@ export default function Home() {
               <th style={th}>Servicio</th>
               <th style={th}>Monto</th>
               <th style={th}>Pago</th>
+              <th style={th}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {sesiones.map(s => (
-              <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
-                <td style={td}>{s.clientes?.nombre}</td>
-                <td style={td}>{s.fecha}</td>
-                <td style={td}>{s.tipo_masaje}</td>
-                <td style={td}>${s.monto}</td>
-                <td style={td}>{s.forma_pago}</td>
-              </tr>
+              editandoId === s.id ? (
+                <tr key={s.id} style={{ backgroundColor: '#fffaf7' }}>
+                  <td style={td}>{s.clientes?.nombre}</td>
+                  <td style={td}>
+                    <input type="date" value={editFecha} onChange={e => setEditFecha(e.target.value)} style={{ ...input, marginBottom: 0 }} />
+                  </td>
+                  <td style={td}>
+                    <input value={editServicio} onChange={e => setEditServicio(e.target.value)} style={{ ...input, marginBottom: 0 }} />
+                  </td>
+                  <td style={td}>
+                    <input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} />
+                  </td>
+                  <td style={td}>
+                    <select value={editFormaPago} onChange={e => setEditFormaPago(e.target.value)} style={{ ...input, marginBottom: 0 }}>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="transferencia">Transferencia</option>
+                    </select>
+                  </td>
+                  <td style={td}>
+                    <button onClick={() => guardarEdicion(s.id)} style={{ ...btnPrimary, padding: '6px 12px', marginRight: '6px' }}>Guardar</button>
+                    <button onClick={() => setEditandoId(null)} style={{ ...btnSecondary, marginLeft: 0 }}>Cancelar</button>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
+                  <td style={td}>{s.clientes?.nombre}</td>
+                  <td style={td}>{s.fecha}</td>
+                  <td style={td}>{s.tipo_masaje}</td>
+                  <td style={td}>${s.monto}</td>
+                  <td style={td}>{s.forma_pago}</td>
+                  <td style={td}>
+                    <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
+                    <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
+                  </td>
+                </tr>
+              )
             ))}
           </tbody>
         </table>
