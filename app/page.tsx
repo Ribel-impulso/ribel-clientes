@@ -14,6 +14,7 @@ export default function Home() {
   const [formaPago, setFormaPago] = useState('efectivo')
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
   const [mostrarClientes, setMostrarClientes] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
   const card: React.CSSProperties = {
     backgroundColor: '#ffffff',
@@ -23,7 +24,6 @@ export default function Home() {
     marginBottom: '20px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
   }
-
   const input: React.CSSProperties = {
     padding: '10px',
     borderRadius: '8px',
@@ -32,7 +32,6 @@ export default function Home() {
     marginBottom: '8px',
     fontFamily: 'Arial'
   }
-
   const btnPrimary: React.CSSProperties = {
     padding: '10px 20px',
     backgroundColor: '#ba9a7d',
@@ -42,7 +41,6 @@ export default function Home() {
     cursor: 'pointer',
     fontFamily: 'Arial'
   }
-
   const btnSecondary: React.CSSProperties = {
     padding: '8px 16px',
     backgroundColor: '#e3dfd6',
@@ -53,7 +51,6 @@ export default function Home() {
     marginLeft: '10px',
     fontFamily: 'Arial'
   }
-
   const th: React.CSSProperties = {
     border: '1px solid #e3dfd6',
     padding: '10px',
@@ -61,7 +58,6 @@ export default function Home() {
     backgroundColor: '#e3dfd6',
     color: '#161616'
   }
-
   const td: React.CSSProperties = {
     border: '1px solid #e3dfd6',
     padding: '10px',
@@ -69,19 +65,27 @@ export default function Home() {
   }
 
   useEffect(() => {
-    cargarClientes()
-    cargarSesiones()
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        window.location.href = '/login'
+      } else {
+        setUserId(data.user.id)
+        cargarClientes(data.user.id)
+        cargarSesiones(data.user.id)
+      }
+    })
   }, [mesSeleccionado])
 
-  async function cargarClientes() {
-    const { data } = await supabase.from('clientes').select('*')
+  async function cargarClientes(uid: string) {
+    const { data } = await supabase.from('clientes').select('*').eq('user_id', uid)
     setClientes(data || [])
   }
 
-  async function cargarSesiones() {
+  async function cargarSesiones(uid: string) {
     const { data } = await supabase
       .from('sesiones')
       .select('*, clientes(nombre)')
+      .eq('user_id', uid)
       .gte('fecha', `${mesSeleccionado}-01`)
       .lte('fecha', `${mesSeleccionado}-31`)
       .order('fecha', { ascending: false })
@@ -89,10 +93,11 @@ export default function Home() {
   }
 
   async function agregarCliente() {
-    await supabase.from('clientes').insert([{ nombre, telefono }])
+    if (!userId) return
+    await supabase.from('clientes').insert([{ nombre, telefono, user_id: userId }])
     setNombre('')
     setTelefono('')
-    cargarClientes()
+    cargarClientes(userId)
   }
 
   async function eliminarCliente(id: string) {
@@ -100,23 +105,25 @@ export default function Home() {
     if (!confirmar) return
     await supabase.from('sesiones').delete().eq('cliente_id', id)
     await supabase.from('clientes').delete().eq('id', id)
-    cargarClientes()
-    cargarSesiones()
+    cargarClientes(userId!)
+    cargarSesiones(userId!)
   }
 
   async function agregarSesion() {
+    if (!userId) return
     await supabase.from('sesiones').insert([{
       cliente_id: clienteSeleccionado,
       fecha,
       tipo_masaje: tipoMasaje,
       monto: parseFloat(monto),
-      forma_pago: formaPago
+      forma_pago: formaPago,
+      user_id: userId
     }])
     setFecha('')
     setTipoMasaje('')
     setMonto('')
     alert('Sesión registrada!')
-    cargarSesiones()
+    cargarSesiones(userId)
   }
 
   async function cerrarSesion() {
@@ -131,15 +138,11 @@ export default function Home() {
   return (
     <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
 
-      {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
-        <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>
-          Cerrar Sesión
-        </button>
+        <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
       </div>
 
-      {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
@@ -147,7 +150,6 @@ export default function Home() {
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
-      {/* LISTA CLIENTES */}
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Clientes ({clientes.length})</h2>
@@ -167,7 +169,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* REGISTRAR SESIÓN */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Sesión</h2>
         <select onChange={e => setClienteSeleccionado(e.target.value)} style={input}>
@@ -185,7 +186,6 @@ export default function Home() {
         <button onClick={agregarSesion} style={btnPrimary}>Registrar Sesión</button>
       </div>
 
-      {/* RESUMEN DEL MES */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen del mes</h2>
         <input type="month" value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} style={input} />
@@ -205,7 +205,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* SESIONES */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Sesiones de {mesSeleccionado}</h2>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
