@@ -41,33 +41,10 @@ function CambiarPassword() {
 
   return (
     <div>
-      <input
-        type="password"
-        placeholder="Nueva contraseña"
-        value={nueva}
-        onChange={e => setNueva(e.target.value)}
-        style={inp}
-      />
-      <input
-        type="password"
-        placeholder="Confirmar contraseña"
-        value={confirmar}
-        onChange={e => setConfirmar(e.target.value)}
-        style={inp}
-      />
+      <input type="password" placeholder="Nueva contraseña" value={nueva} onChange={e => setNueva(e.target.value)} style={inp} />
+      <input type="password" placeholder="Confirmar contraseña" value={confirmar} onChange={e => setConfirmar(e.target.value)} style={inp} />
       <br />
-      <button
-        onClick={handleCambio}
-        style={{
-          padding: '10px 20px',
-          backgroundColor: '#ba9a7d',
-          color: '#ffffff',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          fontFamily: 'Arial'
-        }}
-      >
+      <button onClick={handleCambio} style={{ padding: '10px 20px', backgroundColor: '#ba9a7d', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Arial' }}>
         Actualizar contraseña
       </button>
       {mensaje && <p style={{ color: 'green', marginTop: '12px' }}>{mensaje}</p>}
@@ -80,6 +57,7 @@ export default function Home() {
   const [clientes, setClientes] = useState<any[]>([])
   const [sesiones, setSesiones] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
+  const [gastos, setGastos] = useState<any[]>([])
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [clienteSeleccionado, setClienteSeleccionado] = useState('')
@@ -99,6 +77,13 @@ export default function Home() {
   const [editServicio, setEditServicio] = useState('')
   const [editMonto, setEditMonto] = useState('')
   const [editFormaPago, setEditFormaPago] = useState('efectivo')
+  const [gastoFecha, setGastoFecha] = useState('')
+  const [gastoDescripcion, setGastoDescripcion] = useState('')
+  const [gastoMonto, setGastoMonto] = useState('')
+  const [gastoTipo, setGastoTipo] = useState('egreso')
+  const [mesGastos, setMesGastos] = useState(new Date().toISOString().slice(0, 7))
+  const [clienteHistorial, setClienteHistorial] = useState('')
+  const [historial, setHistorial] = useState<any[]>([])
 
   const card: React.CSSProperties = {
     backgroundColor: '#ffffff',
@@ -157,9 +142,10 @@ export default function Home() {
         cargarClientes(data.user.id)
         cargarSesiones(data.user.id)
         cargarServicios(data.user.id)
+        cargarGastos(data.user.id)
       }
     })
-  }, [mesSeleccionado])
+  }, [mesSeleccionado, mesGastos])
 
   async function cargarClientes(uid: string) {
     const { data } = await supabase.from('clientes').select('*').eq('user_id', uid)
@@ -182,6 +168,27 @@ export default function Home() {
     setServicios(data || [])
   }
 
+  async function cargarGastos(uid: string) {
+    const { data } = await supabase
+      .from('gastos')
+      .select('*')
+      .eq('user_id', uid)
+      .gte('fecha', mesGastos + '-01')
+      .lte('fecha', new Date(parseInt(mesGastos.slice(0,4)), parseInt(mesGastos.slice(5,7)), 0).toISOString().slice(0,10))
+      .order('fecha', { ascending: false })
+    setGastos(data || [])
+  }
+
+  async function cargarHistorial(clienteId: string) {
+    const { data } = await supabase
+      .from('sesiones')
+      .select('*, clientes(nombre)')
+      .eq('user_id', userId!)
+      .eq('cliente_id', clienteId)
+      .order('fecha', { ascending: false })
+    setHistorial(data || [])
+  }
+
   async function agregarCliente() {
     if (!userId) return
     await supabase.from('clientes').insert([{ nombre, telefono, user_id: userId }])
@@ -201,11 +208,7 @@ export default function Home() {
 
   async function agregarServicio() {
     if (!userId) return
-    await supabase.from('servicios').insert([{
-      codigo: nuevoServicioCodigo,
-      nombre: nuevoServicioNombre,
-      user_id: userId
-    }])
+    await supabase.from('servicios').insert([{ codigo: nuevoServicioCodigo, nombre: nuevoServicioNombre, user_id: userId }])
     setNuevoServicioCodigo('')
     setNuevoServicioNombre('')
     cargarServicios(userId)
@@ -269,6 +272,29 @@ export default function Home() {
     cargarSesiones(userId!)
   }
 
+  async function agregarGasto() {
+    if (!userId) return
+    await supabase.from('gastos').insert([{
+      fecha: gastoFecha,
+      descripcion: gastoDescripcion,
+      monto: parseFloat(gastoMonto),
+      tipo: gastoTipo,
+      user_id: userId
+    }])
+    setGastoFecha('')
+    setGastoDescripcion('')
+    setGastoMonto('')
+    setGastoTipo('egreso')
+    cargarGastos(userId)
+  }
+
+  async function eliminarGasto(id: string) {
+    const confirmar = confirm('¿Eliminar este registro?')
+    if (!confirmar) return
+    await supabase.from('gastos').delete().eq('id', id)
+    cargarGastos(userId!)
+  }
+
   async function cerrarSesion() {
     await supabase.auth.signOut()
     window.location.href = '/login'
@@ -282,6 +308,9 @@ export default function Home() {
   const totalEfectivo = sesiones.filter(s => s.forma_pago === 'efectivo').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalTransferencia = sesiones.filter(s => s.forma_pago === 'transferencia').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalMes = totalEfectivo + totalTransferencia
+  const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0)
+  const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
+  const balanceNeto = totalIngresos - totalEgresos
 
   const rankingServicios = Object.entries(
     sesiones.reduce((acc, s) => {
@@ -449,15 +478,9 @@ export default function Home() {
               editandoId === s.id ? (
                 <tr key={s.id} style={{ backgroundColor: '#fffaf7' }}>
                   <td style={td}>{s.clientes?.nombre}</td>
-                  <td style={td}>
-                    <input type="date" value={editFecha} onChange={e => setEditFecha(e.target.value)} style={{ ...input, marginBottom: 0 }} />
-                  </td>
-                  <td style={td}>
-                    <input value={editServicio} onChange={e => setEditServicio(e.target.value)} style={{ ...input, marginBottom: 0 }} />
-                  </td>
-                  <td style={td}>
-                    <input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} />
-                  </td>
+                  <td style={td}><input type="date" value={editFecha} onChange={e => setEditFecha(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
+                  <td style={td}><input value={editServicio} onChange={e => setEditServicio(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
+                  <td style={td}><input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} /></td>
                   <td style={td}>
                     <select value={editFormaPago} onChange={e => setEditFormaPago(e.target.value)} style={{ ...input, marginBottom: 0 }}>
                       <option value="efectivo">Efectivo</option>
@@ -479,12 +502,7 @@ export default function Home() {
                   <td style={td}>{s.forma_pago}</td>
                   <td style={td}>
                     {s.forma_pago === 'transferencia' ? (
-                      <input
-                        type="checkbox"
-                        checked={s.facturado || false}
-                        onChange={() => toggleFacturado(s.id, s.facturado || false)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }}
-                      />
+                      <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
                     ) : (
                       <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
                     )}
@@ -495,6 +513,112 @@ export default function Home() {
                   </td>
                 </tr>
               )
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* HISTORIAL POR CLIENTE */}
+      <div style={card}>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Historial por Cliente</h2>
+        <select
+          value={clienteHistorial}
+          onChange={e => { setClienteHistorial(e.target.value); if (e.target.value) cargarHistorial(e.target.value) }}
+          style={input}
+        >
+          <option value="">Seleccionar cliente</option>
+          {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
+        {historial.length > 0 && (
+          <>
+            <p style={{ color: '#161616', marginTop: '12px' }}>
+              <strong>Total de turnos:</strong> {historial.length} &nbsp;|&nbsp;
+              <strong>Total facturado:</strong> ${historial.reduce((sum, s) => sum + (s.monto || 0), 0)}
+            </p>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>Fecha</th>
+                  <th style={th}>Servicio</th>
+                  <th style={th}>Monto</th>
+                  <th style={th}>Pago</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historial.map(s => (
+                  <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
+                    <td style={td}>{s.fecha}</td>
+                    <td style={td}>{s.tipo_masaje}</td>
+                    <td style={td}>${s.monto}</td>
+                    <td style={td}>{s.forma_pago}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+        {clienteHistorial && historial.length === 0 && (
+          <p style={{ color: '#9e9e9e', marginTop: '12px' }}>Este cliente no tiene turnos registrados.</p>
+        )}
+      </div>
+
+      {/* GASTOS E INGRESOS */}
+      <div style={card}>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Ingreso / Egreso</h2>
+        <input type="date" value={gastoFecha} onChange={e => setGastoFecha(e.target.value)} style={input} />
+        <input placeholder="Descripción" value={gastoDescripcion} onChange={e => setGastoDescripcion(e.target.value)} style={{ ...input, width: '220px' }} />
+        <input placeholder="Monto" type="number" value={gastoMonto} onChange={e => setGastoMonto(e.target.value)} style={{ ...input, width: '100px' }} />
+        <select value={gastoTipo} onChange={e => setGastoTipo(e.target.value)} style={input}>
+          <option value="ingreso">Ingreso</option>
+          <option value="egreso">Egreso</option>
+        </select>
+        <br />
+        <button onClick={agregarGasto} style={btnPrimary}>Registrar</button>
+      </div>
+
+      {/* RESUMEN GASTOS */}
+      <div style={card}>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen Ingresos y Egresos</h2>
+        <input type="month" value={mesGastos} onChange={e => setMesGastos(e.target.value)} style={input} />
+        <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
+          <div style={{ backgroundColor: '#e3dfd6', borderRadius: '8px', padding: '16px', flex: 1 }}>
+            <p style={{ margin: 0, color: '#161616' }}>📈 Ingresos</p>
+            <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalIngresos}</p>
+          </div>
+          <div style={{ backgroundColor: '#e3dfd6', borderRadius: '8px', padding: '16px', flex: 1 }}>
+            <p style={{ margin: 0, color: '#161616' }}>📉 Egresos</p>
+            <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalEgresos}</p>
+          </div>
+          <div style={{ backgroundColor: balanceNeto >= 0 ? '#ba9a7d' : '#c0392b', borderRadius: '8px', padding: '16px', flex: 1 }}>
+            <p style={{ margin: 0, color: '#ffffff' }}>💰 Balance</p>
+            <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ffffff' }}>${balanceNeto}</p>
+          </div>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+          <thead>
+            <tr>
+              <th style={th}>Fecha</th>
+              <th style={th}>Descripción</th>
+              <th style={th}>Monto</th>
+              <th style={th}>Tipo</th>
+              <th style={th}>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gastos.map(g => (
+              <tr key={g.id} style={{ backgroundColor: g.tipo === 'ingreso' ? '#f0fff4' : '#fff5f5' }}>
+                <td style={td}>{g.fecha}</td>
+                <td style={td}>{g.descripcion}</td>
+                <td style={td}>${g.monto}</td>
+                <td style={td}>
+                  <span style={{ color: g.tipo === 'ingreso' ? 'green' : '#c0392b', fontWeight: 'bold' }}>
+                    {g.tipo === 'ingreso' ? '▲ Ingreso' : '▼ Egreso'}
+                  </span>
+                </td>
+                <td style={td}>
+                  <button onClick={() => eliminarGasto(g.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
