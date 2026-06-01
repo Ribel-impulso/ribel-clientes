@@ -134,6 +134,8 @@ export default function Home() {
   }
 
   useEffect(() => {
+    if (userId) cargarGastos(userId)
+      
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
         window.location.href = '/login'
@@ -145,7 +147,11 @@ export default function Home() {
         cargarGastos(data.user.id)
       }
     })
-  }, [mesSeleccionado, mesGastos])
+  }, [mesSeleccionado])
+
+  useEffect(() => {
+    if (userId) cargarGastos(userId)
+  }, [mesGastos, userId])
 
   async function cargarClientes(uid: string) {
     const { data } = await supabase.from('clientes').select('*').eq('user_id', uid)
