@@ -5,15 +5,20 @@ import { supabase } from '../lib/supabase'
 export default function Home() {
   const [clientes, setClientes] = useState<any[]>([])
   const [sesiones, setSesiones] = useState<any[]>([])
+  const [servicios, setServicios] = useState<any[]>([])
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [clienteSeleccionado, setClienteSeleccionado] = useState('')
   const [fecha, setFecha] = useState('')
-  const [tipoMasaje, setTipoMasaje] = useState('')
+  const [servicioSeleccionado, setServicioSeleccionado] = useState('')
+  const [busquedaServicio, setBusquedaServicio] = useState('')
   const [monto, setMonto] = useState('')
   const [formaPago, setFormaPago] = useState('efectivo')
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
   const [mostrarClientes, setMostrarClientes] = useState(false)
+  const [mostrarServicios, setMostrarServicios] = useState(false)
+  const [nuevoServicioCodigo, setNuevoServicioCodigo] = useState('')
+  const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
 
   const card: React.CSSProperties = {
@@ -72,6 +77,7 @@ export default function Home() {
         setUserId(data.user.id)
         cargarClientes(data.user.id)
         cargarSesiones(data.user.id)
+        cargarServicios(data.user.id)
       }
     })
   }, [mesSeleccionado])
@@ -92,6 +98,11 @@ export default function Home() {
     setSesiones(data || [])
   }
 
+  async function cargarServicios(uid: string) {
+    const { data } = await supabase.from('servicios').select('*').eq('user_id', uid)
+    setServicios(data || [])
+  }
+
   async function agregarCliente() {
     if (!userId) return
     await supabase.from('clientes').insert([{ nombre, telefono, user_id: userId }])
@@ -109,18 +120,39 @@ export default function Home() {
     cargarSesiones(userId!)
   }
 
+  async function agregarServicio() {
+    if (!userId) return
+    await supabase.from('servicios').insert([{
+      codigo: nuevoServicioCodigo,
+      nombre: nuevoServicioNombre,
+      user_id: userId
+    }])
+    setNuevoServicioCodigo('')
+    setNuevoServicioNombre('')
+    cargarServicios(userId)
+  }
+
+  async function eliminarServicio(id: string) {
+    const confirmar = confirm('¿Eliminar este servicio?')
+    if (!confirmar) return
+    await supabase.from('servicios').delete().eq('id', id)
+    cargarServicios(userId!)
+  }
+
   async function agregarSesion() {
     if (!userId) return
+    const servicioFinal = servicioSeleccionado || busquedaServicio
     await supabase.from('sesiones').insert([{
       cliente_id: clienteSeleccionado,
       fecha,
-      tipo_masaje: tipoMasaje,
+      tipo_masaje: servicioFinal,
       monto: parseFloat(monto),
       forma_pago: formaPago,
       user_id: userId
     }])
     setFecha('')
-    setTipoMasaje('')
+    setServicioSeleccionado('')
+    setBusquedaServicio('')
     setMonto('')
     alert('Sesión registrada!')
     cargarSesiones(userId)
@@ -131,9 +163,22 @@ export default function Home() {
     window.location.href = '/login'
   }
 
+  const serviciosFiltrados = servicios.filter(s =>
+    s.nombre.toLowerCase().includes(busquedaServicio.toLowerCase()) ||
+    s.codigo.toLowerCase().includes(busquedaServicio.toLowerCase())
+  )
+
   const totalEfectivo = sesiones.filter(s => s.forma_pago === 'efectivo').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalTransferencia = sesiones.filter(s => s.forma_pago === 'transferencia').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalMes = totalEfectivo + totalTransferencia
+
+  const rankingServicios = Object.entries(
+    sesiones.reduce((acc, s) => {
+      const key = s.tipo_masaje || 'Sin servicio'
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+  ).sort((a, b) => b[1] - a[1])
 
   return (
     <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
@@ -143,6 +188,7 @@ export default function Home() {
         <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
       </div>
 
+      {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
@@ -150,6 +196,7 @@ export default function Home() {
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
+      {/* LISTA CLIENTES */}
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Clientes ({clientes.length})</h2>
@@ -169,6 +216,30 @@ export default function Home() {
         )}
       </div>
 
+      {/* SERVICIOS */}
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+          <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Servicios ({servicios.length})</h2>
+          <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
+            {mostrarServicios ? 'Ocultar' : 'Ver'}
+          </button>
+        </div>
+        <input placeholder="Código (ej: M001)" value={nuevoServicioCodigo} onChange={e => setNuevoServicioCodigo(e.target.value)} style={input} />
+        <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
+        <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
+        {mostrarServicios && (
+          <ul style={{ marginTop: '16px', paddingLeft: '16px' }}>
+            {servicios.map(s => (
+              <li key={s.id} style={{ marginBottom: '8px', color: '#161616' }}>
+                <strong>{s.codigo}</strong> - {s.nombre}
+                <button onClick={() => eliminarServicio(s.id)} style={{ marginLeft: '10px', color: '#ba9a7d', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* REGISTRAR SESIÓN */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Sesión</h2>
         <select onChange={e => setClienteSeleccionado(e.target.value)} style={input}>
@@ -176,7 +247,23 @@ export default function Home() {
           {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
-        <input placeholder="Servicio" value={tipoMasaje} onChange={e => setTipoMasaje(e.target.value)} style={input} />
+        <input
+          placeholder="Buscar servicio por código o nombre"
+          value={busquedaServicio}
+          onChange={e => { setBusquedaServicio(e.target.value); setServicioSeleccionado('') }}
+          style={{ ...input, width: '280px' }}
+        />
+        {busquedaServicio && serviciosFiltrados.length > 0 && !servicioSeleccionado && (
+          <ul style={{ border: '1px solid #e3dfd6', borderRadius: '8px', padding: '8px', listStyle: 'none', marginBottom: '8px' }}>
+            {serviciosFiltrados.map(s => (
+              <li key={s.id}
+                onClick={() => { setServicioSeleccionado(s.nombre); setBusquedaServicio(${s.codigo} - ${s.nombre}) }}
+                style={{ padding: '6px', cursor: 'pointer', color: '#161616' }}>
+                {s.codigo} - {s.nombre}
+              </li>
+            ))}
+          </ul>
+        )}
         <input placeholder="Monto" type="number" value={monto} onChange={e => setMonto(e.target.value)} style={input} />
         <select value={formaPago} onChange={e => setFormaPago(e.target.value)} style={input}>
           <option value="efectivo">Efectivo</option>
@@ -186,6 +273,7 @@ export default function Home() {
         <button onClick={agregarSesion} style={btnPrimary}>Registrar Sesión</button>
       </div>
 
+      {/* RESUMEN DEL MES */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen del mes</h2>
         <input type="month" value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} style={input} />
@@ -205,6 +293,32 @@ export default function Home() {
         </div>
       </div>
 
+      {/* RANKING SERVICIOS */}
+      <div style={card}>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Servicios del mes</h2>
+        {rankingServicios.length === 0 ? (
+          <p style={{ color: '#161616' }}>No hay sesiones este mes.</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={th}>Servicio</th>
+                <th style={th}>Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rankingServicios.map(([nombre, cantidad]) => (
+                <tr key={nombre} style={{ backgroundColor: '#ffffff' }}>
+                  <td style={td}>{nombre}</td>
+                  <td style={td}>{cantidad}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* SESIONES */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Sesiones de {mesSeleccionado}</h2>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
