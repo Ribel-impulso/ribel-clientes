@@ -18,7 +18,7 @@ export default function Login() {
 
   return (
     <main style={{ padding: '40px', fontFamily: 'Arial', maxWidth: '400px', margin: '0 auto' }}>
-      <h1>Ribel Clientes</h1>
+      <h1>Mis Registros</h1>
       <h2>Iniciar Sesión</h2>
       <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ display: 'block', width: '100%', marginBottom: '10px', padding: '8px' }} />
       <input placeholder="Contraseña" type="password" value={password} onChange={e => setPassword(e.target.value)} style={{ display: 'block', width: '100%', marginBottom: '10px', padding: '8px' }} />
