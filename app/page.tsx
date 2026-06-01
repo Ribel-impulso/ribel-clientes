@@ -172,7 +172,7 @@ export default function Home() {
       .select('*, clientes(nombre)')
       .eq('user_id', uid)
       .gte('fecha', mesSeleccionado + '-01')
-      .lte('fecha', mesSeleccionado + '-31')
+      .lte('fecha', new Date(parseInt(mesSeleccionado.slice(0,4)), parseInt(mesSeleccionado.slice(5,7)), 0).toISOString().slice(0,10))
       .order('fecha', { ascending: false })
     setSesiones(data || [])
   }
