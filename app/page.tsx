@@ -178,7 +178,7 @@ export default function Home() {
       acc[key] = (acc[key] || 0) + 1
       return acc
     }, {} as Record<string, number>)
-  ).sort((a, b) => b[1] - a[1])
+  ).sort((a, b) => (b[1] as number) - (a[1] as number))
 
   return (
     <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
@@ -257,7 +257,7 @@ export default function Home() {
           <ul style={{ border: '1px solid #e3dfd6', borderRadius: '8px', padding: '8px', listStyle: 'none', marginBottom: '8px' }}>
             {serviciosFiltrados.map(s => (
               <li key={s.id}
-                onClick={() => { setServicioSeleccionado(s.nombre); setBusquedaServicio(${s.codigo} - ${s.nombre}) }}
+                onClick={() => { setServicioSeleccionado(s.nombre); setBusquedaServicio(s.codigo + ' - ' + s.nombre) }}
                 style={{ padding: '6px', cursor: 'pointer', color: '#161616' }}>
                 {s.codigo} - {s.nombre}
               </li>
@@ -310,7 +310,7 @@ export default function Home() {
               {rankingServicios.map(([nombre, cantidad]) => (
                 <tr key={nombre} style={{ backgroundColor: '#ffffff' }}>
                   <td style={td}>{nombre}</td>
-                  <td style={td}>{cantidad}</td>
+                  <td style={td}>{cantidad as number}</td>
                 </tr>
               ))}
             </tbody>
