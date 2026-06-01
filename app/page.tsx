@@ -2,6 +2,80 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
+function CambiarPassword() {
+  const [nueva, setNueva] = useState('')
+  const [confirmar, setConfirmar] = useState('')
+  const [mensaje, setMensaje] = useState('')
+  const [error, setError] = useState('')
+
+  async function handleCambio() {
+    setMensaje('')
+    setError('')
+    if (nueva.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+    if (nueva !== confirmar) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+    const { error } = await supabase.auth.updateUser({ password: nueva })
+    if (error) {
+      setError('Hubo un error al cambiar la contraseña')
+    } else {
+      setMensaje('¡Contraseña actualizada correctamente!')
+      setNueva('')
+      setConfirmar('')
+    }
+  }
+
+  const inp: React.CSSProperties = {
+    padding: '10px',
+    borderRadius: '8px',
+    border: '1px solid #e3dfd6',
+    marginRight: '8px',
+    marginBottom: '8px',
+    fontFamily: 'Arial',
+    width: '220px'
+  }
+
+  return (
+    <div>
+      <input
+        type="password"
+        placeholder="Nueva contraseña"
+        value={nueva}
+        onChange={e => setNueva(e.target.value)}
+        style={inp}
+      />
+      <input
+        type="password"
+        placeholder="Confirmar contraseña"
+        value={confirmar}
+        onChange={e => setConfirmar(e.target.value)}
+        style={inp}
+      />
+      <br />
+      <button
+        onClick={handleCambio}
+        style={{
+          padding: '10px 20px',
+          backgroundColor: '#ba9a7d',
+          color: '#ffffff',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontFamily: 'Arial'
+        }}
+      >
+        Actualizar contraseña
+      </button>
+      {mensaje && <p style={{ color: 'green', marginTop: '12px' }}>{mensaje}</p>}
+      {error && <p style={{ color: '#c0392b', marginTop: '12px' }}>{error}</p>}
+    </div>
+  )
+}
+
 export default function Home() {
   const [clientes, setClientes] = useState<any[]>([])
   const [sesiones, setSesiones] = useState<any[]>([])
@@ -153,6 +227,7 @@ export default function Home() {
       tipo_masaje: servicioFinal,
       monto: parseFloat(monto),
       forma_pago: formaPago,
+      facturado: false,
       user_id: userId
     }])
     setFecha('')
@@ -167,6 +242,11 @@ export default function Home() {
     const confirmar = confirm('¿Eliminar este turno?')
     if (!confirmar) return
     await supabase.from('sesiones').delete().eq('id', id)
+    cargarSesiones(userId!)
+  }
+
+  async function toggleFacturado(id: string, valorActual: boolean) {
+    await supabase.from('sesiones').update({ facturado: !valorActual }).eq('id', id)
     cargarSesiones(userId!)
   }
 
@@ -360,6 +440,7 @@ export default function Home() {
               <th style={th}>Servicio</th>
               <th style={th}>Monto</th>
               <th style={th}>Pago</th>
+              <th style={th}>Facturado</th>
               <th style={th}>Acciones</th>
             </tr>
           </thead>
@@ -383,6 +464,7 @@ export default function Home() {
                       <option value="transferencia">Transferencia</option>
                     </select>
                   </td>
+                  <td style={td}>-</td>
                   <td style={td}>
                     <button onClick={() => guardarEdicion(s.id)} style={{ ...btnPrimary, padding: '6px 12px', marginRight: '6px' }}>Guardar</button>
                     <button onClick={() => setEditandoId(null)} style={{ ...btnSecondary, marginLeft: 0 }}>Cancelar</button>
@@ -396,6 +478,18 @@ export default function Home() {
                   <td style={td}>${s.monto}</td>
                   <td style={td}>{s.forma_pago}</td>
                   <td style={td}>
+                    {s.forma_pago === 'transferencia' ? (
+                      <input
+                        type="checkbox"
+                        checked={s.facturado || false}
+                        onChange={() => toggleFacturado(s.id, s.facturado || false)}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }}
+                      />
+                    ) : (
+                      <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+                    )}
+                  </td>
+                  <td style={td}>
                     <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
                     <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
                   </td>
@@ -404,6 +498,12 @@ export default function Home() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* CAMBIAR CONTRASEÑA */}
+      <div style={card}>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Cambiar Contraseña</h2>
+        <CambiarPassword />
       </div>
 
     </main>
