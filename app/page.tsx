@@ -392,6 +392,7 @@ export default function Home() {
 
       {/* REGISTRAR TURNO */}
       <div style={card}>
+        <h2 style={{ marginBottom: '16px' }}>Registrar Turno</h2>  {/* ← agregá esta línea */}
         <input
   placeholder="Buscar cliente..."
   value={busquedaCliente}
@@ -411,6 +412,7 @@ export default function Home() {
       ))}
   </ul>
 )}
+
         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
         <input
           placeholder="Buscar servicio por código o nombre"
