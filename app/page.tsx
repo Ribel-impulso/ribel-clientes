@@ -481,6 +481,16 @@ export default function Home() {
                 </tr>
               ))}
             </tbody>
+           </tbody>
+      <tfoot>
+        <tr style={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>
+          <td style={td}>Total</td>
+          <td style={td}>
+            {rankingServicios.reduce((acc, [, cantidad]) => acc + (cantidad as number), 0)}
+          </td>
+        </tr>
+      </tfoot>
+    </table> 
           </table>
         )}
       </div>
