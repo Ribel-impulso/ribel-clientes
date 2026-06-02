@@ -411,7 +411,6 @@ export default function Home() {
       ))}
   </ul>
 )}
-        </select>
         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
         <input
           placeholder="Buscar servicio por código o nombre"
