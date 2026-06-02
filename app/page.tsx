@@ -61,6 +61,7 @@ export default function Home() {
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [clienteSeleccionado, setClienteSeleccionado] = useState('')
+  const [busquedaCliente, setBusquedaCliente] = useState('')
   const [fecha, setFecha] = useState('')
   const [servicioSeleccionado, setServicioSeleccionado] = useState('')
   const [busquedaServicio, setBusquedaServicio] = useState('')
@@ -391,10 +392,25 @@ export default function Home() {
 
       {/* REGISTRAR TURNO */}
       <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Turno</h2>
-        <select onChange={e => setClienteSeleccionado(e.target.value)} style={input}>
-          <option value="">Seleccionar cliente</option>
-          {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        <input
+  placeholder="Buscar cliente..."
+  value={busquedaCliente}
+  onChange={e => { setBusquedaCliente(e.target.value); setClienteSeleccionado('') }}
+  style={input}
+/>
+{busquedaCliente && !clienteSeleccionado && (
+  <ul style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', listStyle: 'none', margin: 0 }}>
+    {clientes
+      .filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()))
+      .map(c => (
+        <li key={c.id}
+          onClick={() => { setClienteSeleccionado(c.id); setBusquedaCliente(c.nombre) }}
+          style={{ padding: '8px', cursor: 'pointer' }}>
+          {c.nombre}
+        </li>
+      ))}
+  </ul>
+)}
         </select>
         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
         <input
