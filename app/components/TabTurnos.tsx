@@ -25,7 +25,7 @@ interface Props {
   totalEfectivo: number
   totalTransferencia: number
   totalMes: number
-  rankingServicios: [string, unknown][]
+  rankingServicios: [string, number][]
   editandoId: string | null
   setEditandoId: (v: string | null) => void
   editFecha: string
