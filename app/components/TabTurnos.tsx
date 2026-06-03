@@ -16,6 +16,8 @@ interface Props {
   setFecha: (v: string) => void
   monto: string
   setMonto: (v: string) => void
+  horario: string
+  setHorario: (v: string) => void
   formaPago: string
   setFormaPago: (v: string) => void
   mesSeleccionado: string
@@ -58,6 +60,7 @@ export default function TabTurnos({
   busquedaServicio, setBusquedaServicio,
   servicioSeleccionado, setServicioSeleccionado,
   fecha, setFecha, monto, setMonto,
+  horario, setHorario
   formaPago, setFormaPago,
   mesSeleccionado, setMesSeleccionado,
   totalEfectivo, totalTransferencia, totalMes,
@@ -103,6 +106,7 @@ export default function TabTurnos({
           </ul>
         )}
         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
+        <input type="time" value={horario} onChange={e => setHorario(e.target.value)} style={input} />
         <input
           placeholder="Buscar servicio por código o nombre"
           value={busquedaServicio}
