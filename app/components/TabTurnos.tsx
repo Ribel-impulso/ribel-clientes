@@ -60,7 +60,7 @@ export default function TabTurnos({
   busquedaServicio, setBusquedaServicio,
   servicioSeleccionado, setServicioSeleccionado,
   fecha, setFecha, monto, setMonto,
-  horario, setHorario
+  horario, setHorario,
   formaPago, setFormaPago,
   mesSeleccionado, setMesSeleccionado,
   totalEfectivo, totalTransferencia, totalMes,
