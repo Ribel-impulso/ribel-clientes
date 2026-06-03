@@ -461,27 +461,26 @@ export default function Home() {
       </div>
 
       {/* RANKING SERVICIOS */}
-      <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Servicios del mes</h2>
-        {rankingServicios.length === 0 ? (
-          <p style={{ color: '#161616' }}>No hay turnos este mes.</p>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={th}>Servicio</th>
-                <th style={th}>Cantidad</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rankingServicios.map(([nombre, cantidad]) => (
-                <tr key={nombre} style={{ backgroundColor: '#ffffff' }}>
-                  <td style={td}>{nombre}</td>
-                  <td style={td}>{cantidad as number}</td>
-                </tr>
-              ))}
-            </tbody>
-           </tbody>
+<div style={card}>
+  <h2 style={{ color: '#161616', marginTop: 0 }}>Servicios del mes</h2>
+  {rankingServicios.length === 0 ? (
+    <p style={{ color: '#161616' }}>No hay turnos este mes.</p>
+  ) : (
+    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <thead>
+        <tr>
+          <th style={th}>Servicio</th>
+          <th style={th}>Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rankingServicios.map(([nombre, cantidad]) => (
+          <tr key={nombre} style={{ backgroundColor: '#ffffff' }}>
+            <td style={td}>{nombre}</td>
+            <td style={td}>{cantidad as number}</td>
+          </tr>
+        ))}
+      </tbody>
       <tfoot>
         <tr style={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>
           <td style={td}>Total</td>
@@ -490,10 +489,9 @@ export default function Home() {
           </td>
         </tr>
       </tfoot>
-    </table> 
-          </table>
-        )}
-      </div>
+    </table>
+  )}
+</div>
 
       {/* TURNOS */}
       <div style={card}>
