@@ -37,6 +37,7 @@ export default function Home() {
   const [gastoTipo, setGastoTipo] = useState('egreso')
   const [mesGastos, setMesGastos] = useState(new Date().toISOString().slice(0, 7))
   const [clienteHistorial, setClienteHistorial] = useState('')
+  const [horario, setHorario] = useState('')
   const [historial, setHistorial] = useState<any[]>([])
 
   const card: React.CSSProperties = {
@@ -189,12 +190,14 @@ export default function Home() {
       monto: parseFloat(monto),
       forma_pago: formaPago,
       facturado: false,
+      horario: horario,
       user_id: userId
     }])
     setFecha('')
     setServicioSeleccionado('')
     setBusquedaServicio('')
     setMonto('')
+    setHorario('')
     alert('Turno registrado!')
     cargarSesiones(userId)
   }
