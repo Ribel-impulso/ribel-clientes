@@ -1,57 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-
-function CambiarPassword() {
-  const [nueva, setNueva] = useState('')
-  const [confirmar, setConfirmar] = useState('')
-  const [mensaje, setMensaje] = useState('')
-  const [error, setError] = useState('')
-
-  async function handleCambio() {
-    setMensaje('')
-    setError('')
-    if (nueva.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
-      return
-    }
-    if (nueva !== confirmar) {
-      setError('Las contraseñas no coinciden')
-      return
-    }
-    const { error } = await supabase.auth.updateUser({ password: nueva })
-    if (error) {
-      setError('Hubo un error al cambiar la contraseña')
-    } else {
-      setMensaje('¡Contraseña actualizada correctamente!')
-      setNueva('')
-      setConfirmar('')
-    }
-  }
-
-  const inp: React.CSSProperties = {
-    padding: '10px',
-    borderRadius: '8px',
-    border: '1px solid #e3dfd6',
-    marginRight: '8px',
-    marginBottom: '8px',
-    fontFamily: 'Arial',
-    width: '220px'
-  }
-
-  return (
-    <div>
-      <input type="password" placeholder="Nueva contraseña" value={nueva} onChange={e => setNueva(e.target.value)} style={inp} />
-      <input type="password" placeholder="Confirmar contraseña" value={confirmar} onChange={e => setConfirmar(e.target.value)} style={inp} />
-      <br />
-      <button onClick={handleCambio} style={{ padding: '10px 20px', backgroundColor: '#ba9a7d', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Arial' }}>
-        Actualizar contraseña
-      </button>
-      {mensaje && <p style={{ color: 'green', marginTop: '12px' }}>{mensaje}</p>}
-      {error && <p style={{ color: '#c0392b', marginTop: '12px' }}>{error}</p>}
-    </div>
-  )
-}
+import TabConfiguracion from './components/TabConfiguracion'
+import TabTurnos from './components/TabTurnos'
+import TabFinanzas from './components/TabFinanzas'
 
 export default function Home() {
   const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas'>('turnos')
@@ -211,14 +163,6 @@ export default function Home() {
     setHistorial(data || [])
   }
 
-  async function agregarCliente() {
-    if (!userId) return
-    await supabase.from('clientes').insert([{ nombre, telefono, user_id: userId }])
-    setNombre('')
-    setTelefono('')
-    cargarClientes(userId)
-  }
-
   async function eliminarCliente(id: string) {
     const confirmar = confirm('¿Seguro? Se borrarán también todos sus turnos.')
     if (!confirmar) return
@@ -226,14 +170,6 @@ export default function Home() {
     await supabase.from('clientes').delete().eq('id', id)
     cargarClientes(userId!)
     cargarSesiones(userId!)
-  }
-
-  async function agregarServicio() {
-    if (!userId) return
-    await supabase.from('servicios').insert([{ codigo: nuevoServicioCodigo, nombre: nuevoServicioNombre, user_id: userId }])
-    setNuevoServicioCodigo('')
-    setNuevoServicioNombre('')
-    cargarServicios(userId)
   }
 
   async function eliminarServicio(id: string) {
@@ -303,10 +239,7 @@ export default function Home() {
       tipo: gastoTipo,
       user_id: userId
     }])
-    if (error) {
-      alert('Error: ' + error.message)
-      return
-    }
+    if (error) { alert('Error: ' + error.message); return }
     setGastoFecha('')
     setGastoDescripcion('')
     setGastoMonto('')
@@ -326,11 +259,6 @@ export default function Home() {
     window.location.href = '/login'
   }
 
-  const serviciosFiltrados = servicios.filter(s =>
-    s.nombre.toLowerCase().includes(busquedaServicio.toLowerCase()) ||
-    s.codigo.toLowerCase().includes(busquedaServicio.toLowerCase())
-  )
-
   const totalEfectivo = sesiones.filter(s => s.forma_pago === 'efectivo').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalTransferencia = sesiones.filter(s => s.forma_pago === 'transferencia').reduce((sum, s) => sum + (s.monto || 0), 0)
   const totalMes = totalEfectivo + totalTransferencia
@@ -349,13 +277,11 @@ export default function Home() {
   return (
     <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
 
-      {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
         <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
       </div>
 
-      {/* PESTAÑAS */}
       <div style={{ marginBottom: '0px' }}>
         <button style={tabStyle(pestanaActiva === 'configuracion')} onClick={() => setPestanaActiva('configuracion')}>
           ⚙️ Configuración
@@ -368,347 +294,63 @@ export default function Home() {
         </button>
       </div>
 
-      {/* CONTENIDO */}
       <div style={{ backgroundColor: '#ffffff', borderRadius: '0 12px 12px 12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
 
-        {/* ===== PESTAÑA CONFIGURACIÓN ===== */}
         {pestanaActiva === 'configuracion' && (
-          <>
-            {/* AGREGAR CLIENTE */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
-              <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
-              <input placeholder="Teléfono" value={telefono} onChange={e => setTelefono(e.target.value)} style={input} />
-              <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
-            </div>
-
-            {/* LISTA CLIENTES */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Clientes ({clientes.length})</h2>
-                <button onClick={() => setMostrarClientes(!mostrarClientes)} style={btnSecondary}>
-                  {mostrarClientes ? 'Ocultar' : 'Ver'}
-                </button>
-              </div>
-              {mostrarClientes && (
-                <ul style={{ marginTop: '16px', paddingLeft: '16px' }}>
-                  {clientes.map(c => (
-                    <li key={c.id} style={{ marginBottom: '8px', color: '#161616' }}>
-                      {c.nombre} - {c.telefono}
-                      <button onClick={() => eliminarCliente(c.id)} style={{ marginLeft: '10px', color: '#ba9a7d', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* SERVICIOS */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Servicios ({servicios.length})</h2>
-                <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
-                  {mostrarServicios ? 'Ocultar' : 'Ver'}
-                </button>
-              </div>
-              <input placeholder="Código (ej: M001)" value={nuevoServicioCodigo} onChange={e => setNuevoServicioCodigo(e.target.value)} style={input} />
-              <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
-              <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
-              {mostrarServicios && (
-                <ul style={{ marginTop: '16px', paddingLeft: '16px' }}>
-                  {servicios.map(s => (
-                    <li key={s.id} style={{ marginBottom: '8px', color: '#161616' }}>
-                      <strong>{s.codigo}</strong> - {s.nombre}
-                      <button onClick={() => eliminarServicio(s.id)} style={{ marginLeft: '10px', color: '#ba9a7d', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* CAMBIAR CONTRASEÑA */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Cambiar Contraseña</h2>
-              <CambiarPassword />
-            </div>
-          </>
+          <TabConfiguracion
+            clientes={clientes} servicios={servicios}
+            mostrarClientes={mostrarClientes} setMostrarClientes={setMostrarClientes}
+            mostrarServicios={mostrarServicios} setMostrarServicios={setMostrarServicios}
+            nombre={nombre} setNombre={setNombre}
+            telefono={telefono} setTelefono={setTelefono}
+            nuevoServicioCodigo={nuevoServicioCodigo} setNuevoServicioCodigo={setNuevoServicioCodigo}
+            nuevoServicioNombre={nuevoServicioNombre} setNuevoServicioNombre={setNuevoServicioNombre}
+            userId={userId!} cargarClientes={cargarClientes} cargarServicios={cargarServicios}
+            eliminarCliente={eliminarCliente} eliminarServicio={eliminarServicio}
+            card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
+          />
         )}
 
-        {/* ===== PESTAÑA TURNOS ===== */}
         {pestanaActiva === 'turnos' && (
-          <>
-            {/* REGISTRAR TURNO */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Turno</h2>
-              <input
-                placeholder="Buscar cliente..."
-                value={busquedaCliente}
-                onChange={e => { setBusquedaCliente(e.target.value); setClienteSeleccionado('') }}
-                style={input}
-              />
-              {busquedaCliente && !clienteSeleccionado && (
-                <ul style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', listStyle: 'none', margin: 0 }}>
-                  {clientes
-                    .filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()))
-                    .map(c => (
-                      <li key={c.id}
-                        onClick={() => { setClienteSeleccionado(c.id); setBusquedaCliente(c.nombre) }}
-                        style={{ padding: '8px', cursor: 'pointer' }}>
-                        {c.nombre}
-                      </li>
-                    ))}
-                </ul>
-              )}
-              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
-              <input
-                placeholder="Buscar servicio por código o nombre"
-                value={busquedaServicio}
-                onChange={e => { setBusquedaServicio(e.target.value); setServicioSeleccionado('') }}
-                style={{ ...input, width: '280px' }}
-              />
-              {busquedaServicio && serviciosFiltrados.length > 0 && !servicioSeleccionado && (
-                <ul style={{ border: '1px solid #e3dfd6', borderRadius: '8px', padding: '8px', listStyle: 'none', marginBottom: '8px' }}>
-                  {serviciosFiltrados.map(s => (
-                    <li key={s.id}
-                      onClick={() => { setServicioSeleccionado(s.nombre); setBusquedaServicio(s.codigo + ' - ' + s.nombre) }}
-                      style={{ padding: '6px', cursor: 'pointer', color: '#161616' }}>
-                      {s.codigo} - {s.nombre}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <input placeholder="Monto" type="number" value={monto} onChange={e => setMonto(e.target.value)} style={input} />
-              <select value={formaPago} onChange={e => setFormaPago(e.target.value)} style={input}>
-                <option value="efectivo">Efectivo</option>
-                <option value="transferencia">Transferencia</option>
-              </select>
-              <br />
-              <button onClick={agregarSesion} style={btnPrimary}>Registrar Turno</button>
-            </div>
-
-            {/* RESUMEN DEL MES */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen del mes</h2>
-              <input type="month" value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} style={input} />
-              <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
-                <div style={{ backgroundColor: '#e3dfd6', borderRadius: '8px', padding: '16px', flex: 1 }}>
-                  <p style={{ margin: 0, color: '#161616' }}>💵 Efectivo</p>
-                  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalEfectivo}</p>
-                </div>
-                <div style={{ backgroundColor: '#e3dfd6', borderRadius: '8px', padding: '16px', flex: 1 }}>
-                  <p style={{ margin: 0, color: '#161616' }}>🏦 Transferencia</p>
-                  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalTransferencia}</p>
-                </div>
-                <div style={{ backgroundColor: '#ba9a7d', borderRadius: '8px', padding: '16px', flex: 1 }}>
-                  <p style={{ margin: 0, color: '#ffffff' }}>💰 Total</p>
-                  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ffffff' }}>${totalMes}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* RANKING SERVICIOS */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Servicios del mes</h2>
-              {rankingServicios.length === 0 ? (
-                <p style={{ color: '#161616' }}>No hay turnos este mes.</p>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Servicio</th>
-                      <th style={th}>Cantidad</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingServicios.map(([nombre, cantidad]) => (
-                      <tr key={nombre} style={{ backgroundColor: '#ffffff' }}>
-                        <td style={td}>{nombre}</td>
-                        <td style={td}>{cantidad as number}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>
-                      <td style={td}>Total</td>
-                      <td style={td}>
-                        {rankingServicios.reduce((acc, [, cantidad]) => acc + (cantidad as number), 0)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
-            </div>
-
-            {/* TURNOS */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Turnos de {mesSeleccionado}</h2>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={th}>Cliente</th>
-                    <th style={th}>Fecha</th>
-                    <th style={th}>Servicio</th>
-                    <th style={th}>Monto</th>
-                    <th style={th}>Pago</th>
-                    <th style={th}>Facturado</th>
-                    <th style={th}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sesiones.map(s => (
-                    editandoId === s.id ? (
-                      <tr key={s.id} style={{ backgroundColor: '#fffaf7' }}>
-                        <td style={td}>{s.clientes?.nombre}</td>
-                        <td style={td}><input type="date" value={editFecha} onChange={e => setEditFecha(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
-                        <td style={td}><input value={editServicio} onChange={e => setEditServicio(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
-                        <td style={td}><input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} /></td>
-                        <td style={td}>
-                          <select value={editFormaPago} onChange={e => setEditFormaPago(e.target.value)} style={{ ...input, marginBottom: 0 }}>
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia</option>
-                          </select>
-                        </td>
-                        <td style={td}>-</td>
-                        <td style={td}>
-                          <button onClick={() => guardarEdicion(s.id)} style={{ ...btnPrimary, padding: '6px 12px', marginRight: '6px' }}>Guardar</button>
-                          <button onClick={() => setEditandoId(null)} style={{ ...btnSecondary, marginLeft: 0 }}>Cancelar</button>
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
-                        <td style={td}>{s.clientes?.nombre}</td>
-                        <td style={td}>{s.fecha}</td>
-                        <td style={td}>{s.tipo_masaje}</td>
-                        <td style={td}>${s.monto}</td>
-                        <td style={td}>{s.forma_pago}</td>
-                        <td style={td}>
-                          {s.forma_pago === 'transferencia' ? (
-                            <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
-                          ) : (
-                            <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
-                          )}
-                        </td>
-                        <td style={td}>
-                          <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
-                          <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
-                        </td>
-                      </tr>
-                    )
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* HISTORIAL POR CLIENTE */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Historial por Cliente</h2>
-              <select
-                value={clienteHistorial}
-                onChange={e => { setClienteHistorial(e.target.value); if (e.target.value) cargarHistorial(e.target.value) }}
-                style={input}
-              >
-                <option value="">Seleccionar cliente</option>
-                {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-              </select>
-              {historial.length > 0 && (
-                <>
-                  <p style={{ color: '#161616', marginTop: '12px' }}>
-                    <strong>Total de turnos:</strong> {historial.length} &nbsp;|&nbsp;
-                    <strong>Total facturado:</strong> ${historial.reduce((sum, s) => sum + (s.monto || 0), 0)}
-                  </p>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Fecha</th>
-                        <th style={th}>Servicio</th>
-                        <th style={th}>Monto</th>
-                        <th style={th}>Pago</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {historial.map(s => (
-                        <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
-                          <td style={td}>{s.fecha}</td>
-                          <td style={td}>{s.tipo_masaje}</td>
-                          <td style={td}>${s.monto}</td>
-                          <td style={td}>{s.forma_pago}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-              {clienteHistorial && historial.length === 0 && (
-                <p style={{ color: '#9e9e9e', marginTop: '12px' }}>Este cliente no tiene turnos registrados.</p>
-              )}
-            </div>
-          </>
+          <TabTurnos
+            clientes={clientes} sesiones={sesiones} servicios={servicios}
+            busquedaCliente={busquedaCliente} setBusquedaCliente={setBusquedaCliente}
+            clienteSeleccionado={clienteSeleccionado} setClienteSeleccionado={setClienteSeleccionado}
+            busquedaServicio={busquedaServicio} setBusquedaServicio={setBusquedaServicio}
+            servicioSeleccionado={servicioSeleccionado} setServicioSeleccionado={setServicioSeleccionado}
+            fecha={fecha} setFecha={setFecha}
+            monto={monto} setMonto={setMonto}
+            formaPago={formaPago} setFormaPago={setFormaPago}
+            mesSeleccionado={mesSeleccionado} setMesSeleccionado={setMesSeleccionado}
+            totalEfectivo={totalEfectivo} totalTransferencia={totalTransferencia} totalMes={totalMes}
+            rankingServicios={rankingServicios}
+            editandoId={editandoId} setEditandoId={setEditandoId}
+            editFecha={editFecha} setEditFecha={setEditFecha}
+            editServicio={editServicio} setEditServicio={setEditServicio}
+            editMonto={editMonto} setEditMonto={setEditMonto}
+            editFormaPago={editFormaPago} setEditFormaPago={setEditFormaPago}
+            clienteHistorial={clienteHistorial} setClienteHistorial={setClienteHistorial}
+            historial={historial}
+            agregarSesion={agregarSesion} eliminarSesion={eliminarSesion}
+            toggleFacturado={toggleFacturado} iniciarEdicion={iniciarEdicion}
+            guardarEdicion={guardarEdicion} cargarHistorial={cargarHistorial}
+            card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
+            th={th} td={td}
+          />
         )}
 
-        {/* ===== PESTAÑA FINANZAS ===== */}
         {pestanaActiva === 'finanzas' && (
-          <>
-            {/* REGISTRAR INGRESO / EGRESO */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Ingreso / Egreso</h2>
-              <input type="date" value={gastoFecha} onChange={e => setGastoFecha(e.target.value)} style={input} />
-              <input placeholder="Descripción" value={gastoDescripcion} onChange={e => setGastoDescripcion(e.target.value)} style={{ ...input, width: '220px' }} />
-              <input placeholder="Monto" type="number" value={gastoMonto} onChange={e => setGastoMonto(e.target.value)} style={{ ...input, width: '100px' }} />
-              <select value={gastoTipo} onChange={e => setGastoTipo(e.target.value)} style={input}>
-                <option value="ingreso">Ingreso</option>
-                <option value="egreso">Egreso</option>
-              </select>
-              <br />
-              <button onClick={agregarGasto} style={btnPrimary}>Registrar</button>
-            </div>
-
-            {/* RESUMEN GASTOS */}
-            <div style={card}>
-              <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen Ingresos y Egresos</h2>
-              <input type="month" value={mesGastos} onChange={e => setMesGastos(e.target.value)} style={input} />
-              <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
-                <div style={{ backgroundColor: '#e3dfd6', borderRadius: '8px', padding: '16px', flex: 1 }}>
-                  <p style={{ margin: 0, color: '#161616' }}>📈 Ingresos</p>
-                  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalIngresos}</p>
-                </div>
-                <div style={{ backgroundColor: '#e3dfd6', borderRadius: '8px', padding: '16px', flex: 1 }}>
-                  <p style={{ margin: 0, color: '#161616' }}>📉 Egresos</p>
-                  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalEgresos}</p>
-                </div>
-                <div style={{ backgroundColor: balanceNeto >= 0 ? '#ba9a7d' : '#c0392b', borderRadius: '8px', padding: '16px', flex: 1 }}>
-                  <p style={{ margin: 0, color: '#ffffff' }}>💰 Balance</p>
-                  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ffffff' }}>${balanceNeto}</p>
-                </div>
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-                <thead>
-                  <tr>
-                    <th style={th}>Fecha</th>
-                    <th style={th}>Descripción</th>
-                    <th style={th}>Monto</th>
-                    <th style={th}>Tipo</th>
-                    <th style={th}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gastos.map(g => (
-                    <tr key={g.id} style={{ backgroundColor: g.tipo === 'ingreso' ? '#f0fff4' : '#fff5f5' }}>
-                      <td style={td}>{g.fecha}</td>
-                      <td style={td}>{g.descripcion}</td>
-                      <td style={td}>${g.monto}</td>
-                      <td style={td}>
-                        <span style={{ color: g.tipo === 'ingreso' ? 'green' : '#c0392b', fontWeight: 'bold' }}>
-                          {g.tipo === 'ingreso' ? '▲ Ingreso' : '▼ Egreso'}
-                        </span>
-                      </td>
-                      <td style={td}>
-                        <button onClick={() => eliminarGasto(g.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <TabFinanzas
+            gastos={gastos}
+            gastoFecha={gastoFecha} setGastoFecha={setGastoFecha}
+            gastoDescripcion={gastoDescripcion} setGastoDescripcion={setGastoDescripcion}
+            gastoMonto={gastoMonto} setGastoMonto={setGastoMonto}
+            gastoTipo={gastoTipo} setGastoTipo={setGastoTipo}
+            mesGastos={mesGastos} setMesGastos={setMesGastos}
+            totalIngresos={totalIngresos} totalEgresos={totalEgresos} balanceNeto={balanceNeto}
+            agregarGasto={agregarGasto} eliminarGasto={eliminarGasto}
+            card={card} input={input} btnPrimary={btnPrimary} th={th} td={td}
+          />
         )}
 
       </div>
