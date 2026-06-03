@@ -269,13 +269,20 @@ export default function Home() {
   const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
   const balanceNeto = totalIngresos - totalEgresos
 
- const rankingServicios: [string, number][] = Object.entries(
-  sesiones.reduce((acc, s) => {
-    const key = s.tipo_masaje || 'Sin servicio'
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-).sort((a, b) => b[1] - a[1])
+  const rankingServicios: [string, number][] = Object.entries(
+    sesiones.reduce((acc, s) => {
+      const key = s.tipo_masaje || 'Sin servicio'
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+  ).sort((a, b) => b[1] - a[1])
+
+  return (
+    <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
+        <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
       </div>
 
       <div style={{ marginBottom: '0px' }}>
