@@ -202,6 +202,8 @@ user_id: userId
     setBusquedaServicio('')
     setMonto('')
     setHorario('')
+    setMonto2('')
+    setFormaPago2('')
     alert('Turno registrado!')
     cargarSesiones(userId)
   }
@@ -328,6 +330,8 @@ user_id: userId
             fecha={fecha} setFecha={setFecha}
             monto={monto} setMonto={setMonto}
             horario={horario} setHorario={setHorario}
+            monto2={monto2} setMonto2={setMonto2}
+            formaPago2={formaPago2} setFormaPago2={setFormaPago2}
             formaPago={formaPago} setFormaPago={setFormaPago}
             mesSeleccionado={mesSeleccionado} setMesSeleccionado={setMesSeleccionado}
             totalEfectivo={totalEfectivo} totalTransferencia={totalTransferencia} totalMes={totalMes}
