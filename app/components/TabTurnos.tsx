@@ -267,14 +267,27 @@ export default function TabTurnos({
       {/* HISTORIAL POR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Historial por Cliente</h2>
-        <select
-          value={clienteHistorial}
-          onChange={e => { setClienteHistorial(e.target.value); if (e.target.value) cargarHistorial(e.target.value) }}
-          style={input}
-        >
-          <option value="">Seleccionar cliente</option>
-          {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-        </select>
+        <input
+  placeholder="Buscar cliente..."
+  value={clienteHistorial}
+  onChange={e => {
+    setClienteHistorial(e.target.value)
+  }}
+  style={input}
+/>
+{clienteHistorial && (
+  <ul style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', listStyle: 'none', margin: 0, marginBottom: '12px' }}>
+    {clientes
+      .filter(c => c.nombre.toLowerCase().includes(clienteHistorial.toLowerCase()))
+      .map(c => (
+        <li key={c.id}
+          onClick={() => { setClienteHistorial(c.nombre); cargarHistorial(c.id) }}
+          style={{ padding: '8px', cursor: 'pointer', color: '#161616' }}>
+          {c.nombre}
+        </li>
+      ))}
+  </ul>
+)}
         {historial.length > 0 && (
           <>
             <p style={{ color: '#161616', marginTop: '12px' }}>
