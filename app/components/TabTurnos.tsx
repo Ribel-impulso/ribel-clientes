@@ -18,6 +18,10 @@ interface Props {
   setMonto: (v: string) => void
   horario: string
   setHorario: (v: string) => void
+  monto2: string
+setMonto2: (v: string) => void
+formaPago2: string
+setFormaPago2: (v: string) => void
   formaPago: string
   setFormaPago: (v: string) => void
   mesSeleccionado: string
@@ -61,6 +65,8 @@ export default function TabTurnos({
   servicioSeleccionado, setServicioSeleccionado,
   fecha, setFecha, monto, setMonto,
   horario, setHorario,
+  monto2, setMonto2,
+  formaPago2, setFormaPago2,
   formaPago, setFormaPago,
   mesSeleccionado, setMesSeleccionado,
   totalEfectivo, totalTransferencia, totalMes,
@@ -125,10 +131,22 @@ export default function TabTurnos({
           </ul>
         )}
         <input placeholder="Monto" type="number" value={monto} onChange={e => setMonto(e.target.value)} style={input} />
-        <select value={formaPago} onChange={e => setFormaPago(e.target.value)} style={input}>
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
-        </select>
+<select value={formaPago} onChange={e => setFormaPago(e.target.value)} style={input}>
+  <option value="efectivo">Efectivo</option>
+  <option value="transferencia">Transferencia</option>
+  <option value="obra_social">Obra Social</option>
+</select>
+
+<br />
+<small style={{ color: '#9e9e9e' }}>Pago adicional (opcional)</small>
+<br />
+<input placeholder="Monto adicional" type="number" value={monto2} onChange={e => setMonto2(e.target.value)} style={input} />
+<select value={formaPago2} onChange={e => setFormaPago2(e.target.value)} style={input}>
+  <option value="">Sin pago adicional</option>
+  <option value="efectivo">Efectivo</option>
+  <option value="transferencia">Transferencia</option>
+  <option value="obra_social">Obra Social</option>
+</select>
         <br />
         <button onClick={agregarSesion} style={btnPrimary}>Registrar Turno</button>
       </div>

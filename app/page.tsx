@@ -38,6 +38,8 @@ export default function Home() {
   const [mesGastos, setMesGastos] = useState(new Date().toISOString().slice(0, 7))
   const [clienteHistorial, setClienteHistorial] = useState('')
   const [horario, setHorario] = useState('')
+  const [monto2, setMonto2] = useState('')
+  const [formaPago2, setFormaPago2] = useState('')
   const [historial, setHistorial] = useState<any[]>([])
 
   const card: React.CSSProperties = {
@@ -191,7 +193,9 @@ export default function Home() {
       forma_pago: formaPago,
       facturado: false,
       horario: horario,
-      user_id: userId
+monto2: monto2 ? parseFloat(monto2) : null,
+forma_pago2: formaPago2 || null,
+user_id: userId
     }])
     setFecha('')
     setServicioSeleccionado('')
