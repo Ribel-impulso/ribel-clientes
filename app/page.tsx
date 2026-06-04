@@ -189,7 +189,7 @@ export default function Home() {
       cliente_id: clienteSeleccionado,
       fecha,
       tipo_masaje: servicioFinal,
-      monto: parseFloat(monto),
+      monto: parseFloat(monto) || 0,
       forma_pago: formaPago,
       facturado: false,
       horario: horario,
