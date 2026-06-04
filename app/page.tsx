@@ -268,9 +268,19 @@ user_id: userId
     window.location.href = '/login'
   }
 
-  const totalEfectivo = sesiones.filter(s => s.forma_pago === 'efectivo').reduce((sum, s) => sum + (s.monto || 0), 0)
-  const totalTransferencia = sesiones.filter(s => s.forma_pago === 'transferencia').reduce((sum, s) => sum + (s.monto || 0), 0)
-  const totalMes = totalEfectivo + totalTransferencia
+  const totalEfectivo = sesiones.reduce((sum, s) => {
+  const m1 = s.forma_pago === 'efectivo' ? (s.monto || 0) : 0
+  const m2 = s.forma_pago2 === 'efectivo' ? (s.monto2 || 0) : 0
+  return sum + m1 + m2
+}, 0)
+
+const totalTransferencia = sesiones.reduce((sum, s) => {
+  const m1 = s.forma_pago === 'transferencia' ? (s.monto || 0) : 0
+  const m2 = s.forma_pago2 === 'transferencia' ? (s.monto2 || 0) : 0
+  return sum + m1 + m2
+}, 0)
+
+const totalMes = totalEfectivo + totalTransferencia
   const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes
   const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
   const balanceNeto = totalIngresos - totalEgresos
