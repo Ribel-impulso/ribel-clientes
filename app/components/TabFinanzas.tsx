@@ -38,6 +38,12 @@ export default function TabFinanzas({
   agregarGasto, eliminarGasto,
   card, input, btnPrimary, th, td
 }: Props) {
+
+  const ingresosNegocio = gastos.filter(g => g.tipo === 'ingreso' && (g.categoria === 'negocio' || !g.categoria)).reduce((sum, g) => sum + (g.monto || 0), 0)
+  const egresosNegocio = gastos.filter(g => g.tipo === 'egreso' && (g.categoria === 'negocio' || !g.categoria)).reduce((sum, g) => sum + (g.monto || 0), 0)
+  const ingresosPersonal = gastos.filter(g => g.tipo === 'ingreso' && g.categoria === 'personal').reduce((sum, g) => sum + (g.monto || 0), 0)
+  const egresosPersonal = gastos.filter(g => g.tipo === 'egreso' && g.categoria === 'personal').reduce((sum, g) => sum + (g.monto || 0), 0)
+
   return (
     <>
       <div style={card}>
@@ -60,6 +66,8 @@ export default function TabFinanzas({
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen Ingresos y Egresos</h2>
         <input type="month" value={mesGastos} onChange={e => setMesGastos(e.target.value)} style={input} />
+
+        {/* TOTAL GENERAL */}
         <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
           <div style={{ backgroundColor: '#e3dfd6', borderRadius: '8px', padding: '16px', flex: 1 }}>
             <p style={{ margin: 0, color: '#161616' }}>📈 Ingresos</p>
@@ -70,10 +78,27 @@ export default function TabFinanzas({
             <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalEgresos}</p>
           </div>
           <div style={{ backgroundColor: balanceNeto >= 0 ? '#ba9a7d' : '#c0392b', borderRadius: '8px', padding: '16px', flex: 1 }}>
-            <p style={{ margin: 0, color: '#ffffff' }}>💰 Balance</p>
+            <p style={{ margin: 0, color: '#ffffff' }}>💰 Balance Total</p>
             <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ffffff' }}>${balanceNeto}</p>
           </div>
         </div>
+
+        {/* POR CATEGORÍA */}
+        <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
+          <div style={{ backgroundColor: '#dcfce7', borderRadius: '8px', padding: '16px', flex: 1 }}>
+            <p style={{ margin: 0, color: '#161616', fontWeight: 'bold' }}>🏢 Negocio</p>
+            <p style={{ margin: '4px 0 0', color: '#161616', fontSize: '13px' }}>Ingresos: ${ingresosNegocio}</p>
+            <p style={{ margin: '2px 0 0', color: '#161616', fontSize: '13px' }}>Egresos: ${egresosNegocio}</p>
+            <p style={{ margin: '4px 0 0', fontWeight: 'bold', color: ingresosNegocio - egresosNegocio >= 0 ? '#166534' : '#c0392b' }}>Balance: ${ingresosNegocio - egresosNegocio}</p>
+          </div>
+          <div style={{ backgroundColor: '#dbeafe', borderRadius: '8px', padding: '16px', flex: 1 }}>
+            <p style={{ margin: 0, color: '#161616', fontWeight: 'bold' }}>👤 Personal</p>
+            <p style={{ margin: '4px 0 0', color: '#161616', fontSize: '13px' }}>Ingresos: ${ingresosPersonal}</p>
+            <p style={{ margin: '2px 0 0', color: '#161616', fontSize: '13px' }}>Egresos: ${egresosPersonal}</p>
+            <p style={{ margin: '4px 0 0', fontWeight: 'bold', color: ingresosPersonal - egresosPersonal >= 0 ? '#1e3a8a' : '#c0392b' }}>Balance: ${ingresosPersonal - egresosPersonal}</p>
+          </div>
+        </div>
+
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
           <thead>
             <tr>
