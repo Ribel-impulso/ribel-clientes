@@ -19,9 +19,9 @@ interface Props {
   horario: string
   setHorario: (v: string) => void
   monto2: string
-setMonto2: (v: string) => void
-formaPago2: string
-setFormaPago2: (v: string) => void
+  setMonto2: (v: string) => void
+  formaPago2: string
+  setFormaPago2: (v: string) => void
   formaPago: string
   setFormaPago: (v: string) => void
   mesSeleccionado: string
@@ -244,8 +244,14 @@ export default function TabTurnos({
                   <td style={td}>{s.clientes?.nombre}</td>
                   <td style={td}>{s.fecha}</td>
                   <td style={td}>{s.tipo_masaje}</td>
-                  <td style={td}>${s.monto}</td>
-                  <td style={td}>{s.forma_pago}</td>
+                  <td style={td}>
+  ${s.monto}
+  {s.monto2 ? ` + $${s.monto2}` : ''}
+</td>
+<td style={td}>
+  {s.forma_pago}
+  {s.forma_pago2 ? ` + ${s.forma_pago2}` : ''}
+</td>
                   <td style={td}>
                     {s.forma_pago === 'transferencia' ? (
                       <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
