@@ -127,16 +127,18 @@ export default function Home() {
     setClientes(data || [])
   }
 
-  async function cargarSesiones(uid: string) {
-    const { data } = await supabase
-      .from('sesiones')
-      .select('*, clientes(nombre)')
-      .eq('user_id', uid)
-      .gte('fecha', mesSeleccionado + '-01')
-      .lte('fecha', new Date(parseInt(mesSeleccionado.slice(0,4)), parseInt(mesSeleccionado.slice(5,7)), 0).toISOString().slice(0,10))
-      .order('fecha', { ascending: false })
-    setSesiones(data || [])
-  }
+  async function cargarSesiones(uid: string, mes?: string) {
+  const mesAUsar = mes || mesSeleccionado
+  const ultimoDia = new Date(parseInt(mesAUsar.slice(0,4)), parseInt(mesAUsar.slice(5,7)), 0).toISOString().slice(0,10)
+  const { data } = await supabase
+    .from('sesiones')
+    .select('*, clientes(nombre)')
+    .eq('user_id', uid)
+    .gte('fecha', mesAUsar + '-01')
+    .lte('fecha', ultimoDia)
+    .order('fecha', { ascending: false })
+  setSesiones(data || [])
+}
 
   async function cargarServicios(uid: string) {
     const { data } = await supabase.from('servicios').select('*').eq('user_id', uid)
