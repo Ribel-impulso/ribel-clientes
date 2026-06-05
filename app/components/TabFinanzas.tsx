@@ -37,7 +37,6 @@ export default function TabFinanzas({
 }: Props) {
   return (
     <>
-      {/* REGISTRAR INGRESO / EGRESO */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Ingreso / Egreso</h2>
         <input type="date" value={gastoFecha} onChange={e => setGastoFecha(e.target.value)} style={input} />
@@ -51,7 +50,6 @@ export default function TabFinanzas({
         <button onClick={agregarGasto} style={btnPrimary}>Registrar</button>
       </div>
 
-      {/* RESUMEN */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen Ingresos y Egresos</h2>
         <input type="month" value={mesGastos} onChange={e => setMesGastos(e.target.value)} style={input} />
