@@ -10,6 +10,8 @@ interface Props {
   setGastoMonto: (v: string) => void
   gastoTipo: string
   setGastoTipo: (v: string) => void
+  gastoCategoria: string
+  setGastoCategoria: (v: string) => void
   mesGastos: string
   setMesGastos: (v: string) => void
   totalIngresos: number
@@ -30,6 +32,7 @@ export default function TabFinanzas({
   gastoDescripcion, setGastoDescripcion,
   gastoMonto, setGastoMonto,
   gastoTipo, setGastoTipo,
+  gastoCategoria, setGastoCategoria,
   mesGastos, setMesGastos,
   totalIngresos, totalEgresos, balanceNeto,
   agregarGasto, eliminarGasto,
@@ -45,6 +48,10 @@ export default function TabFinanzas({
         <select value={gastoTipo} onChange={e => setGastoTipo(e.target.value)} style={input}>
           <option value="ingreso">Ingreso</option>
           <option value="egreso">Egreso</option>
+        </select>
+        <select value={gastoCategoria} onChange={e => setGastoCategoria(e.target.value)} style={input}>
+          <option value="negocio">Negocio</option>
+          <option value="personal">Personal</option>
         </select>
         <br />
         <button onClick={agregarGasto} style={btnPrimary}>Registrar</button>
@@ -74,6 +81,7 @@ export default function TabFinanzas({
               <th style={th}>Descripción</th>
               <th style={th}>Monto</th>
               <th style={th}>Tipo</th>
+              <th style={th}>Categoría</th>
               <th style={th}>Acciones</th>
             </tr>
           </thead>
@@ -86,6 +94,11 @@ export default function TabFinanzas({
                 <td style={td}>
                   <span style={{ color: g.tipo === 'ingreso' ? 'green' : '#c0392b', fontWeight: 'bold' }}>
                     {g.tipo === 'ingreso' ? '▲ Ingreso' : '▼ Egreso'}
+                  </span>
+                </td>
+                <td style={td}>
+                  <span style={{ backgroundColor: g.categoria === 'personal' ? '#dbeafe' : '#dcfce7', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+                    {g.categoria || 'negocio'}
                   </span>
                 </td>
                 <td style={td}>

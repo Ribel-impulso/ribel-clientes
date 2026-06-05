@@ -41,6 +41,7 @@ export default function Home() {
   const [monto2, setMonto2] = useState('')
   const [formaPago2, setFormaPago2] = useState('')
   const [historial, setHistorial] = useState<any[]>([])
+  const [gastoCategoria, setGastoCategoria] = useState('negocio')
 
   const card: React.CSSProperties = {
     backgroundColor: '#ffffff',
@@ -248,6 +249,7 @@ user_id: userId
       descripcion: gastoDescripcion,
       monto: parseFloat(gastoMonto),
       tipo: gastoTipo,
+      categoria: gastoCategoria,
       user_id: userId
     }])
     if (error) { alert('Error: ' + error.message); return }
@@ -255,6 +257,7 @@ user_id: userId
     setGastoDescripcion('')
     setGastoMonto('')
     setGastoTipo('egreso')
+    setGastoCategoria('negocio')
     cargarGastos(userId, mesGastos)
   }
 
