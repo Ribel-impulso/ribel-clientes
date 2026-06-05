@@ -373,6 +373,7 @@ const totalMes = totalEfectivo + totalTransferencia
             gastoDescripcion={gastoDescripcion} setGastoDescripcion={setGastoDescripcion}
             gastoMonto={gastoMonto} setGastoMonto={setGastoMonto}
             gastoTipo={gastoTipo} setGastoTipo={setGastoTipo}
+            gastoCategoria={gastoCategoria} setGastoCategoria={setGastoCategoria}
             mesGastos={mesGastos} setMesGastos={setMesGastos}
             totalIngresos={totalIngresos} totalEgresos={totalEgresos} balanceNeto={balanceNeto}
             agregarGasto={agregarGasto} eliminarGasto={eliminarGasto}
