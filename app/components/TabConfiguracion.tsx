@@ -45,6 +45,9 @@ export default function TabConfiguracion({
   const [notaTexto, setNotaTexto] = useState<Record<string, string>>({})
   const [archivoFile, setArchivoFile] = useState<Record<string, File | null>>({})
   const [cargando, setCargando] = useState<string | null>(null)
+  const [editandoCliente, setEditandoCliente] = useState<string | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editTelefono, setEditTelefono] = useState('')
 
   async function cargarArchivos(clienteId: string) {
     const { data } = await supabase
@@ -63,6 +66,12 @@ export default function TabConfiguracion({
       setClienteAbierto(clienteId)
       cargarArchivos(clienteId)
     }
+  }
+
+  async function guardarEdicionCliente(id: string) {
+    await supabase.from('clientes').update({ nombre: editNombre, telefono: editTelefono }).eq('id', id)
+    setEditandoCliente(null)
+    cargarClientes(userId)
   }
 
   async function subirArchivo(clienteId: string) {
@@ -157,30 +166,44 @@ export default function TabConfiguracion({
           <div>
             {clientes.map(c => (
               <div key={c.id} style={{ borderRadius: '10px', border: '1px solid #e3dfd6', marginBottom: '10px', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f9f7f4' }}>
-                  <div>
-                    <span style={{ fontWeight: 'bold', color: '#161616' }}>{c.nombre}</span>
-                    <span style={{ color: '#9e9e9e', marginLeft: '12px', fontSize: '14px' }}>{c.telefono}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => toggleCliente(c.id)}
-                      style={{ ...btnSecondary, marginLeft: 0, fontSize: '13px', padding: '6px 12px' }}>
-                      {clienteAbierto === c.id ? 'Cerrar' : '📁 Archivos'}
-                    </button>
-                    <button
-                      onClick={() => eliminarCliente(c.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>
-                      Eliminar
-                    </button>
-                  </div>
+                
+                {/* FILA PRINCIPAL */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', backgroundColor: '#f9f7f4' }}>
+                  <span style={{ fontWeight: 'bold', color: '#161616', fontSize: '15px' }}>{c.nombre}</span>
+                  <button
+                    onClick={() => toggleCliente(c.id)}
+                    style={{ backgroundColor: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', fontFamily: 'Arial', fontSize: '13px' }}>
+                    {clienteAbierto === c.id ? 'Cerrar' : 'Ver'}
+                  </button>
                 </div>
 
+                {/* PANEL DESPLEGABLE */}
                 {clienteAbierto === c.id && (
-                  <div style={{ padding: '16px', backgroundColor: '#ffffff' }}>
+                  <div style={{ padding: '16px', backgroundColor: '#ffffff', borderTop: '1px solid #e3dfd6' }}>
+                    
+                    {/* INFO */}
+                    {editandoCliente === c.id ? (
+                      <div style={{ marginBottom: '16px' }}>
+                        <input value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre" style={{ ...input, marginBottom: '8px' }} />
+                        <input value={editTelefono} onChange={e => setEditTelefono(e.target.value)} placeholder="Teléfono" style={{ ...input, marginBottom: '8px' }} />
+                        <button onClick={() => guardarEdicionCliente(c.id)} style={{ ...btnPrimary, marginRight: '8px', fontSize: '13px', padding: '6px 14px' }}>Guardar</button>
+                        <button onClick={() => setEditandoCliente(null)} style={{ ...btnSecondary, fontSize: '13px', padding: '6px 14px' }}>Cancelar</button>
+                      </div>
+                    ) : (
+                      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <p style={{ margin: '0 0 4px', color: '#161616' }}>📞 {c.telefono || 'Sin teléfono'}</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditTelefono(c.telefono || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
+                          <button onClick={() => eliminarCliente(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* SUBIR PDF */}
                     <div style={{ marginBottom: '16px' }}>
-                      <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px' }}>📎 Subir PDF</p>
+                      <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📎 Subir PDF</p>
                       <input
                         type="file"
                         accept=".pdf"
@@ -189,7 +212,7 @@ export default function TabConfiguracion({
                       />
                       <button
                         onClick={() => subirArchivo(c.id)}
-                        style={{ ...btnPrimary, padding: '8px 16px', fontSize: '13px' }}
+                        style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}
                         disabled={cargando === c.id}>
                         {cargando === c.id ? 'Subiendo...' : 'Subir PDF'}
                       </button>
@@ -197,33 +220,33 @@ export default function TabConfiguracion({
 
                     {/* NOTA */}
                     <div style={{ marginBottom: '16px' }}>
-                      <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px' }}>📝 Agregar Nota</p>
+                      <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📝 Agregar Nota</p>
                       <textarea
                         placeholder="Escribí una nota..."
                         value={notaTexto[c.id] || ''}
                         onChange={e => setNotaTexto(prev => ({ ...prev, [c.id]: e.target.value }))}
-                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', height: '80px', resize: 'vertical', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', height: '70px', resize: 'vertical', boxSizing: 'border-box' }}
                       />
                       <button
                         onClick={() => guardarNota(c.id)}
-                        style={{ ...btnPrimary, padding: '8px 16px', fontSize: '13px', marginTop: '6px' }}>
+                        style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px', marginTop: '6px' }}>
                         Guardar Nota
                       </button>
                     </div>
 
                     {/* ARCHIVOS GUARDADOS */}
-                    {(archivos[c.id] || []).length > 0 && (
+                    {(archivos[c.id] || []).length > 0 ? (
                       <div>
-                        <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px' }}>Guardados:</p>
+                        <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>Guardados:</p>
                         {(archivos[c.id] || []).map(a => (
-                          <div key={a.id} style={{ backgroundColor: '#f9f7f4', borderRadius: '8px', padding: '10px 14px', marginBottom: '6px', border: '1px solid #e3dfd6', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div key={a.id} style={{ backgroundColor: '#f9f7f4', borderRadius: '8px', padding: '10px 14px', marginBottom: '6px', border: '1px solid #e3dfd6' }}>
                             {a.tipo === 'pdf' ? (
-                              <>
-                                <span>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }}>{a.nombre}</a></span>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '14px' }}>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }}>{a.nombre}</a></span>
                                 <button onClick={() => eliminarArchivo(c.id, a.id, a.url, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
-                              </>
+                              </div>
                             ) : (
-                              <div style={{ width: '100%' }}>
+                              <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <span style={{ fontWeight: 'bold', color: '#161616', fontSize: '13px' }}>📝 Nota</span>
                                   <button onClick={() => eliminarArchivo(c.id, a.id, undefined, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
@@ -234,8 +257,7 @@ export default function TabConfiguracion({
                           </div>
                         ))}
                       </div>
-                    )}
-                    {(archivos[c.id] || []).length === 0 && (
+                    ) : (
                       <p style={{ color: '#9e9e9e', fontSize: '13px' }}>No hay archivos ni notas guardadas.</p>
                     )}
                   </div>
