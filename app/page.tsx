@@ -284,6 +284,11 @@ const totalTransferencia = sesiones.reduce((sum, s) => {
   const m2 = s.forma_pago2 === 'transferencia' ? (s.monto2 || 0) : 0
   return sum + m1 + m2
 }, 0)
+const totalCuentaCorriente = sesiones.reduce((sum, s) => {
+  const m1 = s.forma_pago === 'cuenta_corriente' ? (s.monto || 0) : 0
+  const m2 = s.forma_pago2 === 'cuenta_corriente' ? (s.monto2 || 0) : 0
+  return sum + m1 + m2
+}, 0)
 
 const totalMes = totalEfectivo + totalTransferencia
   const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes

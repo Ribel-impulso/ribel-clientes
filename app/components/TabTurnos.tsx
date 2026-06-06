@@ -29,6 +29,7 @@ interface Props {
   totalEfectivo: number
   totalTransferencia: number
   totalMes: number
+  totalCuentaCorriente: number
   rankingServicios: [string, number][]
   editandoId: string | null
   setEditandoId: (v: string | null) => void
@@ -69,7 +70,7 @@ export default function TabTurnos({
   formaPago2, setFormaPago2,
   formaPago, setFormaPago,
   mesSeleccionado, setMesSeleccionado,
-  totalEfectivo, totalTransferencia, totalMes,
+  totalEfectivo, totalTransferencia, totalMes, totalCuentaCorriente,
   rankingServicios,
   editandoId, setEditandoId,
   editFecha, setEditFecha,
@@ -135,6 +136,7 @@ export default function TabTurnos({
   <option value="efectivo">Efectivo</option>
   <option value="transferencia">Transferencia</option>
   <option value="obra_social">Obra Social</option>
+  <option value="cuenta_corriente">Cuenta corriente</option>
 </select>
 
 <br />
@@ -170,6 +172,10 @@ export default function TabTurnos({
           </div>
         </div>
       </div>
+      <div style={{ backgroundColor: '#f0e6d3', borderRadius: '8px', padding: '16px', flex: 1 }}>
+  <p style={{ margin: 0, color: '#161616' }}>📋 Cuenta Corriente</p>
+  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalCuentaCorriente}</p>
+</div>
 
       {/* RANKING SERVICIOS */}
       <div style={card}>
