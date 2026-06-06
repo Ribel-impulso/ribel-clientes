@@ -80,7 +80,7 @@ export default function TabConfiguracion({
       .upload(nombreArchivo, archivoFile)
     if (uploadError) { alert('Error al subir: ' + uploadError.message); setCargandoArchivo(false); return }
     const { data: urlData } = supabase.storage.from('archivos_clientes').getPublicUrl(nombreArchivo)
-    await supabase.from('archivo-clientes').insert([{
+    await supabase.from('archivo_clientes').insert([{
       cliente_id: clienteSeleccionadoArchivo,
       nombre: archivoFile.name,
       url: urlData.publicUrl,
