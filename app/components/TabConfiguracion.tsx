@@ -74,13 +74,13 @@ export default function TabConfiguracion({
   async function subirArchivo() {
     if (!clienteSeleccionadoArchivo || !archivoFile) return
     setCargandoArchivo(true)
-    const nombreArchivo = `${userId}/${clienteSeleccionadoArchivo}/${Date.now()}_${archivoFile.name}`
+    const nombreArchivo = ${userId}/${clienteSeleccionadoArchivo}/${Date.now()}_${archivoFile.name}
     const { error: uploadError } = await supabase.storage
-      .from('archivos_clientes')
+      .from('archivos-clientes')
       .upload(nombreArchivo, archivoFile)
     if (uploadError) { alert('Error al subir: ' + uploadError.message); setCargandoArchivo(false); return }
-    const { data: urlData } = supabase.storage.from('archivos_clientes').getPublicUrl(nombreArchivo)
-    await supabase.from('archivo_clientes').insert([{
+    const { data: urlData } = supabase.storage.from('archivos-clientes').getPublicUrl(nombreArchivo)
+    await supabase.from('archivos_clientes').insert([{
       cliente_id: clienteSeleccionadoArchivo,
       nombre: archivoFile.name,
       url: urlData.publicUrl,
@@ -109,8 +109,8 @@ export default function TabConfiguracion({
 
   async function eliminarArchivo(id: string, url?: string, tipo?: string) {
     if (tipo === 'pdf' && url) {
-      const path = url.split('/archivos_clientes/')[1]
-      if (path) await supabase.storage.from('archivos_clientes').remove([path])
+      const path = url.split('/archivos-clientes/')[1]
+      if (path) await supabase.storage.from('archivos-clientes').remove([path])
     }
     await supabase.from('archivos_clientes').delete().eq('id', id)
     cargarArchivos(clienteSeleccionadoArchivo)
@@ -128,7 +128,6 @@ export default function TabConfiguracion({
 
   return (
     <>
-      {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
@@ -136,7 +135,6 @@ export default function TabConfiguracion({
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
-      {/* LISTA CLIENTES */}
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Clientes ({clientes.length})</h2>
@@ -156,7 +154,6 @@ export default function TabConfiguracion({
         )}
       </div>
 
-      {/* ARCHIVOS Y NOTAS */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Archivos y Notas por Cliente</h2>
         <input
@@ -234,7 +231,6 @@ export default function TabConfiguracion({
         )}
       </div>
 
-      {/* SERVICIOS */}
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
           <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Servicios ({servicios.length})</h2>
@@ -257,7 +253,6 @@ export default function TabConfiguracion({
         )}
       </div>
 
-      {/* CAMBIAR CONTRASEÑA */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Cambiar Contraseña</h2>
         <input type="password" placeholder="Nueva contraseña" style={inp} />
