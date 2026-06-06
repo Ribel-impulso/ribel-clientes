@@ -40,12 +40,76 @@ export default function TabConfiguracion({
   card, input, btnPrimary, btnSecondary
 }: Props) {
 
-  const [clienteSeleccionadoArchivo, setClienteSeleccionadoArchivo] = useState('')
-  const [busquedaClienteArchivo, setBusquedaClienteArchivo] = useState('')
-  const [archivos, setArchivos] = useState<any[]>([])
-  const [notaTexto, setNotaTexto] = useState('')
-  const [archivoFile, setArchivoFile] = useState<File | null>(null)
-  const [cargandoArchivo, setCargandoArchivo] = useState(false)
+  const [clienteAbierto, setClienteAbierto] = useState<string | null>(null)
+  const [archivos, setArchivos] = useState<Record<string, any[]>>({})
+  const [notaTexto, setNotaTexto] = useState<Record<string, string>>({})
+  const [archivoFile, setArchivoFile] = useState<Record<string, File | null>>({})
+  const [cargando, setCargando] = useState<string | null>(null)
+
+  async function cargarArchivos(clienteId: string) {
+    const { data } = await supabase
+      .from('archivos_clientes')
+      .select('*')
+      .eq('cliente_id', clienteId)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+    setArchivos(prev => ({ ...prev, [clienteId]: data || [] }))
+  }
+
+  async function toggleCliente(clienteId: string) {
+    if (clienteAbierto === clienteId) {
+      setClienteAbierto(null)
+    } else {
+      setClienteAbierto(clienteId)
+      cargarArchivos(clienteId)
+    }
+  }
+
+  async function subirArchivo(clienteId: string) {
+    const file = archivoFile[clienteId]
+    if (!file) return
+    setCargando(clienteId)
+    const nombreArchivo = `${userId}/${clienteId}/${Date.now()}_${file.name}`
+    const { error: uploadError } = await supabase.storage
+      .from('archivos-clientes')
+      .upload(nombreArchivo, file)
+    if (uploadError) { alert('Error al subir: ' + uploadError.message); setCargando(null); return }
+    const { data: urlData } = supabase.storage.from('archivos-clientes').getPublicUrl(nombreArchivo)
+    await supabase.from('archivos_clientes').insert([{
+      cliente_id: clienteId,
+      nombre: file.name,
+      url: urlData.publicUrl,
+      tipo: 'pdf',
+      user_id: userId
+    }])
+    setArchivoFile(prev => ({ ...prev, [clienteId]: null }))
+    setCargando(null)
+    cargarArchivos(clienteId)
+    alert('Archivo subido!')
+  }
+
+  async function guardarNota(clienteId: string) {
+    const texto = notaTexto[clienteId]
+    if (!texto?.trim()) return
+    await supabase.from('archivos_clientes').insert([{
+      cliente_id: clienteId,
+      nombre: 'Nota',
+      contenido: texto,
+      tipo: 'nota',
+      user_id: userId
+    }])
+    setNotaTexto(prev => ({ ...prev, [clienteId]: '' }))
+    cargarArchivos(clienteId)
+  }
+
+  async function eliminarArchivo(clienteId: string, id: string, url?: string, tipo?: string) {
+    if (tipo === 'pdf' && url) {
+      const path = url.split('/archivos-clientes/')[1]
+      if (path) await supabase.storage.from('archivos-clientes').remove([path])
+    }
+    await supabase.from('archivos_clientes').delete().eq('id', id)
+    cargarArchivos(clienteId)
+  }
 
   async function agregarCliente() {
     await supabase.from('clientes').insert([{ nombre, telefono, user_id: userId }])
@@ -61,62 +125,6 @@ export default function TabConfiguracion({
     cargarServicios(userId)
   }
 
-  async function cargarArchivos(clienteId: string) {
-    const { data } = await supabase
-      .from('archivos_clientes')
-      .select('*')
-      .eq('cliente_id', clienteId)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-    setArchivos(data || [])
-  }
-
-  async function subirArchivo() {
-    if (!clienteSeleccionadoArchivo || !archivoFile) return
-    console.log('subiendo...', clienteSeleccionadoArchivo, archivoFile?.name)
-    setCargandoArchivo(true)
-    const nombreArchivo = `${userId}/${clienteSeleccionadoArchivo}/${Date.now()}_${archivoFile.name}`
-    const { error: uploadError } = await supabase.storage
-      .from('archivos-clientes')
-      .upload(nombreArchivo, archivoFile)
-    if (uploadError) { alert('Error al subir: ' + uploadError.message); setCargandoArchivo(false); return }
-    const { data: urlData } = supabase.storage.from('archivos-clientes').getPublicUrl(nombreArchivo)
-    await supabase.from('archivos_clientes').insert([{
-      cliente_id: clienteSeleccionadoArchivo,
-      nombre: archivoFile.name,
-      url: urlData.publicUrl,
-      tipo: 'pdf',
-      user_id: userId
-    }])
-    setArchivoFile(null)
-    setCargandoArchivo(false)
-    cargarArchivos(clienteSeleccionadoArchivo)
-    alert('Archivo subido!')
-  }
-
-  async function guardarNota() {
-    if (!clienteSeleccionadoArchivo || !notaTexto.trim()) return
-    await supabase.from('archivos_clientes').insert([{
-      cliente_id: clienteSeleccionadoArchivo,
-      nombre: 'Nota',
-      contenido: notaTexto,
-      tipo: 'nota',
-      user_id: userId
-    }])
-    setNotaTexto('')
-    cargarArchivos(clienteSeleccionadoArchivo)
-    alert('Nota guardada!')
-  }
-
-  async function eliminarArchivo(id: string, url?: string, tipo?: string) {
-    if (tipo === 'pdf' && url) {
-      const path = url.split('/archivos-clientes/')[1]
-      if (path) await supabase.storage.from('archivos-clientes').remove([path])
-    }
-    await supabase.from('archivos_clientes').delete().eq('id', id)
-    cargarArchivos(clienteSeleccionadoArchivo)
-  }
-
   const inp: React.CSSProperties = {
     padding: '10px',
     borderRadius: '8px',
@@ -129,6 +137,7 @@ export default function TabConfiguracion({
 
   return (
     <>
+      {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
@@ -136,105 +145,111 @@ export default function TabConfiguracion({
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
+      {/* LISTA CLIENTES */}
       <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Clientes ({clientes.length})</h2>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ color: '#161616', margin: 0 }}>Clientes ({clientes.length})</h2>
           <button onClick={() => setMostrarClientes(!mostrarClientes)} style={btnSecondary}>
             {mostrarClientes ? 'Ocultar' : 'Ver'}
           </button>
         </div>
         {mostrarClientes && (
-          <ul style={{ marginTop: '16px', paddingLeft: '16px' }}>
+          <div>
             {clientes.map(c => (
-              <li key={c.id} style={{ marginBottom: '8px', color: '#161616' }}>
-                {c.nombre} - {c.telefono}
-                <button onClick={() => eliminarCliente(c.id)} style={{ marginLeft: '10px', color: '#ba9a7d', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              <div key={c.id} style={{ borderRadius: '10px', border: '1px solid #e3dfd6', marginBottom: '10px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f9f7f4' }}>
+                  <div>
+                    <span style={{ fontWeight: 'bold', color: '#161616' }}>{c.nombre}</span>
+                    <span style={{ color: '#9e9e9e', marginLeft: '12px', fontSize: '14px' }}>{c.telefono}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => toggleCliente(c.id)}
+                      style={{ ...btnSecondary, marginLeft: 0, fontSize: '13px', padding: '6px 12px' }}>
+                      {clienteAbierto === c.id ? 'Cerrar' : '📁 Archivos'}
+                    </button>
+                    <button
+                      onClick={() => eliminarCliente(c.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
 
-      <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Archivos y Notas por Cliente</h2>
-        <input
-          placeholder="Buscar cliente..."
-          value={busquedaClienteArchivo}
-          onChange={e => { setBusquedaClienteArchivo(e.target.value); setClienteSeleccionadoArchivo('') }}
-          style={input}
-        />
-        {busquedaClienteArchivo && !clienteSeleccionadoArchivo && (
-          <ul style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', listStyle: 'none', margin: '0 0 12px 0' }}>
-            {clientes
-              .filter(c => c.nombre.toLowerCase().includes(busquedaClienteArchivo.toLowerCase()))
-              .map(c => (
-                <li key={c.id}
-                  onClick={() => { setClienteSeleccionadoArchivo(c.id); setBusquedaClienteArchivo(c.nombre); cargarArchivos(c.id) }}
-                  style={{ padding: '8px', cursor: 'pointer', color: '#161616' }}>
-                  {c.nombre}
-                </li>
-              ))}
-          </ul>
-        )}
+                {clienteAbierto === c.id && (
+                  <div style={{ padding: '16px', backgroundColor: '#ffffff' }}>
+                    {/* SUBIR PDF */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px' }}>📎 Subir PDF</p>
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={e => setArchivoFile(prev => ({ ...prev, [c.id]: e.target.files?.[0] || null }))}
+                        style={{ marginBottom: '8px', display: 'block' }}
+                      />
+                      <button
+                        onClick={() => subirArchivo(c.id)}
+                        style={{ ...btnPrimary, padding: '8px 16px', fontSize: '13px' }}
+                        disabled={cargando === c.id}>
+                        {cargando === c.id ? 'Subiendo...' : 'Subir PDF'}
+                      </button>
+                    </div>
 
-        {clienteSeleccionadoArchivo && (
-          <>
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ color: '#161616', fontWeight: 'bold', marginBottom: '8px' }}>📎 Subir PDF</p>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={e => setArchivoFile(e.target.files?.[0] || null)}
-                style={{ marginBottom: '8px' }}
-              />
-              <br />
-              <button onClick={subirArchivo} style={btnPrimary} disabled={cargandoArchivo}>
-                {cargandoArchivo ? 'Subiendo...' : 'Subir PDF'}
-              </button>
-            </div>
+                    {/* NOTA */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px' }}>📝 Agregar Nota</p>
+                      <textarea
+                        placeholder="Escribí una nota..."
+                        value={notaTexto[c.id] || ''}
+                        onChange={e => setNotaTexto(prev => ({ ...prev, [c.id]: e.target.value }))}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', height: '80px', resize: 'vertical', boxSizing: 'border-box' }}
+                      />
+                      <button
+                        onClick={() => guardarNota(c.id)}
+                        style={{ ...btnPrimary, padding: '8px 16px', fontSize: '13px', marginTop: '6px' }}>
+                        Guardar Nota
+                      </button>
+                    </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ color: '#161616', fontWeight: 'bold', marginBottom: '8px' }}>📝 Agregar Nota</p>
-              <textarea
-                placeholder="Escribí una nota para este cliente..."
-                value={notaTexto}
-                onChange={e => setNotaTexto(e.target.value)}
-                style={{ ...input, width: '100%', height: '80px', resize: 'vertical' }}
-              />
-              <br />
-              <button onClick={guardarNota} style={btnPrimary}>Guardar Nota</button>
-            </div>
-
-            {archivos.length > 0 && (
-              <div>
-                <p style={{ color: '#161616', fontWeight: 'bold', marginBottom: '8px' }}>Archivos y notas guardadas:</p>
-                {archivos.map(a => (
-                  <div key={a.id} style={{ backgroundColor: '#f9f7f4', borderRadius: '8px', padding: '12px', marginBottom: '8px', border: '1px solid #e3dfd6' }}>
-                    {a.tipo === 'pdf' ? (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }}>{a.nombre}</a></span>
-                        <button onClick={() => eliminarArchivo(a.id, a.url, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
-                      </div>
-                    ) : (
+                    {/* ARCHIVOS GUARDADOS */}
+                    {(archivos[c.id] || []).length > 0 && (
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: '#161616', fontWeight: 'bold' }}>📝 Nota</span>
-                          <button onClick={() => eliminarArchivo(a.id, undefined, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
-                        </div>
-                        <p style={{ color: '#161616', margin: '4px 0 0', fontSize: '14px' }}>{a.contenido}</p>
+                        <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px' }}>Guardados:</p>
+                        {(archivos[c.id] || []).map(a => (
+                          <div key={a.id} style={{ backgroundColor: '#f9f7f4', borderRadius: '8px', padding: '10px 14px', marginBottom: '6px', border: '1px solid #e3dfd6', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            {a.tipo === 'pdf' ? (
+                              <>
+                                <span>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }}>{a.nombre}</a></span>
+                                <button onClick={() => eliminarArchivo(c.id, a.id, a.url, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                              </>
+                            ) : (
+                              <div style={{ width: '100%' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ fontWeight: 'bold', color: '#161616', fontSize: '13px' }}>📝 Nota</span>
+                                  <button onClick={() => eliminarArchivo(c.id, a.id, undefined, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                                </div>
+                                <p style={{ color: '#161616', margin: '4px 0 0', fontSize: '14px' }}>{a.contenido}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
+                    {(archivos[c.id] || []).length === 0 && (
+                      <p style={{ color: '#9e9e9e', fontSize: '13px' }}>No hay archivos ni notas guardadas.</p>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
       </div>
 
+      {/* SERVICIOS */}
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-          <h2 style={{ color: '#161616', marginTop: 0, marginBottom: 0 }}>Servicios ({servicios.length})</h2>
+          <h2 style={{ color: '#161616', margin: 0 }}>Servicios ({servicios.length})</h2>
           <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
             {mostrarServicios ? 'Ocultar' : 'Ver'}
           </button>
@@ -254,6 +269,7 @@ export default function TabConfiguracion({
         )}
       </div>
 
+      {/* CAMBIAR CONTRASEÑA */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Cambiar Contraseña</h2>
         <input type="password" placeholder="Nueva contraseña" style={inp} />
