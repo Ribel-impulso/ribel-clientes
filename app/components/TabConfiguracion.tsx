@@ -78,7 +78,8 @@ export default function TabConfiguracion({
     const file = archivoFile[clienteId]
     if (!file) return
     setCargando(clienteId)
-    const nombreArchivo = `${userId}/${clienteId}/${Date.now()}_${file.name}`
+    const nombreLimpio = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9.-]/g, '')
+const nombreArchivo = `${userId}/${clienteId}/${Date.now()}_${nombreLimpio}`
     const { error: uploadError } = await supabase.storage
       .from('archivos-clientes')
       .upload(nombreArchivo, file)
