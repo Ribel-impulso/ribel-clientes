@@ -74,7 +74,7 @@ export default function TabConfiguracion({
   async function subirArchivo() {
     if (!clienteSeleccionadoArchivo || !archivoFile) return
     setCargandoArchivo(true)
-    const nombreArchivo = ${userId}/${clienteSeleccionadoArchivo}/${Date.now()}_${archivoFile.name}
+    const nombreArchivo = `${userId}/${clienteSeleccionadoArchivo}/${Date.now()}_${archivoFile.name}`
     const { error: uploadError } = await supabase.storage
       .from('archivos-clientes')
       .upload(nombreArchivo, archivoFile)
