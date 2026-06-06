@@ -63,7 +63,7 @@ export default function TabConfiguracion({
 
   async function cargarArchivos(clienteId: string) {
     const { data } = await supabase
-      .from('archivos_clientes')
+      .from('archivos-clientes')
       .select('*')
       .eq('cliente_id', clienteId)
       .eq('user_id', userId)
@@ -80,7 +80,7 @@ export default function TabConfiguracion({
       .upload(nombreArchivo, archivoFile)
     if (uploadError) { alert('Error al subir: ' + uploadError.message); setCargandoArchivo(false); return }
     const { data: urlData } = supabase.storage.from('archivos-clientes').getPublicUrl(nombreArchivo)
-    await supabase.from('archivos_clientes').insert([{
+    await supabase.from('archivo-clientes').insert([{
       cliente_id: clienteSeleccionadoArchivo,
       nombre: archivoFile.name,
       url: urlData.publicUrl,
@@ -95,7 +95,7 @@ export default function TabConfiguracion({
 
   async function guardarNota() {
     if (!clienteSeleccionadoArchivo || !notaTexto.trim()) return
-    await supabase.from('archivos_clientes').insert([{
+    await supabase.from('archivos-clientes').insert([{
       cliente_id: clienteSeleccionadoArchivo,
       nombre: 'Nota',
       contenido: notaTexto,
@@ -112,7 +112,7 @@ export default function TabConfiguracion({
       const path = url.split('/archivos-clientes/')[1]
       if (path) await supabase.storage.from('archivos-clientes').remove([path])
     }
-    await supabase.from('archivos_clientes').delete().eq('id', id)
+    await supabase.from('archivos-clientes').delete().eq('id', id)
     cargarArchivos(clienteSeleccionadoArchivo)
   }
 
