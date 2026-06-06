@@ -243,7 +243,14 @@ export default function TabConfiguracion({
                           <div key={a.id} style={{ backgroundColor: '#f9f7f4', borderRadius: '8px', padding: '10px 14px', marginBottom: '6px', border: '1px solid #e3dfd6' }}>
                             {a.tipo === 'pdf' ? (
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '14px' }}>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }}>{a.nombre}</a></span>
+                                <span style={{ fontSize: '14px' }}>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }} onClick={async (e) => {
+  e.preventDefault()
+  const path = a.url.split('/archivos-clientes/')[1]
+  if (path) {
+    const { data } = await supabase.storage.from('archivos-clientes').createSignedUrl(path, 60)
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+  }
+}}>{a.nombre}</a></span>
                                 <button onClick={() => eliminarArchivo(c.id, a.id, a.url, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
                               </div>
                             ) : (
