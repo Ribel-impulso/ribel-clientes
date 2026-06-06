@@ -222,7 +222,10 @@ user_id: userId
     await supabase.from('sesiones').update({ facturado: !valorActual }).eq('id', id)
     cargarSesiones(userId!)
   }
-
+  async function cobrarSesion(id: string) {
+  await supabase.from('sesiones').update({ cobrado: true }).eq('id', id)
+  cargarSesiones(userId!)
+}
   function iniciarEdicion(s: any) {
     setEditandoId(s.id)
     setEditFecha(s.fecha)
@@ -366,6 +369,7 @@ const totalMes = totalEfectivo + totalTransferencia
             historial={historial}
             agregarSesion={agregarSesion} eliminarSesion={eliminarSesion}
             toggleFacturado={toggleFacturado} iniciarEdicion={iniciarEdicion}
+            cobrarSesion={cobrarSesion}
             guardarEdicion={guardarEdicion} cargarHistorial={cargarHistorial}
             card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
             th={th} td={td}
