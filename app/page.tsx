@@ -24,7 +24,7 @@ export default function Home() {
   const [mostrarClientes, setMostrarClientes] = useState(false)
   const [mostrarServicios, setMostrarServicios] = useState(false)
   const [nuevoServicioCodigo, setNuevoServicioCodigo] = useState('')
-  const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
+   const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editFecha, setEditFecha] = useState('')
@@ -355,6 +355,7 @@ const totalMes = totalEfectivo + totalTransferencia
             formaPago={formaPago} setFormaPago={setFormaPago}
             mesSeleccionado={mesSeleccionado} setMesSeleccionado={setMesSeleccionado}
             totalEfectivo={totalEfectivo} totalTransferencia={totalTransferencia} totalMes={totalMes}
+            totalCuentaCorriente={totalCuentaCorriente}
             rankingServicios={rankingServicios}
             editandoId={editandoId} setEditandoId={setEditandoId}
             editFecha={editFecha} setEditFecha={setEditFecha}
