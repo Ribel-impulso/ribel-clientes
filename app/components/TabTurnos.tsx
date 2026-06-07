@@ -227,7 +227,7 @@ export default function TabTurnos({
             </tr>
           </thead>
           <tbody>
-            {sesiones.map(s => (
+            {sesiones.filter(s => s.fecha?.startsWith(mesSeleccionado)).map(s => (
               editandoId === s.id ? (
                 <tr key={s.id} style={{ backgroundColor: '#fffaf7' }}>
                   <td style={td}>{s.clientes?.nombre}</td>
