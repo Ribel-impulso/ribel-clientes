@@ -48,6 +48,7 @@ export default function TabConfiguracion({
   const [editandoCliente, setEditandoCliente] = useState<string | null>(null)
   const [editNombre, setEditNombre] = useState('')
   const [editTelefono, setEditTelefono] = useState('')
+  const [busquedaClientes, setBusquedaClientes] = useState('')
 
   async function cargarArchivos(clienteId: string) {
     const { data } = await supabase
@@ -164,8 +165,14 @@ export default function TabConfiguracion({
           </button>
         </div>
         {mostrarClientes && (
-          <div>
-            {clientes.map(c => (
+  <div>
+    <input
+      placeholder="Buscar cliente..."
+      value={busquedaClientes}
+      onChange={e => setBusquedaClientes(e.target.value)}
+      style={input}
+    />
+    {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaClientes.toLowerCase())).map(c => (
               <div key={c.id} style={{ borderRadius: '10px', border: '1px solid #e3dfd6', marginBottom: '10px', overflow: 'hidden' }}>
                 
                 {/* FILA PRINCIPAL */}
