@@ -212,11 +212,11 @@ user_id: userId
   }
 
   async function eliminarSesion(id: string) {
-    const confirmar = confirm('¿Eliminar este turno?')
-    if (!confirmar) return
-    await supabase.from('sesiones').delete().eq('id', id)
-    cargarSesiones(userId!)
-  }
+  const confirmar = confirm('¿Eliminar este turno?')
+  if (!confirmar) return
+  await supabase.from('sesiones').delete().eq('id', id).eq('user_id', userId!)
+  cargarSesiones(userId!)
+}
 
   async function toggleFacturado(id: string, valorActual: boolean) {
     await supabase.from('sesiones').update({ facturado: !valorActual }).eq('id', id)
