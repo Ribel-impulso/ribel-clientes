@@ -129,14 +129,10 @@ export default function Home() {
   }
 
   async function cargarSesiones(uid: string, mes?: string) {
-  const mesAUsar = mes || mesSeleccionado
-  const ultimoDia = new Date(parseInt(mesAUsar.slice(0,4)), parseInt(mesAUsar.slice(5,7)), 0).toISOString().slice(0,10)
   const { data } = await supabase
     .from('sesiones')
     .select('*, clientes(nombre)')
     .eq('user_id', uid)
-    .gte('fecha', mesAUsar + '-01')
-    .lte('fecha', ultimoDia)
     .order('fecha', { ascending: false })
   setSesiones(data || [])
 }
