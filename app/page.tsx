@@ -222,8 +222,8 @@ user_id: userId
     await supabase.from('sesiones').update({ facturado: !valorActual }).eq('id', id)
     cargarSesiones(userId!)
   }
-  async function cobrarSesion(id: string) {
-  await supabase.from('sesiones').update({ cobrado: true }).eq('id', id)
+  async function cobrarSesion(id: string, formaPago: string) {
+  await supabase.from('sesiones').update({ cobrado: true, forma_pago_cobro: formaPago }).eq('id', id)
   cargarSesiones(userId!)
 }
   function iniciarEdicion(s: any) {
@@ -276,20 +276,23 @@ user_id: userId
     window.location.href = '/login'
   }
 
-  const totalEfectivo = sesiones.reduce((sum, s) => {
+const totalEfectivo = sesiones.reduce((sum, s) => {
   const m1 = s.forma_pago === 'efectivo' ? (s.monto || 0) : 0
   const m2 = s.forma_pago2 === 'efectivo' ? (s.monto2 || 0) : 0
-  return sum + m1 + m2
+  const cobro = s.forma_pago_cobro === 'efectivo' ? (s.monto || 0) : 0
+  return sum + m1 + m2 + cobro
 }, 0)
 
 const totalTransferencia = sesiones.reduce((sum, s) => {
   const m1 = s.forma_pago === 'transferencia' ? (s.monto || 0) : 0
   const m2 = s.forma_pago2 === 'transferencia' ? (s.monto2 || 0) : 0
-  return sum + m1 + m2
+  const cobro = s.forma_pago_cobro === 'transferencia' ? (s.monto || 0) : 0
+  return sum + m1 + m2 + cobro
 }, 0)
+
 const totalCuentaCorriente = sesiones.reduce((sum, s) => {
-  const m1 = s.forma_pago === 'cuenta_corriente' ? (s.monto || 0) : 0
-  const m2 = s.forma_pago2 === 'cuenta_corriente' ? (s.monto2 || 0) : 0
+  const m1 = s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
+  const m2 = s.forma_pago2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
   return sum + m1 + m2
 }, 0)
 
