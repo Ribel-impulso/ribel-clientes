@@ -223,7 +223,8 @@ user_id: userId
     cargarSesiones(userId!)
   }
   async function cobrarSesion(id: string, formaPago: string) {
-  await supabase.from('sesiones').update({ cobrado: true, forma_pago_cobro: formaPago }).eq('id', id)
+  const hoy = new Date().toISOString().split('T')[0]
+  await supabase.from('sesiones').update({ cobrado: true, forma_pago_cobro: formaPago, fecha_cobro: hoy }).eq('id', id)
   cargarSesiones(userId!)
 }
   function iniciarEdicion(s: any) {
@@ -279,7 +280,7 @@ user_id: userId
 const totalEfectivo = sesiones.reduce((sum, s) => {
   const m1 = s.forma_pago === 'efectivo' ? (s.monto || 0) : 0
   const m2 = s.forma_pago2 === 'efectivo' ? (s.monto2 || 0) : 0
-  const cobro = s.forma_pago_cobro === 'efectivo' ? (s.monto || 0) : 0
+  const cobro = s.forma_pago_cobro === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
   return sum + m1 + m2 + cobro
 }, 0)
 
