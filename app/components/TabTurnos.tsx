@@ -47,7 +47,7 @@ interface Props {
   agregarSesion: () => void
   eliminarSesion: (id: string) => void
   toggleFacturado: (id: string, valor: boolean) => void
-  cobrarSesion: (id: string) => void
+  cobrarSesion: (id: string, formaPago: string) => void
   iniciarEdicion: (s: any) => void
   guardarEdicion: (id: string) => void
   cargarHistorial: (clienteId: string) => void
@@ -263,7 +263,10 @@ export default function TabTurnos({
   {s.forma_pago === 'transferencia' ? (
     <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
   ) : s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (
-    <button onClick={() => cobrarSesion(s.id)} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
+    <button onClick={() => {
+  const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
+  if (fp) cobrarSesion(s.id, fp)
+}} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
   ) : s.forma_pago === 'cuenta_corriente' && s.cobrado ? (
     <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
   ) : (
