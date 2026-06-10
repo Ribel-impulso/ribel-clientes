@@ -44,6 +44,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const [sesionEditando, setSesionEditando] = useState<Partial<Sesion>>({});
   const [modoEdicion, setModoEdicion] = useState(false);
   const [servicios, setServicios] = useState<any[]>([]);
+  const [busquedaCliente, setBusquedaCliente] = useState('');
 
   useEffect(() => {
     const cargarClientes = async () => {
