@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 
 interface Props {
   clientes: any[]
@@ -79,10 +80,13 @@ export default function TabTurnos({
   editMonto, setEditMonto,
   editFormaPago, setEditFormaPago,
   clienteHistorial, setClienteHistorial, historial,
-  agregarSesion, eliminarSesion, toggleFacturado,cobrarSesion,
+  agregarSesion, eliminarSesion, toggleFacturado, cobrarSesion,
   iniciarEdicion, guardarEdicion, cargarHistorial,
   card, input, btnPrimary, btnSecondary, th, td
 }: Props) {
+
+  const [mostrarTurnos, setMostrarTurnos] = useState(false)
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
   const serviciosFiltrados = servicios.filter(s =>
     s.nombre.toLowerCase().includes(busquedaServicio.toLowerCase()) ||
@@ -133,23 +137,22 @@ export default function TabTurnos({
           </ul>
         )}
         <input placeholder="Monto" type="number" value={monto} onChange={e => setMonto(e.target.value)} style={input} />
-<select value={formaPago} onChange={e => setFormaPago(e.target.value)} style={input}>
-  <option value="efectivo">Efectivo</option>
-  <option value="transferencia">Transferencia</option>
-  <option value="obra_social">Obra Social</option>
-  <option value="cuenta_corriente">Cuenta corriente</option>
-</select>
-
-<br />
-<small style={{ color: '#9e9e9e' }}>Pago adicional (opcional)</small>
-<br />
-<input placeholder="Monto adicional" type="number" value={monto2} onChange={e => setMonto2(e.target.value)} style={input} />
-<select value={formaPago2} onChange={e => setFormaPago2(e.target.value)} style={input}>
-  <option value="">Sin pago adicional</option>
-  <option value="efectivo">Efectivo</option>
-  <option value="transferencia">Transferencia</option>
-  <option value="obra_social">Obra Social</option>
-</select>
+        <select value={formaPago} onChange={e => setFormaPago(e.target.value)} style={input}>
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="obra_social">Obra Social</option>
+          <option value="cuenta_corriente">Cuenta corriente</option>
+        </select>
+        <br />
+        <small style={{ color: '#9e9e9e' }}>Pago adicional (opcional)</small>
+        <br />
+        <input placeholder="Monto adicional" type="number" value={monto2} onChange={e => setMonto2(e.target.value)} style={input} />
+        <select value={formaPago2} onChange={e => setFormaPago2(e.target.value)} style={input}>
+          <option value="">Sin pago adicional</option>
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="obra_social">Obra Social</option>
+        </select>
         <br />
         <button onClick={agregarSesion} style={btnPrimary}>Registrar Turno</button>
       </div>
@@ -174,9 +177,9 @@ export default function TabTurnos({
         </div>
       </div>
       <div style={{ backgroundColor: '#f0e6d3', borderRadius: '8px', padding: '16px', flex: 1 }}>
-  <p style={{ margin: 0, color: '#161616' }}>📋 Cuenta Corriente</p>
-  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalCuentaCorriente}</p>
-</div>
+        <p style={{ margin: 0, color: '#161616' }}>📋 Cuenta Corriente</p>
+        <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalCuentaCorriente}</p>
+      </div>
 
       {/* RANKING SERVICIOS */}
       <div style={card}>
@@ -211,129 +214,141 @@ export default function TabTurnos({
         )}
       </div>
 
-      {/* TURNOS */}
+      {/* TURNOS DEL MES */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Turnos de {mesSeleccionado}</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={th}>Cliente</th>
-              <th style={th}>Fecha</th>
-              <th style={th}>Servicio</th>
-              <th style={th}>Monto</th>
-              <th style={th}>Pago</th>
-              <th style={th}>Facturado</th>
-              <th style={th}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sesiones.filter(s => s.fecha?.startsWith(mesSeleccionado)).map(s => (
-              editandoId === s.id ? (
-                <tr key={s.id} style={{ backgroundColor: '#fffaf7' }}>
-                  <td style={td}>{s.clientes?.nombre}</td>
-                  <td style={td}><input type="date" value={editFecha} onChange={e => setEditFecha(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
-                  <td style={td}><input value={editServicio} onChange={e => setEditServicio(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
-                  <td style={td}><input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} /></td>
-                  <td style={td}>
-                    <select value={editFormaPago} onChange={e => setEditFormaPago(e.target.value)} style={{ ...input, marginBottom: 0 }}>
-                      <option value="efectivo">Efectivo</option>
-                      <option value="transferencia">Transferencia</option>
-                    </select>
-                  </td>
-                  <td style={td}>-</td>
-                  <td style={td}>
-                    <button onClick={() => guardarEdicion(s.id)} style={{ ...btnPrimary, padding: '6px 12px', marginRight: '6px' }}>Guardar</button>
-                    <button onClick={() => setEditandoId(null)} style={{ ...btnSecondary, marginLeft: 0 }}>Cancelar</button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
-                  <td style={td}>{s.clientes?.nombre}</td>
-                  <td style={td}>{s.fecha}</td>
-                  <td style={td}>{s.tipo_masaje}</td>
-                  <td style={td}>
-  ${s.monto}
-  {s.monto2 ? ` + $${s.monto2}` : ''}
-</td>
-<td style={td}>
-  {s.forma_pago}
-  {s.forma_pago2 ? ` + ${s.forma_pago2}` : ''}
-</td>
-                  <td style={td}>
-  {s.forma_pago === 'transferencia' ? (
-    <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
-  ) : s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (
-    <button onClick={() => {
-  const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
-  if (fp) cobrarSesion(s.id, fp)
-}} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
-  ) : s.forma_pago === 'cuenta_corriente' && s.cobrado ? (
-    <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
-  ) : (
-    <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
-  )}
-</td>
-                  <td style={td}>
-                    <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
-                    <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
-                  </td>
-                </tr>
-              )
-            ))}
-          </tbody>
-        </table>
+        <button
+          onClick={() => setMostrarTurnos(!mostrarTurnos)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#ba9a7d', fontWeight: 600, marginBottom: '8px', padding: 0 }}>
+          {mostrarTurnos ? '▲ Ocultar turnos' : '▼ Ver turnos'}
+        </button>
+        {mostrarTurnos && (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={th}>Cliente</th>
+                <th style={th}>Fecha</th>
+                <th style={th}>Servicio</th>
+                <th style={th}>Monto</th>
+                <th style={th}>Pago</th>
+                <th style={th}>Facturado</th>
+                <th style={th}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sesiones.filter(s => s.fecha?.startsWith(mesSeleccionado)).map(s => (
+                editandoId === s.id ? (
+                  <tr key={s.id} style={{ backgroundColor: '#fffaf7' }}>
+                    <td style={td}>{s.clientes?.nombre}</td>
+                    <td style={td}><input type="date" value={editFecha} onChange={e => setEditFecha(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
+                    <td style={td}><input value={editServicio} onChange={e => setEditServicio(e.target.value)} style={{ ...input, marginBottom: 0 }} /></td>
+                    <td style={td}><input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} /></td>
+                    <td style={td}>
+                      <select value={editFormaPago} onChange={e => setEditFormaPago(e.target.value)} style={{ ...input, marginBottom: 0 }}>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                      </select>
+                    </td>
+                    <td style={td}>-</td>
+                    <td style={td}>
+                      <button onClick={() => guardarEdicion(s.id)} style={{ ...btnPrimary, padding: '6px 12px', marginRight: '6px' }}>Guardar</button>
+                      <button onClick={() => setEditandoId(null)} style={{ ...btnSecondary, marginLeft: 0 }}>Cancelar</button>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
+                    <td style={td}>{s.clientes?.nombre}</td>
+                    <td style={td}>{s.fecha}</td>
+                    <td style={td}>{s.tipo_masaje}</td>
+                    <td style={td}>
+                      ${s.monto}
+                      {s.monto2 ? ` + $${s.monto2}` : ''}
+                    </td>
+                    <td style={td}>
+                      {s.forma_pago}
+                      {s.forma_pago2 ? ` + ${s.forma_pago2}` : ''}
+                    </td>
+                    <td style={td}>
+                      {s.forma_pago === 'transferencia' ? (
+                        <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
+                      ) : s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (
+                        <button onClick={() => {
+                          const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
+                          if (fp) cobrarSesion(s.id, fp)
+                        }} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
+                      ) : s.forma_pago === 'cuenta_corriente' && s.cobrado ? (
+                        <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
+                      ) : (
+                        <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+                      )}
+                    </td>
+                    <td style={td}>
+                      <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
+                      <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
+                    </td>
+                  </tr>
+                )
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* HISTORIAL POR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Historial por Cliente</h2>
         <input
-  placeholder="Buscar cliente..."
-  value={clienteHistorial}
-  onChange={e => {
-    setClienteHistorial(e.target.value)
-  }}
-  style={input}
-/>
-{clienteHistorial && (
-  <ul style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', listStyle: 'none', margin: 0, marginBottom: '12px' }}>
-    {clientes
-      .filter(c => c.nombre.toLowerCase().includes(clienteHistorial.toLowerCase()))
-      .map(c => (
-        <li key={c.id}
-          onClick={() => { setClienteHistorial(c.nombre); cargarHistorial(c.id) }}
-          style={{ padding: '8px', cursor: 'pointer', color: '#161616' }}>
-          {c.nombre}
-        </li>
-      ))}
-  </ul>
-)}
+          placeholder="Buscar cliente..."
+          value={clienteHistorial}
+          onChange={e => { setClienteHistorial(e.target.value) }}
+          style={input}
+        />
+        {clienteHistorial && (
+          <ul style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', listStyle: 'none', margin: 0, marginBottom: '12px' }}>
+            {clientes
+              .filter(c => c.nombre.toLowerCase().includes(clienteHistorial.toLowerCase()))
+              .map(c => (
+                <li key={c.id}
+                  onClick={() => { setClienteHistorial(c.nombre); cargarHistorial(c.id) }}
+                  style={{ padding: '8px', cursor: 'pointer', color: '#161616' }}>
+                  {c.nombre}
+                </li>
+              ))}
+          </ul>
+        )}
         {historial.length > 0 && (
           <>
             <p style={{ color: '#161616', marginTop: '12px' }}>
               <strong>Total de turnos:</strong> {historial.length} &nbsp;|&nbsp;
               <strong>Total facturado:</strong> ${historial.filter(s => new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()).reduce((sum, s) => sum + (s.monto || 0), 0)}
             </p>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={th}>Fecha</th>
-                  <th style={th}>Servicio</th>
-                  <th style={th}>Monto</th>
-                  <th style={th}>Pago</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historial.map(s => (
-                  <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
-                    <td style={td}>{s.fecha}</td>
-                    <td style={td}>{s.tipo_masaje}</td>
-                    <td style={td}>${s.monto}</td>
-                    <td style={td}>{s.forma_pago}</td>
+            <button
+              onClick={() => setMostrarHistorial(!mostrarHistorial)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#ba9a7d', fontWeight: 600, marginBottom: '8px', padding: 0 }}>
+              {mostrarHistorial ? '▲ Ocultar historial' : '▼ Ver historial'}
+            </button>
+            {mostrarHistorial && (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={th}>Fecha</th>
+                    <th style={th}>Servicio</th>
+                    <th style={th}>Monto</th>
+                    <th style={th}>Pago</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {historial.map(s => (
+                    <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
+                      <td style={td}>{s.fecha}</td>
+                      <td style={td}>{s.tipo_masaje}</td>
+                      <td style={td}>${s.monto}</td>
+                      <td style={td}>{s.forma_pago}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </>
         )}
         {clienteHistorial && historial.length === 0 && (
