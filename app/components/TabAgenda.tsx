@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface Sesion {
   id: string;
