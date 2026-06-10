@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import TabConfiguracion from './components/TabConfiguracion'
 import TabTurnos from './components/TabTurnos'
+import TabAgenda from './components/TabAgenda'
 import TabFinanzas from './components/TabFinanzas'
 
 export default function Home() {
-  const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas'>('turnos')
+  const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda'>('turnos')
   const [clientes, setClientes] = useState<any[]>([])
   const [sesiones, setSesiones] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
@@ -331,6 +332,9 @@ const totalMes = totalEfectivo + totalTransferencia
         <button style={tabStyle(pestanaActiva === 'finanzas')} onClick={() => setPestanaActiva('finanzas')}>
           💰 Finanzas
         </button>
+        <button style={tabStyle(pestanaActiva === 'agenda')} onClick={() => setPestanaActiva('agenda')}>
+        📅 Agenda
+        </button>
       </div>
 
       <div style={{ backgroundColor: '#ffffff', borderRadius: '0 12px 12px 12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -382,7 +386,9 @@ const totalMes = totalEfectivo + totalTransferencia
             th={th} td={td}
           />
         )}
-
+{pestanaActiva === 'agenda' && (
+        <TabAgenda userId={userId!} />
+      )}
         {pestanaActiva === 'finanzas' && (
           <TabFinanzas
             gastos={gastos}
