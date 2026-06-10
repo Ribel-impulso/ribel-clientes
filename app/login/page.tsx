@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../lib/supabase'
 
 type Vista = 'login' | 'registro' | 'recuperar'
 
@@ -57,13 +57,20 @@ export default function Login() {
       return
     }
     if (data.user) {
+      const hoy = new Date()
       const fechaVencimiento = new Date()
-      fechaVencimiento.setDate(fechaVencimiento.getDate() + 15)
+      fechaVencimiento.setDate(hoy.getDate() + 15)
+
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        nombre: nombre
+      })
+
       await supabase.from('suscripciones').insert({
         user_id: data.user.id,
         plan: 'prueba',
         estado: 'activa',
-        fecha_inicio: new Date().toISOString().split('T')[0],
+        fecha_inicio: hoy.toISOString().split('T')[0],
         fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0]
       })
     }
