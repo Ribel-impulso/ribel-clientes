@@ -202,11 +202,23 @@ if (dataServicios) setServicios(dataServicios);
             <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '18px' }}>{modoEdicion ? 'Editar turno' : 'Nuevo turno'}</div>
 
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Cliente *</label>
-            <select value={sesionEditando.cliente_id ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, cliente_id: e.target.value })}
-              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '14px', boxSizing: 'border-box' }}>
-              <option value="">Seleccionar cliente...</option>
-              {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
+            <input
+  type="text"
+  placeholder="Buscar cliente..."
+  value={sesionEditando.cliente_id ? (clientes.find(c => c.id === sesionEditando.cliente_id)?.nombre ?? '') : busquedaCliente}
+  onChange={(e) => { setBusquedaCliente(e.target.value); setSesionEditando({ ...sesionEditando, cliente_id: '' }); }}
+  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '4px', boxSizing: 'border-box' as const }}
+/>
+{busquedaCliente && !sesionEditando.cliente_id && (
+  <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto', marginBottom: '14px' }}>
+    {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase())).map(c => (
+      <div key={c.id} onClick={() => { setSesionEditando({ ...sesionEditando, cliente_id: c.id }); setBusquedaCliente(''); }}
+        style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '14px', borderBottom: '1px solid #F3F4F6' }}>
+        {c.nombre}
+      </div>
+    ))}
+  </div>
+)}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
