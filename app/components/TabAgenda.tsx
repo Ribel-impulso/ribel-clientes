@@ -43,11 +43,14 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [sesionEditando, setSesionEditando] = useState<Partial<Sesion>>({});
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [servicios, setServicios] = useState<any[]>([]);
 
   useEffect(() => {
     const cargarClientes = async () => {
       const { data } = await supabase.from('clientes').select('id, nombre').order('nombre');
       if (data) setClientes(data);
+      const { data: dataServicios } = await supabase.from('servicios').select('id, nombre').order('nombre');
+if (dataServicios) setServicios(dataServicios);
     };
     cargarClientes();
   }, []);
@@ -225,8 +228,11 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
-                <input type="text" value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, tipo_masaje: e.target.value })}
-                  placeholder="Masaje, Corte..." style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }} />
+                <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, tipo_masaje: e.target.value })}
+  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }}>
+  <option value="">Seleccionar...</option>
+  {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+</select>
               </div>
             </div>
 
@@ -243,9 +249,8 @@ export default function TabAgenda({ userId }: { userId?: string }) {
                   <option value="">Seleccionar...</option>
                   <option value="Efectivo">Efectivo</option>
                   <option value="Transferencia">Transferencia</option>
-                  <option value="Débito">Débito</option>
-                  <option value="Crédito">Crédito</option>
-                  <option value="MercadoPago">MercadoPago</option>
+                  <option value="Cuenta corriente">Cuenta corriente</option>
+                  <option value="Obra social">Obra social</option>
                 </select>
               </div>
             </div>
