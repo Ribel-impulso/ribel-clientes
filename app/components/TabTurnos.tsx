@@ -312,7 +312,7 @@ export default function TabTurnos({
           <>
             <p style={{ color: '#161616', marginTop: '12px' }}>
               <strong>Total de turnos:</strong> {historial.length} &nbsp;|&nbsp;
-              <strong>Total facturado:</strong> ${historial.reduce((sum, s) => sum + (s.monto || 0), 0)}
+              <strong>Total facturado:</strong> ${historial.filter(s => new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()).reduce((sum, s) => sum + (s.monto || 0), 0)}
             </p>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
