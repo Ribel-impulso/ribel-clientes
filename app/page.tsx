@@ -25,7 +25,7 @@ export default function Home() {
   const [mostrarClientes, setMostrarClientes] = useState(false)
   const [mostrarServicios, setMostrarServicios] = useState(false)
   const [nuevoServicioCodigo, setNuevoServicioCodigo] = useState('')
-   const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
+  const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editFecha, setEditFecha] = useState('')
@@ -43,6 +43,7 @@ export default function Home() {
   const [formaPago2, setFormaPago2] = useState('')
   const [historial, setHistorial] = useState<any[]>([])
   const [gastoCategoria, setGastoCategoria] = useState('negocio')
+  const [diasRestantes, setDiasRestantes] = useState<number | null>(null)
 
   const card: React.CSSProperties = {
     backgroundColor: '#ffffff',
@@ -107,16 +108,44 @@ export default function Home() {
   })
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         window.location.href = '/login'
-      } else {
-        setUserId(data.user.id)
-        cargarClientes(data.user.id)
-        cargarSesiones(data.user.id)
-        cargarServicios(data.user.id)
-        cargarGastos(data.user.id, mesGastos)
+        return
       }
+
+      // Verificar suscripción
+      const { data: suscripcion } = await supabase
+        .from('suscripciones')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (suscripcion) {
+        const hoy = new Date()
+        hoy.setHours(0, 0, 0, 0)
+        const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
+        const diffMs = vencimiento.getTime() - hoy.getTime()
+        const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+        if (diffDias < 0) {
+          // Trial vencido → redirigir a planes
+          window.location.href = '/planes'
+          return
+        }
+        // Mostrar días restantes si quedan 5 o menos
+        if (diffDias <= 5) {
+          setDiasRestantes(diffDias)
+        }
+      }
+
+      setUserId(data.user.id)
+      cargarClientes(data.user.id)
+      cargarSesiones(data.user.id)
+      cargarServicios(data.user.id)
+      cargarGastos(data.user.id, mesGastos)
     })
   }, [mesSeleccionado])
 
@@ -130,17 +159,17 @@ export default function Home() {
   }
 
   async function cargarSesiones(uid: string, mes?: string) {
-  const mesAUsar = mes || mesSeleccionado
-  const ultimoDia = new Date(parseInt(mesAUsar.slice(0,4)), parseInt(mesAUsar.slice(5,7)), 0).toISOString().split('T')[0]
-  const { data } = await supabase
-    .from('sesiones')
-    .select('*, clientes(nombre)')
-    .eq('user_id', uid)
-    .or(`fecha.gte.${mesAUsar}-01,fecha_cobro.gte.${mesAUsar}-01`)
-    .or(`fecha.lte.${ultimoDia},fecha_cobro.lte.${ultimoDia}`)
-    .order('fecha', { ascending: false })
-  setSesiones(data || [])
-}
+    const mesAUsar = mes || mesSeleccionado
+    const ultimoDia = new Date(parseInt(mesAUsar.slice(0,4)), parseInt(mesAUsar.slice(5,7)), 0).toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('sesiones')
+      .select('*, clientes(nombre)')
+      .eq('user_id', uid)
+      .or(`fecha.gte.${mesAUsar}-01,fecha_cobro.gte.${mesAUsar}-01`)
+      .or(`fecha.lte.${ultimoDia},fecha_cobro.lte.${ultimoDia}`)
+      .order('fecha', { ascending: false })
+    setSesiones(data || [])
+  }
 
   async function cargarServicios(uid: string) {
     const { data } = await supabase.from('servicios').select('*').eq('user_id', uid)
@@ -197,9 +226,9 @@ export default function Home() {
       forma_pago: formaPago,
       facturado: false,
       horario: horario,
-monto2: monto2 ? parseFloat(monto2) : null,
-forma_pago2: formaPago2 || null,
-user_id: userId
+      monto2: monto2 ? parseFloat(monto2) : null,
+      forma_pago2: formaPago2 || null,
+      user_id: userId
     }])
     setFecha('')
     setServicioSeleccionado('')
@@ -213,21 +242,23 @@ user_id: userId
   }
 
   async function eliminarSesion(id: string) {
-  const confirmar = confirm('¿Eliminar este turno?')
-  if (!confirmar) return
-  await supabase.from('sesiones').delete().eq('id', id).eq('user_id', userId!)
-  cargarSesiones(userId!)
-}
+    const confirmar = confirm('¿Eliminar este turno?')
+    if (!confirmar) return
+    await supabase.from('sesiones').delete().eq('id', id).eq('user_id', userId!)
+    cargarSesiones(userId!)
+  }
 
   async function toggleFacturado(id: string, valorActual: boolean) {
     await supabase.from('sesiones').update({ facturado: !valorActual }).eq('id', id)
     cargarSesiones(userId!)
   }
+
   async function cobrarSesion(id: string, formaPago: string) {
-  const hoy = new Date().toISOString().split('T')[0]
-  await supabase.from('sesiones').update({ cobrado: true, forma_pago_cobro: formaPago, fecha_cobro: hoy }).eq('id', id)
-  cargarSesiones(userId!)
-}
+    const hoy = new Date().toISOString().split('T')[0]
+    await supabase.from('sesiones').update({ cobrado: true, forma_pago_cobro: formaPago, fecha_cobro: hoy }).eq('id', id)
+    cargarSesiones(userId!)
+  }
+
   function iniciarEdicion(s: any) {
     setEditandoId(s.id)
     setEditFecha(s.fecha)
@@ -278,46 +309,74 @@ user_id: userId
     window.location.href = '/login'
   }
 
-const totalEfectivo = sesiones.reduce((sum, s) => {
-  const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date();
-  const enMes = s.fecha?.startsWith(mesSeleccionado)
-  const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'efectivo' ? (s.monto || 0) : 0
-  const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'efectivo' ? (s.monto2 || 0) : 0
-  const cobro = s.forma_pago_cobro === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
-  return sum + m1 + m2 + cobro
-}, 0)
+  const totalEfectivo = sesiones.reduce((sum, s) => {
+    const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
+    const enMes = s.fecha?.startsWith(mesSeleccionado)
+    const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'efectivo' ? (s.monto || 0) : 0
+    const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'efectivo' ? (s.monto2 || 0) : 0
+    const cobro = s.forma_pago_cobro === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
+    return sum + m1 + m2 + cobro
+  }, 0)
 
-const totalTransferencia = sesiones.reduce((sum, s) => {
-  const enMes = s.fecha?.startsWith(mesSeleccionado)
-  const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date();
-  const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'transferencia' ? (s.monto || 0) : 0
-  const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'transferencia' ? (s.monto2 || 0) : 0 
-  const cobro = s.forma_pago_cobro === 'transferencia' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
-  return sum + m1 + m2 + cobro
-}, 0)
+  const totalTransferencia = sesiones.reduce((sum, s) => {
+    const enMes = s.fecha?.startsWith(mesSeleccionado)
+    const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
+    const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'transferencia' ? (s.monto || 0) : 0
+    const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'transferencia' ? (s.monto2 || 0) : 0
+    const cobro = s.forma_pago_cobro === 'transferencia' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
+    return sum + m1 + m2 + cobro
+  }, 0)
 
-const totalCuentaCorriente = sesiones.reduce((sum, s) => {
-  const m1 = s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
-  const m2 = s.forma_pago2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
-  return sum + m1 + m2
-}, 0)
+  const totalCuentaCorriente = sesiones.reduce((sum, s) => {
+    const m1 = s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
+    const m2 = s.forma_pago2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
+    return sum + m1 + m2
+  }, 0)
 
-const totalMes = totalEfectivo + totalTransferencia
+  const totalMes = totalEfectivo + totalTransferencia
   const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes
   const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
   const balanceNeto = totalIngresos - totalEgresos
 
   const rankingServicios: [string, number][] = (Object.entries(
-  sesiones
-    .filter(s => s.fecha?.startsWith(mesSeleccionado))
-    .reduce((acc: Record<string, number>, s) => {
-      const key = s.tipo_masaje || 'Sin servicio'
-      acc[key] = (acc[key] || 0) + 1
-      return acc
-    }, {})
-) as [string, number][]).sort((a, b) => b[1] - a[1])
+    sesiones
+      .filter(s => s.fecha?.startsWith(mesSeleccionado))
+      .reduce((acc: Record<string, number>, s) => {
+        const key = s.tipo_masaje || 'Sin servicio'
+        acc[key] = (acc[key] || 0) + 1
+        return acc
+      }, {})
+  ) as [string, number][]).sort((a, b) => b[1] - a[1])
+
   return (
     <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
+
+      {/* Aviso de trial por vencer */}
+      {diasRestantes !== null && (
+        <div style={{
+          backgroundColor: '#fff8e1',
+          border: '1px solid #f9a825',
+          borderRadius: '10px',
+          padding: '12px 20px',
+          marginBottom: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span style={{ color: '#e65100', fontSize: '14px' }}>
+            ⏳ Tu período de prueba vence en <strong>{diasRestantes} día{diasRestantes !== 1 ? 's' : ''}</strong>
+          </span>
+          <a href="/planes" style={{
+            backgroundColor: '#ba9a7d',
+            color: '#fff',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            fontSize: '13px',
+            fontWeight: 'bold'
+          }}>Ver planes</a>
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
@@ -335,7 +394,7 @@ const totalMes = totalEfectivo + totalTransferencia
           💰 Finanzas
         </button>
         <button style={tabStyle(pestanaActiva === 'agenda')} onClick={() => setPestanaActiva('agenda')}>
-        📅 Agenda
+          📅 Agenda
         </button>
       </div>
 
@@ -388,9 +447,11 @@ const totalMes = totalEfectivo + totalTransferencia
             th={th} td={td}
           />
         )}
-{pestanaActiva === 'agenda' && (
-        <TabAgenda userId={userId!} />
-      )}
+
+        {pestanaActiva === 'agenda' && (
+          <TabAgenda userId={userId!} />
+        )}
+
         {pestanaActiva === 'finanzas' && (
           <TabFinanzas
             gastos={gastos}
