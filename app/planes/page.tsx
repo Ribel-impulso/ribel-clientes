@@ -197,7 +197,7 @@ export default function Planes() {
         </div>
 
         <p style={{ marginTop: '32px', fontSize: '13px', color: '#999' }}>
-          ¿Tenés dudas? Escribime a <a href="mailto:ribel.contacto@gmail.com" style={{ color: '#ba9a7d' }}>ribel.rafaela@gmail.com</a>
+          ¿Tenés dudas? Escribime a <a href="mailto:ribel.contacto@gmail.com" style={{ color: '#ba9a7d' }}>ribel.contacto@gmail.com</a>
         </p>
 
       </div>
