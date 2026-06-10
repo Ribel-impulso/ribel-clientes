@@ -281,8 +281,8 @@ user_id: userId
 const totalEfectivo = sesiones.reduce((sum, s) => {
   const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date();
   const enMes = s.fecha?.startsWith(mesSeleccionado)
-  const m1 = enMes && yaPaso && s.forma_pago === 'efectivo' ? (s.monto || 0) : 0
-  const m2 = enMes && yaPaso && s.forma_pago2 === 'efectivo' ? (s.monto2 || 0) : 0
+  const m1 = enMes && yaPaso && s.forma_pago === 'Efectivo' ? (s.monto || 0) : 0
+  const m2 = enMes && yaPaso && s.forma_pago2 === 'Efectivo' ? (s.monto2 || 0) : 0
   const cobro = s.forma_pago_cobro === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
   return sum + m1 + m2 + cobro
 }, 0)
@@ -290,8 +290,8 @@ const totalEfectivo = sesiones.reduce((sum, s) => {
 const totalTransferencia = sesiones.reduce((sum, s) => {
   const enMes = s.fecha?.startsWith(mesSeleccionado)
   const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date();
-  const m1 = enMes && yaPaso && s.forma_pago === 'transferencia' ? (s.monto || 0) : 0
-  const m2 = enMes && yaPaso && s.forma_pago2 === 'transferencia' ? (s.monto2 || 0) : 0 
+  const m1 = enMes && yaPaso && s.forma_pago === 'Transferencia' ? (s.monto || 0) : 0
+  const m2 = enMes && yaPaso && s.forma_pago2 === 'Transferencia' ? (s.monto2 || 0) : 0 
   const cobro = s.forma_pago_cobro === 'transferencia' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
   return sum + m1 + m2 + cobro
 }, 0)
