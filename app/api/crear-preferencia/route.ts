@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   const { planId, precio, nombre } = await req.json()
 
+  console.log('ACCESS TOKEN:', process.env.MP_ACCESS_TOKEN ? 'OK' : 'FALTA')
+
   const body = {
     items: [
       {
@@ -31,6 +33,8 @@ export async function POST(req: NextRequest) {
   })
 
   const data = await response.json()
+
+  console.log('MP RESPONSE:', JSON.stringify(data))
 
   if (!response.ok) {
     return NextResponse.json({ error: data }, { status: 500 })
