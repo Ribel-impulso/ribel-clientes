@@ -5,7 +5,8 @@ const planes = [
   {
     id: 'mensual',
     nombre: 'Mensual',
-    precio: '$7.999',
+    precio: 7999,
+    precioTexto: '$7.999',
     dolar: 'USD 8',
     periodo: 'por mes',
     destacado: false,
@@ -13,7 +14,8 @@ const planes = [
   {
     id: 'semestral',
     nombre: 'Semestral',
-    precio: '$29.999',
+    precio: 29999,
+    precioTexto: '$29.999',
     dolar: 'USD 30',
     periodo: 'cada 6 meses',
     destacado: true,
@@ -22,7 +24,8 @@ const planes = [
   {
     id: 'anual',
     nombre: 'Anual',
-    precio: '$47.999',
+    precio: 47999,
+    precioTexto: '$47.999',
     dolar: 'USD 48',
     periodo: 'por año',
     destacado: false,
@@ -31,7 +34,8 @@ const planes = [
   {
     id: 'ilimitado',
     nombre: 'De por vida',
-    precio: '$99.999',
+    precio: 99999,
+    precioTexto: '$99.999',
     dolar: 'USD 100',
     periodo: 'pago único',
     destacado: false,
@@ -41,6 +45,31 @@ const planes = [
 
 export default function Planes() {
   const [moneda, setMoneda] = useState<'ars' | 'usd'>('ars')
+  const [cargando, setCargando] = useState<string | null>(null)
+
+  async function handlePagoMP(plan: typeof planes[0]) {
+    setCargando(plan.id)
+    try {
+      const res = await fetch('/api/crear-preferencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: plan.id,
+          precio: plan.precio,
+          nombre: plan.nombre
+        })
+      })
+      const data = await res.json()
+      if (data.init_point) {
+        window.location.href = data.init_point
+      } else {
+        alert('Error al generar el pago. Intentá de nuevo.')
+      }
+    } catch {
+      alert('Error de conexión. Intentá de nuevo.')
+    }
+    setCargando(null)
+  }
 
   return (
     <main style={{
@@ -67,7 +96,6 @@ export default function Planes() {
           Elegí el plan que mejor se adapta a vos y seguí usando Ribel Gestión sin interrupciones.
         </p>
 
-        {/* Selector de moneda */}
         <div style={{
           display: 'inline-flex',
           backgroundColor: '#d4cfc6',
@@ -75,39 +103,22 @@ export default function Planes() {
           padding: '4px',
           marginBottom: '32px'
         }}>
-          <button
-            onClick={() => setMoneda('ars')}
-            style={{
-              padding: '8px 20px',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontFamily: 'Arial',
-              fontSize: '14px',
-              fontWeight: moneda === 'ars' ? 'bold' : 'normal',
-              backgroundColor: moneda === 'ars' ? '#ffffff' : 'transparent',
-              color: '#161616'
-            }}>
-            🇦🇷 Pesos ARS
-          </button>
-          <button
-            onClick={() => setMoneda('usd')}
-            style={{
-              padding: '8px 20px',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontFamily: 'Arial',
-              fontSize: '14px',
-              fontWeight: moneda === 'usd' ? 'bold' : 'normal',
-              backgroundColor: moneda === 'usd' ? '#ffffff' : 'transparent',
-              color: '#161616'
-            }}>
-            🌍 Dólares USD
-          </button>
+          <button onClick={() => setMoneda('ars')} style={{
+            padding: '8px 20px', border: 'none', borderRadius: '6px',
+            cursor: 'pointer', fontFamily: 'Arial', fontSize: '14px',
+            fontWeight: moneda === 'ars' ? 'bold' : 'normal',
+            backgroundColor: moneda === 'ars' ? '#ffffff' : 'transparent',
+            color: '#161616'
+          }}>🇦🇷 Pesos ARS</button>
+          <button onClick={() => setMoneda('usd')} style={{
+            padding: '8px 20px', border: 'none', borderRadius: '6px',
+            cursor: 'pointer', fontFamily: 'Arial', fontSize: '14px',
+            fontWeight: moneda === 'usd' ? 'bold' : 'normal',
+            backgroundColor: moneda === 'usd' ? '#ffffff' : 'transparent',
+            color: '#161616'
+          }}>🌍 Dólares USD</button>
         </div>
 
-        {/* Cards de planes */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {planes.map(plan => (
             <div key={plan.id} style={{
@@ -121,19 +132,12 @@ export default function Planes() {
             }}>
               {plan.destacado && (
                 <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '50%',
+                  position: 'absolute', top: '-12px', left: '50%',
                   transform: 'translateX(-50%)',
-                  backgroundColor: '#ba9a7d',
-                  color: '#fff',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  padding: '4px 14px',
-                  borderRadius: '20px'
-                }}>
-                  ⭐ MÁS ELEGIDO
-                </div>
+                  backgroundColor: '#ba9a7d', color: '#fff',
+                  fontSize: '12px', fontWeight: 'bold',
+                  padding: '4px 14px', borderRadius: '20px'
+                }}>⭐ MÁS ELEGIDO</div>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -150,43 +154,34 @@ export default function Planes() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>
-                    {moneda === 'ars' ? plan.precio : plan.dolar}
+                    {moneda === 'ars' ? plan.precioTexto : plan.dolar}
                   </p>
                 </div>
               </div>
 
-              <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ marginTop: '16px' }}>
                 {moneda === 'ars' ? (
                   <button
-                    onClick={() => alert('Pago con Mercado Pago — próximamente')}
+                    onClick={() => handlePagoMP(plan)}
+                    disabled={cargando === plan.id}
                     style={{
-                      flex: 1,
-                      padding: '12px',
-                      backgroundColor: '#009ee3',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontFamily: 'Arial',
-                      fontWeight: 'bold',
-                      fontSize: '14px'
+                      width: '100%', padding: '12px',
+                      backgroundColor: cargando === plan.id ? '#7db8d4' : '#009ee3',
+                      color: '#ffffff', border: 'none', borderRadius: '8px',
+                      cursor: cargando === plan.id ? 'not-allowed' : 'pointer',
+                      fontFamily: 'Arial', fontWeight: 'bold', fontSize: '14px'
                     }}>
-                    💳 Pagar con Mercado Pago
+                    {cargando === plan.id ? 'Procesando...' : '💳 Pagar con Mercado Pago'}
                   </button>
                 ) : (
                   <button
-                    onClick={() => alert('Pago con PayPal — próximamente')}
+                    onClick={() => alert('PayPal — próximamente')}
                     style={{
-                      flex: 1,
-                      padding: '12px',
-                      backgroundColor: '#003087',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontFamily: 'Arial',
-                      fontWeight: 'bold',
-                      fontSize: '14px'
+                      width: '100%', padding: '12px',
+                      backgroundColor: '#003087', color: '#ffffff',
+                      border: 'none', borderRadius: '8px',
+                      cursor: 'pointer', fontFamily: 'Arial',
+                      fontWeight: 'bold', fontSize: '14px'
                     }}>
                     🅿️ Pagar con PayPal
                   </button>
@@ -197,7 +192,10 @@ export default function Planes() {
         </div>
 
         <p style={{ marginTop: '32px', fontSize: '13px', color: '#999' }}>
-          ¿Tenés dudas? Escribime a <a href="mailto:ribel.contacto@gmail.com" style={{ color: '#ba9a7d' }}>ribel.contacto@gmail.com</a>
+          ¿Tenés dudas? Escribime a{' '}
+          <a href="mailto:ribel.contacto@gmail.com" style={{ color: '#ba9a7d' }}>
+            ribel.contacto@gmail.com
+          </a>
         </p>
 
       </div>
