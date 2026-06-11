@@ -175,14 +175,47 @@ export default function Planes() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => alert('PayPal — próximamente')}
+                    onClick={async () => {
+  setCargando(plan.id + '_paypal')
+  try {
+    const res = await fetch('/api/crear-orden-paypal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        planId: plan.id,
+        precio: plan.id === 'mensual' ? 8 :
+                plan.id === 'semestral' ? 30 :
+                plan.id === 'anual' ? 48 : 100,
+        nombre: plan.nombre
+      })
+    })
+    const data = await res.json()
+    if (data.approval_url) {
+      window.location.href = data.approval_url
+    } else {
+      alert('Error al generar el pago. Intentá de nuevo.')
+    }
+  } catch {
+    alert('Error de conexión. Intentá de nuevo.')
+  }
+  setCargando(null)
+}}
+disabled={cargando === plan.id + '_paypal'}
+style={{
+  width: '100%', padding: '12px',
+  backgroundColor: cargando === plan.id + '_paypal' ? '#002570' : '#003087',
+  color: '#ffffff', border: 'none', borderRadius: '8px',
+  cursor: cargando === plan.id + '_paypal' ? 'not-allowed' : 'pointer',
+  fontFamily: 'Arial', fontWeight: 'bold', fontSize: '14px'
+}}>
+  {cargando === plan.id + '_paypal' ? 'Procesando...' : '🅿️ Pagar con PayPal'}
                     style={{
                       width: '100%', padding: '12px',
                       backgroundColor: '#003087', color: '#ffffff',
                       border: 'none', borderRadius: '8px',
                       cursor: 'pointer', fontFamily: 'Arial',
                       fontWeight: 'bold', fontSize: '14px'
-                    }}>
+                    }}> 
                     🅿️ Pagar con PayPal
                   </button>
                 )}
