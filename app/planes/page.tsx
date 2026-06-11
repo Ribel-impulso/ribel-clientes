@@ -7,6 +7,7 @@ const planes = [
     nombre: 'Mensual',
     precio: 7999,
     precioTexto: '$7.999',
+    precioUsd: 8,
     dolar: 'USD 8',
     periodo: 'por mes',
     destacado: false,
@@ -16,6 +17,7 @@ const planes = [
     nombre: 'Semestral',
     precio: 29999,
     precioTexto: '$29.999',
+    precioUsd: 30,
     dolar: 'USD 30',
     periodo: 'cada 6 meses',
     destacado: true,
@@ -26,6 +28,7 @@ const planes = [
     nombre: 'Anual',
     precio: 47999,
     precioTexto: '$47.999',
+    precioUsd: 48,
     dolar: 'USD 48',
     periodo: 'por año',
     destacado: false,
@@ -36,6 +39,7 @@ const planes = [
     nombre: 'De por vida',
     precio: 99999,
     precioTexto: '$99.999',
+    precioUsd: 100,
     dolar: 'USD 100',
     periodo: 'pago único',
     destacado: false,
@@ -62,6 +66,30 @@ export default function Planes() {
       const data = await res.json()
       if (data.init_point) {
         window.location.href = data.init_point
+      } else {
+        alert('Error al generar el pago. Intentá de nuevo.')
+      }
+    } catch {
+      alert('Error de conexión. Intentá de nuevo.')
+    }
+    setCargando(null)
+  }
+
+  async function handlePagoPayPal(plan: typeof planes[0]) {
+    setCargando(plan.id + '_paypal')
+    try {
+      const res = await fetch('/api/crear-orden-paypal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: plan.id,
+          precio: plan.precioUsd,
+          nombre: plan.nombre
+        })
+      })
+      const data = await res.json()
+      if (data.approval_url) {
+        window.location.href = data.approval_url
       } else {
         alert('Error al generar el pago. Intentá de nuevo.')
       }
@@ -175,48 +203,16 @@ export default function Planes() {
                   </button>
                 ) : (
                   <button
-                    onClick={async () => {
-  setCargando(plan.id + '_paypal')
-  try {
-    const res = await fetch('/api/crear-orden-paypal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        planId: plan.id,
-        precio: plan.id === 'mensual' ? 8 :
-                plan.id === 'semestral' ? 30 :
-                plan.id === 'anual' ? 48 : 100,
-        nombre: plan.nombre
-      })
-    })
-    const data = await res.json()
-    if (data.approval_url) {
-      window.location.href = data.approval_url
-    } else {
-      alert('Error al generar el pago. Intentá de nuevo.')
-    }
-  } catch {
-    alert('Error de conexión. Intentá de nuevo.')
-  }
-  setCargando(null)
-}}
-disabled={cargando === plan.id + '_paypal'}
-style={{
-  width: '100%', padding: '12px',
-  backgroundColor: cargando === plan.id + '_paypal' ? '#002570' : '#003087',
-  color: '#ffffff', border: 'none', borderRadius: '8px',
-  cursor: cargando === plan.id + '_paypal' ? 'not-allowed' : 'pointer',
-  fontFamily: 'Arial', fontWeight: 'bold', fontSize: '14px'
-}}>
-  {cargando === plan.id + '_paypal' ? 'Procesando...' : '🅿️ Pagar con PayPal'}
+                    onClick={() => handlePagoPayPal(plan)}
+                    disabled={cargando === plan.id + '_paypal'}
                     style={{
                       width: '100%', padding: '12px',
-                      backgroundColor: '#003087', color: '#ffffff',
-                      border: 'none', borderRadius: '8px',
-                      cursor: 'pointer', fontFamily: 'Arial',
-                      fontWeight: 'bold', fontSize: '14px'
-                    }}> 
-                    🅿️ Pagar con PayPal
+                      backgroundColor: cargando === plan.id + '_paypal' ? '#002570' : '#003087',
+                      color: '#ffffff', border: 'none', borderRadius: '8px',
+                      cursor: cargando === plan.id + '_paypal' ? 'not-allowed' : 'pointer',
+                      fontFamily: 'Arial', fontWeight: 'bold', fontSize: '14px'
+                    }}>
+                    {cargando === plan.id + '_paypal' ? 'Procesando...' : '🅿️ Pagar con PayPal'}
                   </button>
                 )}
               </div>
