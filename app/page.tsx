@@ -44,6 +44,8 @@ export default function Home() {
   const [historial, setHistorial] = useState<any[]>([])
   const [gastoCategoria, setGastoCategoria] = useState('negocio')
   const [diasRestantes, setDiasRestantes] = useState<number | null>(null)
+  const [montoSenia, setMontoSenia] = useState('')
+  const [fechaSenia, setFechaSenia] = useState('')
 
   const card: React.CSSProperties = {
     backgroundColor: '#ffffff',
@@ -114,7 +116,6 @@ export default function Home() {
         return
       }
 
-      // Verificar suscripción
       const { data: suscripcion } = await supabase
         .from('suscripciones')
         .select('*')
@@ -131,11 +132,9 @@ export default function Home() {
         const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
         if (diffDias < 0) {
-          // Trial vencido → redirigir a planes
           window.location.href = '/planes'
           return
         }
-        // Mostrar días restantes si quedan 5 o menos
         if (diffDias <= 5) {
           setDiasRestantes(diffDias)
         }
@@ -159,21 +158,13 @@ export default function Home() {
   }
 
   async function cargarSesiones(uid: string, mes?: string) {
-  const mesAUsar = mes || mesSeleccionado
-  const ultimoDia = new Date(
-    parseInt(mesAUsar.slice(0, 4)),
-    parseInt(mesAUsar.slice(5, 7)),
-    0
-  ).toISOString().split('T')[0]
-
-  const { data } = await supabase
-    .from('sesiones')
-    .select('*, clientes(nombre)')
-    .eq('user_id', uid)
-    .order('fecha', { ascending: false })
-
-  setSesiones(data || [])
-}
+    const { data } = await supabase
+      .from('sesiones')
+      .select('*, clientes(nombre)')
+      .eq('user_id', uid)
+      .order('fecha', { ascending: false })
+    setSesiones(data || [])
+  }
 
   async function cargarServicios(uid: string) {
     const { data } = await supabase.from('servicios').select('*').eq('user_id', uid)
@@ -232,6 +223,8 @@ export default function Home() {
       horario: horario,
       monto2: monto2 ? parseFloat(monto2) : null,
       forma_pago2: formaPago2 || null,
+      monto_senia: montoSenia ? parseFloat(montoSenia) : null,
+      fecha_senia: fechaSenia || null,
       user_id: userId
     }])
     setFecha('')
@@ -241,6 +234,8 @@ export default function Home() {
     setHorario('')
     setMonto2('')
     setFormaPago2('')
+    setMontoSenia('')
+    setFechaSenia('')
     alert('Turno registrado!')
     cargarSesiones(userId)
   }
@@ -313,13 +308,15 @@ export default function Home() {
     window.location.href = '/login'
   }
 
+  // La seña impacta en el mes de su fecha_senia
   const totalEfectivo = sesiones.reduce((sum, s) => {
     const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
     const enMes = s.fecha?.startsWith(mesSeleccionado)
     const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'efectivo' ? (s.monto || 0) : 0
     const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'efectivo' ? (s.monto2 || 0) : 0
     const cobro = s.forma_pago_cobro === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
-    return sum + m1 + m2 + cobro
+    const senia = s.fecha_senia?.startsWith(mesSeleccionado) && s.monto_senia ? (s.monto_senia) : 0
+    return sum + m1 + m2 + cobro + senia
   }, 0)
 
   const totalTransferencia = sesiones.reduce((sum, s) => {
@@ -332,15 +329,15 @@ export default function Home() {
   }, 0)
 
   const totalCuentaCorriente = sesiones.reduce((sum, s) => {
-  const fp = s.forma_pago?.toLowerCase().replace(' ', '_')
-  const fp2 = s.forma_pago2?.toLowerCase().replace(' ', '_')
-  const m1 = fp === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
-  const m2 = fp2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
-  return sum + m1 + m2
-}, 0)
+    const fp = s.forma_pago?.toLowerCase().replace(' ', '_')
+    const fp2 = s.forma_pago2?.toLowerCase().replace(' ', '_')
+    const m1 = fp === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
+    const m2 = fp2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
+    return sum + m1 + m2
+  }, 0)
 
   const totalMes = totalEfectivo + totalTransferencia
-const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes + totalCuentaCorriente
+  const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes + totalCuentaCorriente
   const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
   const balanceNeto = totalIngresos - totalEgresos
 
@@ -357,7 +354,6 @@ const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) =
   return (
     <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
 
-      {/* Aviso de trial por vencer */}
       {diasRestantes !== null && (
         <div style={{
           backgroundColor: '#fff8e1',
@@ -434,6 +430,8 @@ const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) =
             monto2={monto2} setMonto2={setMonto2}
             formaPago2={formaPago2} setFormaPago2={setFormaPago2}
             formaPago={formaPago} setFormaPago={setFormaPago}
+            montoSenia={montoSenia} setMontoSenia={setMontoSenia}
+            fechaSenia={fechaSenia} setFechaSenia={setFechaSenia}
             mesSeleccionado={mesSeleccionado} setMesSeleccionado={setMesSeleccionado}
             totalEfectivo={totalEfectivo} totalTransferencia={totalTransferencia} totalMes={totalMes}
             totalCuentaCorriente={totalCuentaCorriente}

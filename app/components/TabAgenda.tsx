@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
 import { supabase } from '../../lib/supabase';
 
 interface Sesion {
@@ -22,6 +20,8 @@ interface Sesion {
   cobrado: boolean | null;
   forma_pago_cob: string | null;
   fecha_cobro: string | null;
+  monto_senia: number | null;
+  fecha_senia: string | null;
 }
 
 interface Cliente {
@@ -51,7 +51,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
       const { data } = await supabase.from('clientes').select('id, nombre').order('nombre');
       if (data) setClientes(data);
       const { data: dataServicios } = await supabase.from('servicios').select('id, nombre').order('nombre');
-if (dataServicios) setServicios(dataServicios);
+      if (dataServicios) setServicios(dataServicios);
     };
     cargarClientes();
   }, []);
@@ -61,7 +61,7 @@ if (dataServicios) setServicios(dataServicios);
       setCargando(true);
       const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
       const ultimoDia = new Date(anio, mes + 1, 0);
-      const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}}`;
+      const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
       const { data } = await supabase.from('sesiones').select('*').gte('fecha', primerDia).lte('fecha', ultimoDiaStr).order('horario', { ascending: true });
       if (data) setSesiones(data);
       setCargando(false);
@@ -74,14 +74,14 @@ if (dataServicios) setServicios(dataServicios);
   const celdas: (number | null)[] = [...Array(primerDiaMes).fill(null), ...Array.from({ length: diasEnMes }, (_, i) => i + 1)];
   while (celdas.length % 7 !== 0) celdas.push(null);
 
-  const fechaStr = (dia: number) => `${anio}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+  const fechaStr = (dia: number) => `${anio}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}}`;
   const sesionesDelDia = (dia: number) => sesiones.filter((s) => s.fecha === fechaStr(dia));
   const sesionesSeleccionadas = diaSeleccionado ? sesiones.filter((s) => s.fecha === diaSeleccionado) : [];
   const hoyStr = hoy.toISOString().split('T')[0];
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
 
   const abrirNuevo = () => {
-    setSesionEditando({ fecha: diaSeleccionado ?? '', user_id: userId, facturado: false, cobrado: false });
+    setSesionEditando({ fecha: diaSeleccionado ?? '', user_id: userId, facturado: false, cobrado: false, monto_senia: null, fecha_senia: null });
     setModoEdicion(false);
     setModalAbierto(true);
   };
@@ -93,7 +93,7 @@ if (dataServicios) setServicios(dataServicios);
   };
 
   const recargar = async () => {
-    const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
+    const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01}`;
     const ultimoDia = new Date(anio, mes + 1, 0);
     const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
     const { data } = await supabase.from('sesiones').select('*').gte('fecha', primerDia).lte('fecha', ultimoDiaStr).order('horario', { ascending: true });
@@ -129,7 +129,8 @@ if (dataServicios) setServicios(dataServicios);
   const labelFecha = diaSeleccionado
     ? new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
     : '';
-    return (
+
+  return (
     <div style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#F7F8FA', minHeight: '100%', padding: '16px' }}>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -184,7 +185,10 @@ if (dataServicios) setServicios(dataServicios);
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>{s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}</div>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
-                  <div style={{ fontSize: '12px', color: '#6B7280' }}>{s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}</div>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                    {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
+                    {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button onClick={() => abrirEdicion(s)} style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
@@ -203,33 +207,33 @@ if (dataServicios) setServicios(dataServicios);
 
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Cliente *</label>
             <input
-  type="text"
-  placeholder="Buscar cliente..."
-  value={sesionEditando.cliente_id ? (clientes.find(c => c.id === sesionEditando.cliente_id)?.nombre ?? '') : busquedaCliente}
-  onChange={(e) => { setBusquedaCliente(e.target.value); setSesionEditando({ ...sesionEditando, cliente_id: '' }); }}
-  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '4px', boxSizing: 'border-box' as const }}
-/>
-{busquedaCliente && !sesionEditando.cliente_id && (
-  <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto', marginBottom: '14px' }}>
-    {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase())).map(c => (
-      <div key={c.id} onClick={() => { setSesionEditando({ ...sesionEditando, cliente_id: c.id }); setBusquedaCliente(''); }}
-        style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '14px', borderBottom: '1px solid #F3F4F6' }}>
-        {c.nombre}
-      </div>
-    ))}
-  </div>
-)}
+              type="text"
+              placeholder="Buscar cliente..."
+              value={sesionEditando.cliente_id ? (clientes.find(c => c.id === sesionEditando.cliente_id)?.nombre ?? '') : busquedaCliente}
+              onChange={(e) => { setBusquedaCliente(e.target.value); setSesionEditando({ ...sesionEditando, cliente_id: '' }); }}
+              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '4px', boxSizing: 'border-box' as const }}
+            />
+            {busquedaCliente && !sesionEditando.cliente_id && (
+              <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto', marginBottom: '14px' }}>
+                {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase())).map(c => (
+                  <div key={c.id} onClick={() => { setSesionEditando({ ...sesionEditando, cliente_id: c.id }); setBusquedaCliente(''); }}
+                    style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '14px', borderBottom: '1px solid #F3F4F6' }}>
+                    {c.nombre}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Fecha *</label>
                 <input type="date" value={sesionEditando.fecha ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, fecha: e.target.value })}
-                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Horario</label>
                 <input type="time" value={sesionEditando.horario ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, horario: e.target.value })}
-                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
               </div>
             </div>
 
@@ -237,28 +241,28 @@ if (dataServicios) setServicios(dataServicios);
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Duración (min)</label>
                 <input type="number" value={sesionEditando.duracion ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, duracion: Number(e.target.value) || null })}
-                  placeholder="60" style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  placeholder="60" style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
                 <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, tipo_masaje: e.target.value })}
-  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }}>
-  <option value="">Seleccionar...</option>
-  {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-</select>
+                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
+                  <option value="">Seleccionar...</option>
+                  {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                </select>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto total</label>
                 <input type="number" value={sesionEditando.monto ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, monto: Number(e.target.value) || null })}
-                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Forma de pago</label>
                 <select value={sesionEditando.forma_pago ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, forma_pago: e.target.value })}
-                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' }}>
+                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
                   <option value="">Seleccionar...</option>
                   <option value="Efectivo">Efectivo</option>
                   <option value="Transferencia">Transferencia</option>
@@ -268,10 +272,38 @@ if (dataServicios) setServicios(dataServicios);
               </div>
             </div>
 
+            {/* SEÑA */}
+            <div style={{ backgroundColor: '#F8F7FF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4F46E5', display: 'block', marginBottom: '10px' }}>
+                💰 Seña (opcional)
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto seña</label>
+                  <input
+                    type="number"
+                    value={sesionEditando.monto_senia ?? ''}
+                    onChange={(e) => setSesionEditando({ ...sesionEditando, monto_senia: Number(e.target.value) || null })}
+                    placeholder="0"
+                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Fecha seña</label>
+                  <input
+                    type="date"
+                    value={sesionEditando.fecha_senia ?? ''}
+                    onChange={(e) => setSesionEditando({ ...sesionEditando, fecha_senia: e.target.value || null })}
+                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}
+                  />
+                </div>
+              </div>
+            </div>
+
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Notas clínicas</label>
             <textarea value={sesionEditando.notas_clinicas ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, notas_clinicas: e.target.value })}
               placeholder="Observaciones, evolución..."
-              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '20px', boxSizing: 'border-box', minHeight: '80px', resize: 'vertical' }} />
+              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '20px', boxSizing: 'border-box' as const, minHeight: '80px', resize: 'vertical' }} />
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button onClick={() => setModalAbierto(false)} style={{ border: '1px solid #E2E8F0', background: '#fff', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
