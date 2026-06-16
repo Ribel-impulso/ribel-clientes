@@ -25,6 +25,10 @@ interface Props {
   setFormaPago2: (v: string) => void
   formaPago: string
   setFormaPago: (v: string) => void
+  montoSenia: string
+  setMontoSenia: (v: string) => void
+  fechaSenia: string
+  setFechaSenia: (v: string) => void
   mesSeleccionado: string
   setMesSeleccionado: (v: string) => void
   totalEfectivo: number
@@ -71,6 +75,8 @@ export default function TabTurnos({
   monto2, setMonto2,
   formaPago2, setFormaPago2,
   formaPago, setFormaPago,
+  montoSenia, setMontoSenia,
+  fechaSenia, setFechaSenia,
   mesSeleccionado, setMesSeleccionado,
   totalEfectivo, totalTransferencia, totalMes, totalCuentaCorriente,
   rankingServicios,
@@ -154,6 +160,22 @@ export default function TabTurnos({
           <option value="obra_social">Obra Social</option>
         </select>
         <br />
+        <small style={{ color: '#9e9e9e' }}>Seña (opcional)</small>
+        <br />
+        <input
+          placeholder="Monto seña"
+          type="number"
+          value={montoSenia}
+          onChange={e => setMontoSenia(e.target.value)}
+          style={input}
+        />
+        <input
+          type="date"
+          value={fechaSenia}
+          onChange={e => setFechaSenia(e.target.value)}
+          style={input}
+        />
+        <br />
         <button onClick={agregarSesion} style={btnPrimary}>Registrar Turno</button>
       </div>
 
@@ -231,6 +253,7 @@ export default function TabTurnos({
                 <th style={th}>Servicio</th>
                 <th style={th}>Monto</th>
                 <th style={th}>Pago</th>
+                <th style={th}>Seña</th>
                 <th style={th}>Facturado</th>
                 <th style={th}>Acciones</th>
               </tr>
@@ -245,12 +268,13 @@ export default function TabTurnos({
                     <td style={td}><input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} /></td>
                     <td style={td}>
                       <select value={editFormaPago} onChange={e => setEditFormaPago(e.target.value)} style={{ ...input, marginBottom: 0 }}>
-  <option value="efectivo">Efectivo</option>
-  <option value="transferencia">Transferencia</option>
-  <option value="obra_social">Obra Social</option>
-  <option value="cuenta_corriente">Cuenta corriente</option>
-</select>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="obra_social">Obra Social</option>
+                        <option value="cuenta_corriente">Cuenta corriente</option>
+                      </select>
                     </td>
+                    <td style={td}>-</td>
                     <td style={td}>-</td>
                     <td style={td}>
                       <button onClick={() => guardarEdicion(s.id)} style={{ ...btnPrimary, padding: '6px 12px', marginRight: '6px' }}>Guardar</button>
@@ -271,19 +295,29 @@ export default function TabTurnos({
                       {s.forma_pago2 ? ` + ${s.forma_pago2}` : ''}
                     </td>
                     <td style={td}>
-  {s.forma_pago === 'transferencia' ? (
-    <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
-  ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && !s.cobrado ? (
-    <button onClick={() => {
-      const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
-      if (fp) cobrarSesion(s.id, fp)
-    }} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
-  ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && s.cobrado ? (
-    <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
-  ) : (
-    <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
-  )}
-</td>
+                      {s.monto_senia ? (
+                        <span style={{ fontSize: '13px', color: '#ba9a7d' }}>
+                          ${s.monto_senia}
+                          {s.fecha_senia ? ` · ${s.fecha_senia}` : ''}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+                      )}
+                    </td>
+                    <td style={td}>
+                      {s.forma_pago === 'transferencia' ? (
+                        <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
+                      ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && !s.cobrado ? (
+                        <button onClick={() => {
+                          const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
+                          if (fp) cobrarSesion(s.id, fp)
+                        }} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
+                      ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && s.cobrado ? (
+                        <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
+                      ) : (
+                        <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+                      )}
+                    </td>
                     <td style={td}>
                       <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
                       <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
