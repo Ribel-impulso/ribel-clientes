@@ -245,9 +245,11 @@ export default function TabTurnos({
                     <td style={td}><input type="number" value={editMonto} onChange={e => setEditMonto(e.target.value)} style={{ ...input, marginBottom: 0, width: '80px' }} /></td>
                     <td style={td}>
                       <select value={editFormaPago} onChange={e => setEditFormaPago(e.target.value)} style={{ ...input, marginBottom: 0 }}>
-                        <option value="efectivo">Efectivo</option>
-                        <option value="transferencia">Transferencia</option>
-                      </select>
+  <option value="efectivo">Efectivo</option>
+  <option value="transferencia">Transferencia</option>
+  <option value="obra_social">Obra Social</option>
+  <option value="cuenta_corriente">Cuenta corriente</option>
+</select>
                     </td>
                     <td style={td}>-</td>
                     <td style={td}>

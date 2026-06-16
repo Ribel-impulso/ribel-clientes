@@ -159,17 +159,21 @@ export default function Home() {
   }
 
   async function cargarSesiones(uid: string, mes?: string) {
-    const mesAUsar = mes || mesSeleccionado
-    const ultimoDia = new Date(parseInt(mesAUsar.slice(0,4)), parseInt(mesAUsar.slice(5,7)), 0).toISOString().split('T')[0]
-    const { data } = await supabase
-      .from('sesiones')
-      .select('*, clientes(nombre)')
-      .eq('user_id', uid)
-      .or(`fecha.gte.${mesAUsar}-01,fecha_cobro.gte.${mesAUsar}-01`)
-      .or(`fecha.lte.${ultimoDia},fecha_cobro.lte.${ultimoDia}`)
-      .order('fecha', { ascending: false })
-    setSesiones(data || [])
-  }
+  const mesAUsar = mes || mesSeleccionado
+  const ultimoDia = new Date(
+    parseInt(mesAUsar.slice(0, 4)),
+    parseInt(mesAUsar.slice(5, 7)),
+    0
+  ).toISOString().split('T')[0]
+
+  const { data } = await supabase
+    .from('sesiones')
+    .select('*, clientes(nombre)')
+    .eq('user_id', uid)
+    .order('fecha', { ascending: false })
+
+  setSesiones(data || [])
+}
 
   async function cargarServicios(uid: string) {
     const { data } = await supabase.from('servicios').select('*').eq('user_id', uid)
@@ -334,7 +338,7 @@ export default function Home() {
   }, 0)
 
   const totalMes = totalEfectivo + totalTransferencia
-  const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes
+const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes + totalCuentaCorriente
   const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
   const balanceNeto = totalIngresos - totalEgresos
 
