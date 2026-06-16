@@ -332,10 +332,12 @@ export default function Home() {
   }, 0)
 
   const totalCuentaCorriente = sesiones.reduce((sum, s) => {
-    const m1 = s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
-    const m2 = s.forma_pago2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
-    return sum + m1 + m2
-  }, 0)
+  const fp = s.forma_pago?.toLowerCase().replace(' ', '_')
+  const fp2 = s.forma_pago2?.toLowerCase().replace(' ', '_')
+  const m1 = fp === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
+  const m2 = fp2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
+  return sum + m1 + m2
+}, 0)
 
   const totalMes = totalEfectivo + totalTransferencia
 const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes + totalCuentaCorriente

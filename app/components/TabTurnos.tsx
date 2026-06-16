@@ -271,19 +271,19 @@ export default function TabTurnos({
                       {s.forma_pago2 ? ` + ${s.forma_pago2}` : ''}
                     </td>
                     <td style={td}>
-                      {s.forma_pago === 'transferencia' ? (
-                        <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
-                      ) : s.forma_pago === 'cuenta_corriente' && !s.cobrado ? (
-                        <button onClick={() => {
-                          const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
-                          if (fp) cobrarSesion(s.id, fp)
-                        }} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
-                      ) : s.forma_pago === 'cuenta_corriente' && s.cobrado ? (
-                        <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
-                      ) : (
-                        <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
-                      )}
-                    </td>
+  {s.forma_pago === 'transferencia' ? (
+    <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
+  ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && !s.cobrado ? (
+    <button onClick={() => {
+      const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
+      if (fp) cobrarSesion(s.id, fp)
+    }} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
+  ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && s.cobrado ? (
+    <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
+  ) : (
+    <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+  )}
+</td>
                     <td style={td}>
                       <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
                       <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
