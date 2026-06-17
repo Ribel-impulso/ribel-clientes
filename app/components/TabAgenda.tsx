@@ -18,7 +18,7 @@ interface Sesion {
   monto2: number | null;
   forma_pago2: string | null;
   cobrado: boolean | null;
-  forma_pago_cob: string | null;
+  forma_pago_cobro: string | null;
   fecha_cobro: string | null;
   monto_senia: number | null;
   fecha_senia: string | null;

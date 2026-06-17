@@ -310,23 +310,23 @@ export default function Home() {
 
   // La seña impacta en el mes de su fecha_senia
   const totalEfectivo = sesiones.reduce((sum, s) => {
-    const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
-    const enMes = s.fecha?.startsWith(mesSeleccionado)
-    const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'efectivo' ? (s.monto || 0) : 0
-    const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'efectivo' ? (s.monto2 || 0) : 0
-    const cobro = s.forma_pago_cobro === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
-    const senia = s.fecha_senia?.startsWith(mesSeleccionado) && s.monto_senia ? (s.monto_senia) : 0
-    return sum + m1 + m2 + cobro + senia
-  }, 0)
+  const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
+  const enMes = s.fecha?.startsWith(mesSeleccionado)
+  const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'efectivo' && !s.monto_senia ? (s.monto || 0) : 0
+  const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'efectivo' ? (s.monto2 || 0) : 0
+  const cobro = s.forma_pago_cobro?.toLowerCase() === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? ((s.monto || 0) - (s.monto_senia || 0)) : 0
+  const senia = s.fecha_senia?.startsWith(mesSeleccionado) && s.monto_senia ? s.monto_senia : 0
+  return sum + m1 + m2 + cobro + senia
+}, 0)
 
   const totalTransferencia = sesiones.reduce((sum, s) => {
-    const enMes = s.fecha?.startsWith(mesSeleccionado)
-    const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
-    const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'transferencia' ? (s.monto || 0) : 0
-    const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'transferencia' ? (s.monto2 || 0) : 0
-    const cobro = s.forma_pago_cobro === 'transferencia' && s.fecha_cobro?.startsWith(mesSeleccionado) ? (s.monto || 0) : 0
-    return sum + m1 + m2 + cobro
-  }, 0)
+  const enMes = s.fecha?.startsWith(mesSeleccionado)
+  const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
+  const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'transferencia' && !s.monto_senia ? (s.monto || 0) : 0
+  const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'transferencia' ? (s.monto2 || 0) : 0
+  const cobro = s.forma_pago_cobro?.toLowerCase() === 'transferencia' && s.fecha_cobro?.startsWith(mesSeleccionado) ? ((s.monto || 0) - (s.monto_senia || 0)) : 0
+  return sum + m1 + m2 + cobro
+}, 0)
 
   const totalCuentaCorriente = sesiones.reduce((sum, s) => {
     const fp = s.forma_pago?.toLowerCase().replace(' ', '_')
