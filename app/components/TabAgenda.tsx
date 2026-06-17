@@ -74,7 +74,8 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const celdas: (number | null)[] = [...Array(primerDiaMes).fill(null), ...Array.from({ length: diasEnMes }, (_, i) => i + 1)];
   while (celdas.length % 7 !== 0) celdas.push(null);
 
-  const fechaStr = (dia: number) => `${anio}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}}`;
+  // ✅ FIX: llave extra eliminada
+  const fechaStr = (dia: number) => `${anio}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
   const sesionesDelDia = (dia: number) => sesiones.filter((s) => s.fecha === fechaStr(dia));
   const sesionesSeleccionadas = diaSeleccionado ? sesiones.filter((s) => s.fecha === diaSeleccionado) : [];
   const hoyStr = hoy.toISOString().split('T')[0];
@@ -92,8 +93,9 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     setModalAbierto(true);
   };
 
+  // ✅ FIX: llave extra eliminada
   const recargar = async () => {
-    const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01}`;
+    const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
     const ultimoDia = new Date(anio, mes + 1, 0);
     const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
     const { data } = await supabase.from('sesiones').select('*').gte('fecha', primerDia).lte('fecha', ultimoDiaStr).order('horario', { ascending: true });
@@ -117,6 +119,18 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     if (!confirm('¿Eliminar este turno?')) return;
     await supabase.from('sesiones').delete().eq('id', id);
     setSesiones((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const cobrarDiferencia = async (s: Sesion) => {
+    const fp = window.prompt('¿Cómo se cobra la diferencia? efectivo / transferencia');
+    if (!fp) return;
+    const hoyFecha = new Date().toISOString().split('T')[0];
+    await supabase.from('sesiones').update({
+      cobrado: true,
+      forma_pago_cobro: fp,
+      fecha_cobro: hoyFecha
+    }).eq('id', s.id);
+    await recargar();
   };
 
   const cambiarMes = (delta: number) => {
@@ -151,7 +165,8 @@ export default function TabAgenda({ userId }: { userId?: string }) {
             const fecha = activo ? fechaStr(dia!) : '';
             const esHoy = fecha === hoyStr;
             const seleccionado = fecha === diaSeleccionado;
-            const tieneTurnos = activo && sesionesDelDia(dia!).length > 0;
+            const cantidadTurnos = activo ? sesionesDelDia(dia!).length : 0;
+            const tieneTurnos = cantidadTurnos > 0;
             return (
               <div key={i} onClick={() => activo && setDiaSeleccionado(fecha)}
                 style={{ backgroundColor: seleccionado ? '#EEF2FF' : esHoy ? '#F0FDF4' : '#fff', minHeight: '64px', padding: '6px', cursor: activo ? 'pointer' : 'default', opacity: activo ? 1 : 0.3 }}>
@@ -160,7 +175,14 @@ export default function TabAgenda({ userId }: { userId?: string }) {
                     <div style={{ fontSize: '13px', fontWeight: esHoy || seleccionado ? 700 : 400, color: seleccionado ? '#fff' : esHoy ? '#16A34A' : '#374151', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: seleccionado ? '#4F46E5' : esHoy ? '#DCFCE7' : 'transparent' }}>
                       {dia}
                     </div>
-                    {tieneTurnos && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4F46E5', margin: '2px auto 0' }} />}
+                    {tieneTurnos && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', marginTop: '4px' }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4F46E5' }} />
+                        {cantidadTurnos > 1 && (
+                          <span style={{ fontSize: '10px', color: '#4F46E5', fontWeight: 600 }}>{cantidadTurnos}</span>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -181,19 +203,38 @@ export default function TabAgenda({ userId }: { userId?: string }) {
             <p style={{ textAlign: 'center', color: '#9CA3AF', padding: '24px 0' }}>Sin turnos agendados</p>
           ) : (
             sesionesSeleccionadas.map((s) => (
-              <div key={s.id} style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px 14px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: '#FAFAFA' }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>{s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}</div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
-                  <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                    {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
-                    {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
+              <div key={s.id} style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px 14px', marginBottom: '10px', backgroundColor: '#FAFAFA' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>{s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
+                    <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                      {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
+                      {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => abrirEdicion(s)} style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
+                    <button onClick={() => eliminar(s.id)} style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => abrirEdicion(s)} style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
-                  <button onClick={() => eliminar(s.id)} style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
-                </div>
+
+                {/* ✅ BOTÓN COBRAR DIFERENCIA */}
+                {s.monto_senia && s.monto && !s.cobrado && (
+                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '12px', color: '#6B7280' }}>
+                      Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong>
+                    </span>
+                    <button
+                      onClick={() => cobrarDiferencia(s)}
+                      style={{ fontSize: '12px', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
+                      Cobrar diferencia
+                    </button>
+                  </div>
+                )}
+                {s.cobrado && s.monto_senia && (
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
+                )}
               </div>
             ))
           )}
@@ -272,7 +313,6 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               </div>
             </div>
 
-            {/* SEÑA */}
             <div style={{ backgroundColor: '#F8F7FF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#4F46E5', display: 'block', marginBottom: '10px' }}>
                 💰 Seña (opcional)
@@ -280,22 +320,13 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto seña</label>
-                  <input
-                    type="number"
-                    value={sesionEditando.monto_senia ?? ''}
-                    onChange={(e) => setSesionEditando({ ...sesionEditando, monto_senia: Number(e.target.value) || null })}
-                    placeholder="0"
-                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}
-                  />
+                  <input type="number" value={sesionEditando.monto_senia ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, monto_senia: Number(e.target.value) || null })}
+                    placeholder="0" style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
                 </div>
                 <div>
                   <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Fecha seña</label>
-                  <input
-                    type="date"
-                    value={sesionEditando.fecha_senia ?? ''}
-                    onChange={(e) => setSesionEditando({ ...sesionEditando, fecha_senia: e.target.value || null })}
-                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}
-                  />
+                  <input type="date" value={sesionEditando.fecha_senia ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, fecha_senia: e.target.value || null })}
+                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
                 </div>
               </div>
             </div>
