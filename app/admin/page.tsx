@@ -25,11 +25,8 @@ export default function AdminPage() {
       }
       setAcceso(true)
 
-      const { data: subs } = await supabase
-        .from('suscripciones')
-        .select('*')
-        .order('fecha_inicio', { ascending: false })
-
+      const res = await fetch('/api/admin/suscripciones')
+      const subs = await res.json()
       setSuscripciones(subs || [])
       setCargando(false)
     })
@@ -39,8 +36,7 @@ export default function AdminPage() {
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
     const vence = new Date(fechaVencimiento + 'T00:00:00')
-    const diff = Math.ceil((vence.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
-    return diff
+    return Math.ceil((vence.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
   }
 
   function colorEstado(estado: string, dias: number) {
