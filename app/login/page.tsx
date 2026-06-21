@@ -73,8 +73,14 @@ export default function Login() {
         fecha_inicio: hoy.toISOString().split('T')[0],
         fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0]
       })
+
+      await fetch('/api/email/bienvenida', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nombre })
+      })
     }
-    setMensaje('¡Registro exitoso! Revisá tu email para confirmar tu cuenta.')
+    setMensaje('¡Registro exitoso! Ya podés ingresar a tu cuenta.')
     setCargando(false)
   }
 
@@ -82,8 +88,8 @@ export default function Login() {
     setCargando(true)
     setError('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: 'https://ribel-clientes.vercel.app/reset-password'
-})
+      redirectTo: 'https://ribel-clientes.vercel.app/reset-password'
+    })
     if (error) {
       setError('Error al enviar el email')
     } else {
