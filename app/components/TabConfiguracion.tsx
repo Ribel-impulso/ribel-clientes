@@ -28,6 +28,45 @@ interface Props {
   btnSecondary: React.CSSProperties
 }
 
+function CambiarPassword({ btnPrimary, inp }: { btnPrimary: React.CSSProperties, inp: React.CSSProperties }) {
+  const [nuevaPassword, setNuevaPassword] = useState('')
+  const [confirmar, setConfirmar] = useState('')
+  const [error, setError] = useState('')
+  const [mensaje, setMensaje] = useState('')
+  const [cargando, setCargando] = useState(false)
+
+  async function handleCambiar() {
+    setError('')
+    setMensaje('')
+    if (nuevaPassword.length < 6) { setError('Mínimo 6 caracteres'); return }
+    if (nuevaPassword !== confirmar) { setError('Las contraseñas no coinciden'); return }
+    setCargando(true)
+    const { error } = await supabase.auth.updateUser({ password: nuevaPassword })
+    if (error) {
+      setError('Error: ' + error.message)
+    } else {
+      setMensaje('¡Contraseña actualizada!')
+      setNuevaPassword('')
+      setConfirmar('')
+    }
+    setCargando(false)
+  }
+
+  return (
+    <>
+      <h2 style={{ color: '#161616', marginTop: 0 }}>Cambiar Contraseña</h2>
+      <input type="password" placeholder="Nueva contraseña" value={nuevaPassword} onChange={e => setNuevaPassword(e.target.value)} style={inp} />
+      <input type="password" placeholder="Confirmar contraseña" value={confirmar} onChange={e => setConfirmar(e.target.value)} style={inp} />
+      <br />
+      {error && <p style={{ color: '#c0392b', fontSize: '14px' }}>{error}</p>}
+      {mensaje && <p style={{ color: '#16a34a', fontSize: '14px' }}>{mensaje}</p>}
+      <button onClick={handleCambiar} disabled={cargando} style={{ ...btnPrimary, opacity: cargando ? 0.7 : 1 }}>
+        {cargando ? 'Guardando...' : 'Actualizar contraseña'}
+      </button>
+    </>
+  )
+}
+
 export default function TabConfiguracion({
   clientes, servicios,
   mostrarClientes, setMostrarClientes,
@@ -165,17 +204,15 @@ export default function TabConfiguracion({
           </button>
         </div>
         {mostrarClientes && (
-  <div>
-    <input
-      placeholder="Buscar cliente..."
-      value={busquedaClientes}
-      onChange={e => setBusquedaClientes(e.target.value)}
-      style={input}
-    />
-    {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaClientes.toLowerCase())).map(c => (
+          <div>
+            <input
+              placeholder="Buscar cliente..."
+              value={busquedaClientes}
+              onChange={e => setBusquedaClientes(e.target.value)}
+              style={input}
+            />
+            {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaClientes.toLowerCase())).map(c => (
               <div key={c.id} style={{ borderRadius: '10px', border: '1px solid #e3dfd6', marginBottom: '10px', overflow: 'hidden' }}>
-                
-                {/* FILA PRINCIPAL */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', backgroundColor: '#f9f7f4' }}>
                   <span style={{ fontWeight: 'bold', color: '#161616', fontSize: '15px' }}>{c.nombre}</span>
                   <button
@@ -185,11 +222,8 @@ export default function TabConfiguracion({
                   </button>
                 </div>
 
-                {/* PANEL DESPLEGABLE */}
                 {clienteAbierto === c.id && (
                   <div style={{ padding: '16px', backgroundColor: '#ffffff', borderTop: '1px solid #e3dfd6' }}>
-                    
-                    {/* INFO */}
                     {editandoCliente === c.id ? (
                       <div style={{ marginBottom: '16px' }}>
                         <input value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre" style={{ ...input, marginBottom: '8px' }} />
@@ -209,7 +243,6 @@ export default function TabConfiguracion({
                       </div>
                     )}
 
-                    {/* SUBIR PDF */}
                     <div style={{ marginBottom: '16px' }}>
                       <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📎 Subir PDF</p>
                       <input
@@ -226,7 +259,6 @@ export default function TabConfiguracion({
                       </button>
                     </div>
 
-                    {/* NOTA */}
                     <div style={{ marginBottom: '16px' }}>
                       <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📝 Agregar Nota</p>
                       <textarea
@@ -242,7 +274,6 @@ export default function TabConfiguracion({
                       </button>
                     </div>
 
-                    {/* ARCHIVOS GUARDADOS */}
                     {(archivos[c.id] || []).length > 0 ? (
                       <div>
                         <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>Guardados:</p>
@@ -251,13 +282,13 @@ export default function TabConfiguracion({
                             {a.tipo === 'pdf' ? (
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '14px' }}>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }} onClick={async (e) => {
-  e.preventDefault()
-  const path = a.url.split('/archivos-clientes/')[1]
-  if (path) {
-    const { data } = await supabase.storage.from('archivos-clientes').createSignedUrl(path, 60)
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-  }
-}}>{a.nombre}</a></span>
+                                  e.preventDefault()
+                                  const path = a.url.split('/archivos-clientes/')[1]
+                                  if (path) {
+                                    const { data } = await supabase.storage.from('archivos-clientes').createSignedUrl(path, 60)
+                                    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+                                  }
+                                }}>{a.nombre}</a></span>
                                 <button onClick={() => eliminarArchivo(c.id, a.id, a.url, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
                               </div>
                             ) : (
@@ -308,11 +339,7 @@ export default function TabConfiguracion({
 
       {/* CAMBIAR CONTRASEÑA */}
       <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Cambiar Contraseña</h2>
-        <input type="password" placeholder="Nueva contraseña" style={inp} />
-        <input type="password" placeholder="Confirmar contraseña" style={inp} />
-        <br />
-        <button style={btnPrimary}>Actualizar contraseña</button>
+        <CambiarPassword btnPrimary={btnPrimary} inp={inp} />
       </div>
     </>
   )
