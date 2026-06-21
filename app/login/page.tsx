@@ -82,8 +82,8 @@ export default function Login() {
     setCargando(true)
     setError('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://ribel-clientes.vercel.app/login'
-    })
+  redirectTo: 'https://ribel-clientes.vercel.app/reset-password'
+})
     if (error) {
       setError('Error al enviar el email')
     } else {
