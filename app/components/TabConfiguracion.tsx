@@ -1,6 +1,17 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+interface Disponibilidad {
+  id?: string
+  dia_semana: number
+  hora_inicio: string
+  hora_fin: string
+  duracion_turno: number
+  activo: boolean
+}
 
 interface Props {
   clientes: any[]
@@ -64,6 +75,182 @@ function CambiarPassword({ btnPrimary, inp }: { btnPrimary: React.CSSProperties,
         {cargando ? 'Guardando...' : 'Actualizar contraseña'}
       </button>
     </>
+  )
+}
+
+function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
+  userId: string
+  card: React.CSSProperties
+  btnPrimary: React.CSSProperties
+  btnSecondary: React.CSSProperties
+}) {
+  const [disponibilidad, setDisponibilidad] = useState<Disponibilidad[]>([])
+  const [guardando, setGuardando] = useState(false)
+  const [mensaje, setMensaje] = useState('')
+
+  const disponibilidadDefault: Disponibilidad[] = DIAS_SEMANA.map((_, i) => ({
+    dia_semana: i,
+    hora_inicio: '09:00',
+    hora_fin: '18:00',
+    duracion_turno: 60,
+    activo: i >= 1 && i <= 5, // Lun-Vie activos por defecto
+  }))
+
+  useEffect(() => {
+    cargarDisponibilidad()
+  }, [userId])
+
+  async function cargarDisponibilidad() {
+    const { data } = await supabase
+      .from('disponibilidad')
+      .select('*')
+      .eq('user_id', userId)
+      .order('dia_semana')
+
+    if (data && data.length > 0) {
+      // Mezclar con defaults para días no configurados
+      const merged = disponibilidadDefault.map(def => {
+        const guardado = data.find((d: any) => d.dia_semana === def.dia_semana)
+        return guardado ? { ...guardado } : def
+      })
+      setDisponibilidad(merged)
+    } else {
+      setDisponibilidad(disponibilidadDefault)
+    }
+  }
+
+  function actualizarDia(dia: number, campo: keyof Disponibilidad, valor: any) {
+    setDisponibilidad(prev => prev.map(d =>
+      d.dia_semana === dia ? { ...d, [campo]: valor } : d
+    ))
+  }
+
+  async function guardar() {
+    setGuardando(true)
+    setMensaje('')
+
+    for (const d of disponibilidad) {
+      const payload = {
+        user_id: userId,
+        dia_semana: d.dia_semana,
+        hora_inicio: d.hora_inicio,
+        hora_fin: d.hora_fin,
+        duracion_turno: d.duracion_turno,
+        activo: d.activo,
+      }
+
+      if (d.id) {
+        await supabase.from('disponibilidad').update(payload).eq('id', d.id)
+      } else {
+        await supabase.from('disponibilidad').upsert({ ...payload }, { onConflict: 'user_id,dia_semana' })
+      }
+    }
+
+    await cargarDisponibilidad()
+    setMensaje('¡Disponibilidad guardada!')
+    setGuardando(false)
+    setTimeout(() => setMensaje(''), 3000)
+  }
+
+  return (
+    <div style={card}>
+      <h2 style={{ color: '#161616', marginTop: 0 }}>🗓️ Días y horarios de atención</h2>
+      <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
+        Configurá los días y horarios en los que atendés. Esto te permitirá ver los turnos libres y ocupados en la agenda.
+      </p>
+
+      <div style={{ marginBottom: '12px', display: 'flex', gap: '16px', fontSize: '12px', color: '#6B7280' }}>
+        <span>⏱️ Duración: tiempo por turno en minutos</span>
+      </div>
+
+      {disponibilidad.map((d) => (
+        <div key={d.dia_semana} style={{
+          border: `1px solid ${d.activo ? '#ba9a7d' : '#e3dfd6'}`,
+          borderRadius: '10px',
+          padding: '12px 16px',
+          marginBottom: '10px',
+          backgroundColor: d.activo ? '#fdf9f5' : '#f9f9f9',
+          opacity: d.activo ? 1 : 0.6,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            {/* Día + toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '110px' }}>
+              <div
+                onClick={() => actualizarDia(d.dia_semana, 'activo', !d.activo)}
+                style={{
+                  width: '36px', height: '20px', borderRadius: '10px',
+                  backgroundColor: d.activo ? '#ba9a7d' : '#CBD5E0',
+                  cursor: 'pointer', position: 'relative', flexShrink: 0,
+                  transition: 'background-color 0.2s'
+                }}>
+                <div style={{
+                  position: 'absolute', top: '3px',
+                  left: d.activo ? '18px' : '3px',
+                  width: '14px', height: '14px', borderRadius: '50%',
+                  backgroundColor: '#fff', transition: 'left 0.2s'
+                }} />
+              </div>
+              <span style={{ fontWeight: 600, fontSize: '14px', color: '#161616' }}>
+                {DIAS_SEMANA[d.dia_semana]}
+              </span>
+            </div>
+
+            {/* Horarios y duración — solo si activo */}
+            {d.activo && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
+                  <input
+                    type="time"
+                    value={d.hora_inicio}
+                    onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
+                  <input
+                    type="time"
+                    value={d.hora_fin}
+                    onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
+                  <select
+                    value={d.duracion_turno}
+                    onChange={e => actualizarDia(d.dia_semana, 'duracion_turno', Number(e.target.value))}
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
+                    <option value={15}>15 min</option>
+                    <option value={20}>20 min</option>
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                    <option value={60}>60 min</option>
+                    <option value={90}>90 min</option>
+                    <option value={120}>120 min</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {!d.activo && (
+              <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>No atiende</span>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+        <button
+          onClick={guardar}
+          disabled={guardando}
+          style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
+          {guardando ? 'Guardando...' : 'Guardar disponibilidad'}
+        </button>
+        {mensaje && <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensaje}</span>}
+      </div>
+    </div>
   )
 }
 
@@ -187,6 +374,14 @@ export default function TabConfiguracion({
 
   return (
     <>
+      {/* DISPONIBILIDAD — primera sección para que sea fácil de encontrar */}
+      <SeccionDisponibilidad
+        userId={userId}
+        card={card}
+        btnPrimary={btnPrimary}
+        btnSecondary={btnSecondary}
+      />
+
       {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
