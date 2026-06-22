@@ -27,10 +27,23 @@ interface Sesion {
 interface Cliente {
   id: string;
   nombre: string;
+  whatsapp?: string | null;
 }
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function formatearFechaLegible(fechaISO: string): string {
+  const fecha = new Date(fechaISO + 'T12:00:00');
+  return fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function limpiarWhatsapp(numero: string): string {
+  const soloDigitos = numero.replace(/\D/g, '');
+  if (soloDigitos.startsWith('54')) return soloDigitos;
+  const sinCero = soloDigitos.startsWith('0') ? soloDigitos.slice(1) : soloDigitos;
+  return '54' + sinCero;
+}
 
 export default function TabAgenda({ userId }: { userId?: string }) {
   const hoy = new Date();
@@ -45,10 +58,13 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [servicios, setServicios] = useState<any[]>([]);
   const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [modalWA, setModalWA] = useState(false);
+  const [mensajeWA, setMensajeWA] = useState('');
+  const [numeroWA, setNumeroWA] = useState('');
 
   useEffect(() => {
     const cargarClientes = async () => {
-      const { data } = await supabase.from('clientes').select('id, nombre').order('nombre');
+      const { data } = await supabase.from('clientes').select('id, nombre, whatsapp').order('nombre');
       if (data) setClientes(data);
       const { data: dataServicios } = await supabase.from('servicios').select('id, nombre').order('nombre');
       if (dataServicios) setServicios(dataServicios);
@@ -74,12 +90,12 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const celdas: (number | null)[] = [...Array(primerDiaMes).fill(null), ...Array.from({ length: diasEnMes }, (_, i) => i + 1)];
   while (celdas.length % 7 !== 0) celdas.push(null);
 
-  // ✅ FIX: llave extra eliminada
   const fechaStr = (dia: number) => `${anio}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
   const sesionesDelDia = (dia: number) => sesiones.filter((s) => s.fecha === fechaStr(dia));
   const sesionesSeleccionadas = diaSeleccionado ? sesiones.filter((s) => s.fecha === diaSeleccionado) : [];
   const hoyStr = hoy.toISOString().split('T')[0];
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
+  const whatsappCliente = (id: string) => clientes.find((c) => c.id === id)?.whatsapp ?? null;
 
   const abrirNuevo = () => {
     setSesionEditando({ fecha: diaSeleccionado ?? '', user_id: userId, facturado: false, cobrado: false, monto_senia: null, fecha_senia: null });
@@ -93,11 +109,33 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     setModalAbierto(true);
   };
 
-  // ✅ FIX: llave extra eliminada
+  const abrirModalWA = (s: Sesion) => {
+    const nombre = nombreCliente(s.cliente_id);
+    const telefono = whatsappCliente(s.cliente_id);
+    const fechaLegible = formatearFechaLegible(s.fecha);
+    const hora = s.horario ? s.horario.substring(0, 5) : '';
+    const servicio = s.tipo_masaje ?? '';
+    const msg = `Hola ${nombre}! 👋 Te recordamos tu turno de ${servicio} el ${fechaLegible}${hora ? ` a las ${hora}hs `: ''}. ¡Te esperamos! 😊`;
+    setMensajeWA(msg);
+    setNumeroWA(telefono ?? '');
+    setModalWA(true);
+  };
+
+  const enviarWA = () => {
+    if (!numeroWA) {
+      alert('Este cliente no tiene número de WhatsApp registrado.');
+      return;
+    }
+    const numero = limpiarWhatsapp(numeroWA);
+    const texto = encodeURIComponent(mensajeWA);
+    window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
+    setModalWA(false);
+  };
+
   const recargar = async () => {
     const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
     const ultimoDia = new Date(anio, mes + 1, 0);
-    const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+    const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '00')}`;
     const { data } = await supabase.from('sesiones').select('*').gte('fecha', primerDia).lte('fecha', ultimoDiaStr).order('horario', { ascending: true });
     if (data) setSesiones(data);
   };
@@ -125,11 +163,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     const fp = window.prompt('¿Cómo se cobra la diferencia? efectivo / transferencia');
     if (!fp) return;
     const hoyFecha = new Date().toISOString().split('T')[0];
-    await supabase.from('sesiones').update({
-      cobrado: true,
-      forma_pago_cobro: fp,
-      fecha_cobro: hoyFecha
-    }).eq('id', s.id);
+    await supabase.from('sesiones').update({ cobrado: true, forma_pago_cobro: fp, fecha_cobro: hoyFecha }).eq('id', s.id);
     await recargar();
   };
 
@@ -214,19 +248,21 @@ export default function TabAgenda({ userId }: { userId?: string }) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => abrirModalWA(s)} title="Enviar recordatorio por WhatsApp"
+                      style={{ background: 'none', border: '1px solid #86EFAC', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '14px' }}>
+                      💬
+                    </button>
                     <button onClick={() => abrirEdicion(s)} style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
                     <button onClick={() => eliminar(s.id)} style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
                   </div>
                 </div>
 
-                {/* ✅ BOTÓN COBRAR DIFERENCIA */}
                 {s.monto_senia && s.monto && !s.cobrado && (
                   <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '12px', color: '#6B7280' }}>
                       Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong>
                     </span>
-                    <button
-                      onClick={() => cobrarDiferencia(s)}
+                    <button onClick={() => cobrarDiferencia(s)}
                       style={{ fontSize: '12px', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
                       Cobrar diferencia
                     </button>
@@ -241,6 +277,41 @@ export default function TabAgenda({ userId }: { userId?: string }) {
         </div>
       )}
 
+      {/* MODAL WHATSAPP */}
+      {modalWA && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '16px' }}>
+          <div style={{ backgroundColor: '#fff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '440px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '22px' }}>💬</span>
+              <span style={{ fontSize: '17px', fontWeight: 700, color: '#1A1A2E' }}>Recordatorio por WhatsApp</span>
+            </div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Mensaje</label>
+            <textarea
+              value={mensajeWA}
+              onChange={(e) => setMensajeWA(e.target.value)}
+              rows={5}
+              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px 12px', fontSize: '14px', lineHeight: '1.5', boxSizing: 'border-box' as const, resize: 'vertical', marginBottom: '16px', color: '#1A1A2E' }}
+            />
+            {!numeroWA && (
+              <p style={{ fontSize: '12px', color: '#EF4444', marginBottom: '12px' }}>
+                ⚠️ Este cliente no tiene número de WhatsApp registrado.
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setModalWA(false)}
+                style={{ border: '1px solid #E2E8F0', background: '#fff', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={enviarWA} disabled={!numeroWA}
+                style={{ backgroundColor: numeroWA ? '#25D366' : '#A3A3A3', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', fontWeight: 600, cursor: numeroWA ? 'pointer' : 'not-allowed' }}>
+                Abrir WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL TURNO */}
       {modalAbierto && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
           <div style={{ backgroundColor: '#fff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
