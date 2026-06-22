@@ -86,7 +86,7 @@ export default function TabConfiguracion({
   const [cargando, setCargando] = useState<string | null>(null)
   const [editandoCliente, setEditandoCliente] = useState<string | null>(null)
   const [editNombre, setEditNombre] = useState('')
-  const [editTelefono, setEditTelefono] = useState('')
+  const [editWhatsapp, setEditWhatsapp] = useState('')
   const [busquedaClientes, setBusquedaClientes] = useState('')
 
   async function cargarArchivos(clienteId: string) {
@@ -109,7 +109,7 @@ export default function TabConfiguracion({
   }
 
   async function guardarEdicionCliente(id: string) {
-    await supabase.from('clientes').update({ nombre: editNombre, telefono: editTelefono }).eq('id', id)
+    await supabase.from('clientes').update({ nombre: editNombre, whatsapp: editWhatsapp }).eq('id', id)
     setEditandoCliente(null)
     cargarClientes(userId)
   }
@@ -119,7 +119,7 @@ export default function TabConfiguracion({
     if (!file) return
     setCargando(clienteId)
     const nombreLimpio = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9.-]/g, '')
-    const nombreArchivo = `${userId}/${clienteId}/${Date.now()}_${nombreLimpio}`
+    const nombreArchivo = ${userId}/${clienteId}/${Date.now()}_${nombreLimpio}
     const { error: uploadError } = await supabase.storage
       .from('archivos-clientes')
       .upload(nombreArchivo, file)
@@ -162,7 +162,7 @@ export default function TabConfiguracion({
   }
 
   async function agregarCliente() {
-    await supabase.from('clientes').insert([{ nombre, telefono, user_id: userId }])
+    await supabase.from('clientes').insert([{ nombre, whatsapp: telefono, user_id: userId }])
     setNombre('')
     setTelefono('')
     cargarClientes(userId)
@@ -191,7 +191,7 @@ export default function TabConfiguracion({
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
-        <input placeholder="Teléfono" value={telefono} onChange={e => setTelefono(e.target.value)} style={input} />
+        <input placeholder="WhatsApp (ej: 1123456789)" value={telefono} onChange={e => setTelefono(e.target.value)} style={input} />
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
@@ -227,17 +227,17 @@ export default function TabConfiguracion({
                     {editandoCliente === c.id ? (
                       <div style={{ marginBottom: '16px' }}>
                         <input value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre" style={{ ...input, marginBottom: '8px' }} />
-                        <input value={editTelefono} onChange={e => setEditTelefono(e.target.value)} placeholder="Teléfono" style={{ ...input, marginBottom: '8px' }} />
+                        <input value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="WhatsApp (ej: 1123456789)" style={{ ...input, marginBottom: '8px' }} />
                         <button onClick={() => guardarEdicionCliente(c.id)} style={{ ...btnPrimary, marginRight: '8px', fontSize: '13px', padding: '6px 14px' }}>Guardar</button>
                         <button onClick={() => setEditandoCliente(null)} style={{ ...btnSecondary, fontSize: '13px', padding: '6px 14px' }}>Cancelar</button>
                       </div>
                     ) : (
                       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <p style={{ margin: '0 0 4px', color: '#161616' }}>📞 {c.telefono || 'Sin teléfono'}</p>
+                          <p style={{ margin: '0 0 4px', color: '#161616' }}>💬 {c.whatsapp || 'Sin WhatsApp'}</p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditTelefono(c.telefono || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
+                          <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditWhatsapp(c.whatsapp || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
                           <button onClick={() => eliminarCliente(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
                         </div>
                       </div>
