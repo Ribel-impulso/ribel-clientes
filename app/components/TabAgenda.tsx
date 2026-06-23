@@ -30,6 +30,15 @@ interface Cliente {
   whatsapp?: string | null;
 }
 
+interface Disponibilidad {
+  id?: string;
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
+  duracion_turno: number;
+  activo: boolean;
+}
+
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -45,6 +54,22 @@ function limpiarWhatsapp(numero: string): string {
   return '54' + sinCero;
 }
 
+// Genera array de slots "HH:MM" entre hora_inicio y hora_fin con paso duracion_turno (min)
+function generarSlots(horaInicio: string, horaFin: string, duracion: number): string[] {
+  const slots: string[] = [];
+  const [hI, mI] = horaInicio.split(':').map(Number);
+  const [hF, mF] = horaFin.split(':').map(Number);
+  let totalMin = hI * 60 + mI;
+  const finMin = hF * 60 + mF;
+  while (totalMin + duracion <= finMin) {
+    const h = String(Math.floor(totalMin / 60)).padStart(2, '0');
+    const m = String(totalMin % 60).padStart(2, '0');
+    slots.push(`${h}:${m}`);
+    totalMin += duracion;
+  }
+  return slots;
+}
+
 export default function TabAgenda({ userId }: { userId?: string }) {
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -52,6 +77,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(hoy.toISOString().split('T')[0]);
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [disponibilidad, setDisponibilidad] = useState<Disponibilidad[]>([]);
   const [cargando, setCargando] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [sesionEditando, setSesionEditando] = useState<Partial<Sesion>>({});
@@ -63,14 +89,22 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const [numeroWA, setNumeroWA] = useState('');
 
   useEffect(() => {
-    const cargarClientes = async () => {
-      const { data } = await supabase.from('clientes').select('id, nombre, whatsapp').order('nombre');
-      if (data) setClientes(data);
+    const cargarDatos = async () => {
+      const { data: dataClientes } = await supabase.from('clientes').select('id, nombre, whatsapp').order('nombre');
+      if (dataClientes) setClientes(dataClientes);
       const { data: dataServicios } = await supabase.from('servicios').select('id, nombre').order('nombre');
       if (dataServicios) setServicios(dataServicios);
+      if (userId) {
+        const { data: dataDisp } = await supabase
+          .from('disponibilidad')
+          .select('*')
+          .eq('user_id', userId)
+          .order('dia_semana');
+        if (dataDisp) setDisponibilidad(dataDisp);
+      }
     };
-    cargarClientes();
-  }, []);
+    cargarDatos();
+  }, [userId]);
 
   useEffect(() => {
     const cargarSesiones = async () => {
@@ -97,15 +131,46 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
   const whatsappCliente = (id: string) => clientes.find((c) => c.id === id)?.whatsapp ?? null;
 
-  const abrirNuevo = () => {
-    setSesionEditando({ fecha: diaSeleccionado ?? '', user_id: userId, facturado: false, cobrado: false, monto_senia: null, fecha_senia: null });
+  // Disponibilidad del día seleccionado
+  const dispDelDia = (() => {
+    if (!diaSeleccionado) return null;
+    const diaSemana = new Date(diaSeleccionado + 'T12:00:00').getDay();
+    return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null;
+  })();
+
+  const slotsDelDia: string[] = dispDelDia
+    ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
+    : [];
+
+  // Dado un slot "HH:MM", devuelve la sesión que lo ocupa (si existe)
+  const sesionEnSlot = (slot: string): Sesion | null => {
+    return sesionesSeleccionadas.find(s => s.horario?.substring(0, 5) === slot) ?? null;
+  };
+
+  // Sesiones que NO caen en ningún slot configurado (fuera de horario)
+  const sesionesForaDeSlot = sesionesSeleccionadas.filter(
+    s => s.horario && !slotsDelDia.includes(s.horario.substring(0, 5))
+  );
+
+  const abrirNuevo = (horario?: string) => {
+    setSesionEditando({
+      fecha: diaSeleccionado ?? '',
+      horario: horario ?? '',
+      user_id: userId,
+      facturado: false,
+      cobrado: false,
+      monto_senia: null,
+      fecha_senia: null
+    });
     setModoEdicion(false);
+    setBusquedaCliente('');
     setModalAbierto(true);
   };
 
   const abrirEdicion = (sesion: Sesion) => {
     setSesionEditando({ ...sesion });
     setModoEdicion(true);
+    setBusquedaCliente('');
     setModalAbierto(true);
   };
 
@@ -115,17 +180,14 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     const fechaLegible = formatearFechaLegible(s.fecha);
     const hora = s.horario ? s.horario.substring(0, 5) : '';
     const servicio = s.tipo_masaje ?? '';
-    const msg = `Hola ${nombre}! 👋 Te recordamos tu turno de ${servicio} el ${fechaLegible}${hora ? ` a las ${hora}hs `: ''}. ¡Te esperamos! 😊`;
+    const msg = `Hola ${nombre}! 👋 Te recordamos tu turno de ${servicio} el ${fechaLegible}${hora ? ` a las ${hora}hs ` : ''}. ¡Te esperamos! 😊`;
     setMensajeWA(msg);
     setNumeroWA(telefono ?? '');
     setModalWA(true);
   };
 
   const enviarWA = () => {
-    if (!numeroWA) {
-      alert('Este cliente no tiene número de WhatsApp registrado.');
-      return;
-    }
+    if (!numeroWA) { alert('Este cliente no tiene número de WhatsApp registrado.'); return; }
     const numero = limpiarWhatsapp(numeroWA);
     const texto = encodeURIComponent(mensajeWA);
     window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
@@ -135,7 +197,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const recargar = async () => {
     const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
     const ultimoDia = new Date(anio, mes + 1, 0);
-    const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '00')}`;
+    const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
     const { data } = await supabase.from('sesiones').select('*').gte('fecha', primerDia).lte('fecha', ultimoDiaStr).order('horario', { ascending: true });
     if (data) setSesiones(data);
   };
@@ -178,15 +240,55 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     ? new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
     : '';
 
+  // Tarjeta de turno (reutilizada en slots y fuera-de-slot)
+  const TarjetaTurno = ({ s }: { s: Sesion }) => (
+    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#FAFAFA' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>
+            {s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
+          <div style={{ fontSize: '12px', color: '#6B7280' }}>
+            {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
+            {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button onClick={() => abrirModalWA(s)} title="Recordatorio WhatsApp"
+            style={{ background: 'none', border: '1px solid #86EFAC', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '14px' }}>💬</button>
+          <button onClick={() => abrirEdicion(s)}
+            style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
+          <button onClick={() => eliminar(s.id)}
+            style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
+        </div>
+      </div>
+      {s.monto_senia && s.monto && !s.cobrado && (
+        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '12px', color: '#6B7280' }}>Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong></span>
+          <button onClick={() => cobrarDiferencia(s)}
+            style={{ fontSize: '12px', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
+            Cobrar diferencia
+          </button>
+        </div>
+      )}
+      {s.cobrado && s.monto_senia && (
+        <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
+      )}
+    </div>
+  );
+
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#F7F8FA', minHeight: '100%', padding: '16px' }}>
 
+      {/* NAVEGACIÓN MES */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <button onClick={() => cambiarMes(-1)} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '18px' }}>‹</button>
         <span style={{ fontSize: '16px', fontWeight: 600, color: '#2D3748' }}>{MESES[mes]} {anio}</span>
         <button onClick={() => cambiarMes(1)} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '18px' }}>›</button>
       </div>
 
+      {/* CALENDARIO */}
       <div style={{ backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 1px 6px rgba(0,0,0,0.07)', overflow: 'hidden', marginBottom: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#4F46E5' }}>
           {DIAS_SEMANA.map((d) => (
@@ -212,9 +314,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
                     {tieneTurnos && (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', marginTop: '4px' }}>
                         <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4F46E5' }} />
-                        {cantidadTurnos > 1 && (
-                          <span style={{ fontSize: '10px', color: '#4F46E5', fontWeight: 600 }}>{cantidadTurnos}</span>
-                        )}
+                        {cantidadTurnos > 1 && <span style={{ fontSize: '10px', color: '#4F46E5', fontWeight: 600 }}>{cantidadTurnos}</span>}
                       </div>
                     )}
                   </>
@@ -225,54 +325,77 @@ export default function TabAgenda({ userId }: { userId?: string }) {
         </div>
       </div>
 
+      {/* DETALLE DEL DÍA */}
       {diaSeleccionado && (
         <div style={{ backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 1px 6px rgba(0,0,0,0.07)', padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A1A2E', textTransform: 'capitalize' }}>{labelFecha}</span>
-            <button onClick={abrirNuevo} style={{ backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>+ Turno</button>
+            <button onClick={() => abrirNuevo()} style={{ backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>+ Turno</button>
           </div>
+
           {cargando ? (
             <p style={{ textAlign: 'center', color: '#9CA3AF', padding: '24px 0' }}>Cargando...</p>
-          ) : sesionesSeleccionadas.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#9CA3AF', padding: '24px 0' }}>Sin turnos agendados</p>
-          ) : (
-            sesionesSeleccionadas.map((s) => (
-              <div key={s.id} style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px 14px', marginBottom: '10px', backgroundColor: '#FAFAFA' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>{s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}</div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                      {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
-                      {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
+          ) : slotsDelDia.length > 0 ? (
+            // VISTA CON SLOTS (tiene disponibilidad configurada)
+            <div>
+              {slotsDelDia.map((slot) => {
+                const sesion = sesionEnSlot(slot);
+                const ocupado = !!sesion;
+                return (
+                  <div key={slot} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'flex-start' }}>
+                    {/* Hora */}
+                    <div style={{ minWidth: '44px', paddingTop: '10px', fontSize: '12px', fontWeight: 600, color: ocupado ? '#EF4444' : '#16A34A', textAlign: 'right' }}>
+                      {slot}
+                    </div>
+                    {/* Línea de tiempo */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '14px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ocupado ? '#EF4444' : '#22C55E', flexShrink: 0 }} />
+                      <div style={{ width: '2px', flex: 1, backgroundColor: '#E2E8F0', minHeight: '16px' }} />
+                    </div>
+                    {/* Contenido */}
+                    <div style={{ flex: 1 }}>
+                      {ocupado && sesion ? (
+                        <TarjetaTurno s={sesion} />
+                      ) : (
+                        <div onClick={() => abrirNuevo(slot)}
+                          style={{ border: '1px dashed #D1FAE5', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#F0FDF4', cursor: 'pointer', fontSize: '13px', color: '#16A34A', fontWeight: 500 }}>
+                          + Agendar turno
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button onClick={() => abrirModalWA(s)} title="Enviar recordatorio por WhatsApp"
-                      style={{ background: 'none', border: '1px solid #86EFAC', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '14px' }}>
-                      💬
-                    </button>
-                    <button onClick={() => abrirEdicion(s)} style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
-                    <button onClick={() => eliminar(s.id)} style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
+                );
+              })}
+
+              {/* Sesiones fuera del horario configurado */}
+              {sesionesForaDeSlot.length > 0 && (
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
+                  <p style={{ fontSize: '12px', color: '#D97706', fontWeight: 600, marginBottom: '8px' }}>⚠️ Fuera del horario configurado</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {sesionesForaDeSlot.map(s => <TarjetaTurno key={s.id} s={s} />)}
                   </div>
                 </div>
-
-                {s.monto_senia && s.monto && !s.cobrado && (
-                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '12px', color: '#6B7280' }}>
-                      Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong>
-                    </span>
-                    <button onClick={() => cobrarDiferencia(s)}
-                      style={{ fontSize: '12px', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
-                      Cobrar diferencia
-                    </button>
-                  </div>
-                )}
-                {s.cobrado && s.monto_senia && (
-                  <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
-                )}
-              </div>
-            ))
+              )}
+            </div>
+          ) : (
+            // VISTA SIN SLOTS (sin disponibilidad o día no activo)
+            <div>
+              {sesionesSeleccionadas.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <p style={{ color: '#9CA3AF', marginBottom: '8px' }}>Sin turnos agendados</p>
+                  {disponibilidad.length === 0 && (
+                    <p style={{ color: '#CBD5E0', fontSize: '12px' }}>Configurá tus horarios de atención en la pestaña Configuración para ver los slots disponibles</p>
+                  )}
+                  {disponibilidad.length > 0 && (
+                    <p style={{ color: '#CBD5E0', fontSize: '12px' }}>Este día no tenés horarios de atención configurados</p>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {sesionesSeleccionadas.map(s => <TarjetaTurno key={s.id} s={s} />)}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -286,22 +409,11 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               <span style={{ fontSize: '17px', fontWeight: 700, color: '#1A1A2E' }}>Recordatorio por WhatsApp</span>
             </div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Mensaje</label>
-            <textarea
-              value={mensajeWA}
-              onChange={(e) => setMensajeWA(e.target.value)}
-              rows={5}
-              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px 12px', fontSize: '14px', lineHeight: '1.5', boxSizing: 'border-box' as const, resize: 'vertical', marginBottom: '16px', color: '#1A1A2E' }}
-            />
-            {!numeroWA && (
-              <p style={{ fontSize: '12px', color: '#EF4444', marginBottom: '12px' }}>
-                ⚠️ Este cliente no tiene número de WhatsApp registrado.
-              </p>
-            )}
+            <textarea value={mensajeWA} onChange={(e) => setMensajeWA(e.target.value)} rows={5}
+              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px 12px', fontSize: '14px', lineHeight: '1.5', boxSizing: 'border-box' as const, resize: 'vertical', marginBottom: '16px', color: '#1A1A2E' }} />
+            {!numeroWA && <p style={{ fontSize: '12px', color: '#EF4444', marginBottom: '12px' }}>⚠️ Este cliente no tiene número de WhatsApp registrado.</p>}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setModalWA(false)}
-                style={{ border: '1px solid #E2E8F0', background: '#fff', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', cursor: 'pointer' }}>
-                Cancelar
-              </button>
+              <button onClick={() => setModalWA(false)} style={{ border: '1px solid #E2E8F0', background: '#fff', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
               <button onClick={enviarWA} disabled={!numeroWA}
                 style={{ backgroundColor: numeroWA ? '#25D366' : '#A3A3A3', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', fontWeight: 600, cursor: numeroWA ? 'pointer' : 'not-allowed' }}>
                 Abrir WhatsApp
@@ -318,13 +430,10 @@ export default function TabAgenda({ userId }: { userId?: string }) {
             <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '18px' }}>{modoEdicion ? 'Editar turno' : 'Nuevo turno'}</div>
 
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Cliente *</label>
-            <input
-              type="text"
-              placeholder="Buscar cliente..."
+            <input type="text" placeholder="Buscar cliente..."
               value={sesionEditando.cliente_id ? (clientes.find(c => c.id === sesionEditando.cliente_id)?.nombre ?? '') : busquedaCliente}
               onChange={(e) => { setBusquedaCliente(e.target.value); setSesionEditando({ ...sesionEditando, cliente_id: '' }); }}
-              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '4px', boxSizing: 'border-box' as const }}
-            />
+              style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '4px', boxSizing: 'border-box' as const }} />
             {busquedaCliente && !sesionEditando.cliente_id && (
               <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto', marginBottom: '14px' }}>
                 {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase())).map(c => (
@@ -385,9 +494,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
             </div>
 
             <div style={{ backgroundColor: '#F8F7FF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4F46E5', display: 'block', marginBottom: '10px' }}>
-                💰 Seña (opcional)
-              </label>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4F46E5', display: 'block', marginBottom: '10px' }}>💰 Seña (opcional)</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto seña</label>
