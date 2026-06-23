@@ -144,8 +144,20 @@ export default function TabAgenda({ userId }: { userId?: string }) {
 
   // Dado un slot "HH:MM", devuelve la sesión que lo ocupa (si existe)
   const sesionEnSlot = (slot: string): Sesion | null => {
-    return sesionesSeleccionadas.find(s => s.horario?.substring(0, 5) === slot) ?? null;
-  };
+  const slotMin = (() => {
+    const [h, m] = slot.split(':').map(Number);
+    return h * 60 + m;
+  })();
+
+  return sesionesSeleccionadas.find(s => {
+    if (!s.horario) return false;
+    const [h, m] = s.horario.substring(0, 5).split(':').map(Number);
+    const inicioMin = h * 60 + m;
+    const duracion = s.duracion ?? dispDelDia?.duracion_turno ?? 30;
+    const finMin = inicioMin + duracion;
+    return slotMin >= inicioMin && slotMin < finMin;
+  }) ?? null;
+};
 
   // Sesiones que NO caen en ningún slot configurado (fuera de horario)
   const sesionesForaDeSlot = sesionesSeleccionadas.filter(
