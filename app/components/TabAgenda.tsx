@@ -367,8 +367,14 @@ export default function TabAgenda({ userId }: { userId?: string }) {
                     {/* Contenido */}
                     <div style={{ flex: 1 }}>
                       {ocupado && sesion ? (
-                        <TarjetaTurno s={sesion} />
-                      ) : (
+  sesion.horario?.substring(0, 5) === slot ? (
+    <TarjetaTurno s={sesion} />
+  ) : (
+    <div style={{ border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#FFF5F5', fontSize: '13px', color: '#EF4444', fontWeight: 500 }}>
+      🔒 Ocupado · {sesion.horario?.substring(0, 5)} – {nombreCliente(sesion.cliente_id)}
+    </div>
+  )
+) : (
                         <div onClick={() => abrirNuevo(slot)}
                           style={{ border: '1px dashed #D1FAE5', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#F0FDF4', cursor: 'pointer', fontSize: '13px', color: '#16A34A', fontWeight: 500 }}>
                           + Agendar turno
