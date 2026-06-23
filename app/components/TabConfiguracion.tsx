@@ -374,15 +374,7 @@ export default function TabConfiguracion({
 
   return (
     <>
-      {/* DISPONIBILIDAD — primera sección para que sea fácil de encontrar */}
-      <SeccionDisponibilidad
-        userId={userId}
-        card={card}
-        btnPrimary={btnPrimary}
-        btnSecondary={btnSecondary}
-      />
-
-      {/* AGREGAR CLIENTE */}
+            {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
@@ -531,6 +523,14 @@ export default function TabConfiguracion({
           </ul>
         )}
       </div>
+
+      {/* DISPONIBILIDAD — primera sección para que sea fácil de encontrar */}
+      <SeccionDisponibilidad
+        userId={userId}
+        card={card}
+        btnPrimary={btnPrimary}
+        btnSecondary={btnSecondary}
+      />
 
       {/* CAMBIAR CONTRASEÑA */}
       <div style={card}>
