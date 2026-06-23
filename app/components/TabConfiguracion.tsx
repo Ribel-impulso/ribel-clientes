@@ -24,10 +24,10 @@ interface Props {
   setNombre: (v: string) => void
   telefono: string
   setTelefono: (v: string) => void
-  nuevoServicioCodigo: string
-  setNuevoServicioCodigo: (v: string) => void
   nuevoServicioNombre: string
-  setNuevoServicioNombre: (v: string) => void
+setNuevoServicioNombre: (v: string) => void
+nuevoServicioDuracion: number
+setNuevoServicioDuracion: (v: number) => void
   userId: string
   cargarClientes: (uid: string) => void
   cargarServicios: (uid: string) => void
@@ -259,8 +259,8 @@ export default function TabConfiguracion({
   mostrarClientes, setMostrarClientes,
   mostrarServicios, setMostrarServicios,
   nombre, setNombre, telefono, setTelefono,
-  nuevoServicioCodigo, setNuevoServicioCodigo,
   nuevoServicioNombre, setNuevoServicioNombre,
+  nuevoServicioDuracion, setNuevoServicioDuracion,
   userId, cargarClientes, cargarServicios,
   eliminarCliente, eliminarServicio,
   card, input, btnPrimary, btnSecondary
@@ -356,11 +356,11 @@ export default function TabConfiguracion({
   }
 
   async function agregarServicio() {
-    await supabase.from('servicios').insert([{ codigo: nuevoServicioCodigo, nombre: nuevoServicioNombre, user_id: userId }])
-    setNuevoServicioCodigo('')
-    setNuevoServicioNombre('')
-    cargarServicios(userId)
-  }
+  await supabase.from('servicios').insert([{ nombre: nuevoServicioNombre, duracion: nuevoServicioDuracion, user_id: userId }])
+  setNuevoServicioNombre('')
+  setNuevoServicioDuracion(60)
+  cargarServicios(userId)
+}
 
   const inp: React.CSSProperties = {
     padding: '10px',
@@ -502,27 +502,38 @@ export default function TabConfiguracion({
       </div>
 
       {/* SERVICIOS */}
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-          <h2 style={{ color: '#161616', margin: 0 }}>Servicios ({servicios.length})</h2>
-          <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
-            {mostrarServicios ? 'Ocultar' : 'Ver'}
-          </button>
-        </div>
-        <input placeholder="Código (ej: M001)" value={nuevoServicioCodigo} onChange={e => setNuevoServicioCodigo(e.target.value)} style={input} />
-        <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
-        <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
-        {mostrarServicios && (
-          <ul style={{ marginTop: '16px', paddingLeft: '16px' }}>
-            {servicios.map(s => (
-              <li key={s.id} style={{ marginBottom: '8px', color: '#161616' }}>
-                <strong>{s.codigo}</strong> - {s.nombre}
-                <button onClick={() => eliminarServicio(s.id)} style={{ marginLeft: '10px', color: '#ba9a7d', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+<div style={card}>
+  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+    <h2 style={{ color: '#161616', margin: 0 }}>Servicios ({servicios.length})</h2>
+    <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
+      {mostrarServicios ? 'Ocultar' : 'Ver'}
+    </button>
+  </div>
+  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+    <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre}
+      onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
+    <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
+      style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
+      <option value={15}>15 min</option>
+      <option value={30}>30 min</option>
+      <option value={45}>45 min</option>
+      <option value={60}>60 min</option>
+      <option value={75}>75 min</option>
+      <option value={90}>90 min</option>
+    </select>
+  </div>
+  <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
+  {mostrarServicios && (
+    <ul style={{ marginTop: '16px', paddingLeft: '16px' }}>
+      {servicios.map(s => (
+        <li key={s.id} style={{ marginBottom: '8px', color: '#161616' }}>
+          {s.nombre} · <span style={{ color: '#6B7280', fontSize: '13px' }}>{s.duracion ?? 60} min</span>
+          <button onClick={() => eliminarServicio(s.id)} style={{ marginLeft: '10px', color: '#ba9a7d', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
 
       {/* DISPONIBILIDAD — primera sección para que sea fácil de encontrar */}
       <SeccionDisponibilidad

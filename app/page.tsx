@@ -24,8 +24,8 @@ export default function Home() {
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
   const [mostrarClientes, setMostrarClientes] = useState(false)
   const [mostrarServicios, setMostrarServicios] = useState(false)
-  const [nuevoServicioCodigo, setNuevoServicioCodigo] = useState('')
   const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
+  const [nuevoServicioDuracion, setNuevoServicioDuracion] = useState(60) 
   const [userId, setUserId] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editFecha, setEditFecha] = useState('')
@@ -409,8 +409,8 @@ export default function Home() {
             mostrarServicios={mostrarServicios} setMostrarServicios={setMostrarServicios}
             nombre={nombre} setNombre={setNombre}
             telefono={telefono} setTelefono={setTelefono}
-            nuevoServicioCodigo={nuevoServicioCodigo} setNuevoServicioCodigo={setNuevoServicioCodigo}
             nuevoServicioNombre={nuevoServicioNombre} setNuevoServicioNombre={setNuevoServicioNombre}
+nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevoServicioDuracion}
             userId={userId!} cargarClientes={cargarClientes} cargarServicios={cargarServicios}
             eliminarCliente={eliminarCliente} eliminarServicio={eliminarServicio}
             card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
