@@ -484,11 +484,17 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
-                <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, tipo_masaje: e.target.value })}
-                  style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
-                  <option value="">Seleccionar...</option>
-                  {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-                </select>
+                <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => {
+  const servicio = servicios.find((s: any) => s.nombre === e.target.value)
+  setSesionEditando({ 
+    ...sesionEditando, 
+    tipo_masaje: e.target.value,
+    duracion: servicio?.duracion ?? sesionEditando.duracion ?? null
+  })
+}} style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
+  <option value="">Seleccionar...</option>
+  {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+</select>
               </div>
             </div>
 
