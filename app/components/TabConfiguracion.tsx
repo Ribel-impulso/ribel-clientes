@@ -9,6 +9,8 @@ interface Disponibilidad {
   dia_semana: number
   hora_inicio: string
   hora_fin: string
+  hora_inicio_2?: string | null
+  hora_fin_2?: string | null
   duracion_turno: number
   activo: boolean
 }
@@ -92,6 +94,8 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     dia_semana: i,
     hora_inicio: '09:00',
     hora_fin: '18:00',
+    hora_inicio_2: null,
+    hora_fin_2: null,
     duracion_turno: 60,
     activo: i >= 1 && i <= 5,
   }))
@@ -133,6 +137,8 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
         dia_semana: d.dia_semana,
         hora_inicio: d.hora_inicio,
         hora_fin: d.hora_fin,
+        hora_inicio_2: d.hora_inicio_2 ?? null,
+        hora_fin_2: d.hora_fin_2 ?? null,
         duracion_turno: d.duracion_turno,
         activo: d.activo,
       }
@@ -152,11 +158,8 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     <div style={card}>
       <h2 style={{ color: '#161616', marginTop: 0 }}>🗓️ Días y horarios de atención</h2>
       <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
-        Configurá los días y horarios en los que atendés. Esto te permitirá ver los turnos libres y ocupados en la agenda.
+        Configurá los días y horarios en los que atendés. Podés agregar un segundo bloque horario por día.
       </p>
-      <div style={{ marginBottom: '12px', display: 'flex', gap: '16px', fontSize: '12px', color: '#6B7280' }}>
-        <span>⏱️ Duración: tiempo por turno en minutos</span>
-      </div>
       {disponibilidad.map((d) => (
         <div key={d.dia_semana} style={{
           border: `1px solid ${d.activo ? '#ba9a7d' : '#e3dfd6'}`,
@@ -166,29 +169,37 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
           backgroundColor: d.activo ? '#fdf9f5' : '#f9f9f9',
           opacity: d.activo ? 1 : 0.6,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '110px' }}>
-              <div
-                onClick={() => actualizarDia(d.dia_semana, 'activo', !d.activo)}
-                style={{
-                  width: '36px', height: '20px', borderRadius: '10px',
-                  backgroundColor: d.activo ? '#ba9a7d' : '#CBD5E0',
-                  cursor: 'pointer', position: 'relative', flexShrink: 0,
-                  transition: 'background-color 0.2s'
-                }}>
-                <div style={{
-                  position: 'absolute', top: '3px',
-                  left: d.activo ? '18px' : '3px',
-                  width: '14px', height: '14px', borderRadius: '50%',
-                  backgroundColor: '#fff', transition: 'left 0.2s'
-                }} />
-              </div>
-              <span style={{ fontWeight: 600, fontSize: '14px', color: '#161616' }}>
-                {DIAS_SEMANA[d.dia_semana]}
-              </span>
+          {/* ENCABEZADO DÍA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: d.activo ? '12px' : '0' }}>
+            <div
+              onClick={() => actualizarDia(d.dia_semana, 'activo', !d.activo)}
+              style={{
+                width: '36px', height: '20px', borderRadius: '10px',
+                backgroundColor: d.activo ? '#ba9a7d' : '#CBD5E0',
+                cursor: 'pointer', position: 'relative', flexShrink: 0,
+                transition: 'background-color 0.2s'
+              }}>
+              <div style={{
+                position: 'absolute', top: '3px',
+                left: d.activo ? '18px' : '3px',
+                width: '14px', height: '14px', borderRadius: '50%',
+                backgroundColor: '#fff', transition: 'left 0.2s'
+              }} />
             </div>
-            {d.activo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, fontSize: '14px', color: '#161616' }}>
+              {DIAS_SEMANA[d.dia_semana]}
+            </span>
+            {!d.activo && (
+              <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>No atiende</span>
+            )}
+          </div>
+
+          {d.activo && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+              {/* BLOQUE 1 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '60px' }}>Bloque 1</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
                   <input type="time" value={d.hora_inicio}
@@ -216,11 +227,41 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                   </select>
                 </div>
               </div>
-            )}
-            {!d.activo && (
-              <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>No atiende</span>
-            )}
-          </div>
+
+              {/* BLOQUE 2 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '60px' }}>Bloque 2</span>
+                {d.hora_inicio_2 ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
+                      <input type="time" value={d.hora_inicio_2}
+                        onChange={e => actualizarDia(d.dia_semana, 'hora_inicio_2', e.target.value)}
+                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
+                      <input type="time" value={d.hora_fin_2 ?? ''}
+                        onChange={e => actualizarDia(d.dia_semana, 'hora_fin_2', e.target.value)}
+                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
+                    </div>
+                    <button
+                      onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio_2', null); actualizarDia(d.dia_semana, 'hora_fin_2', null) }}
+                      style={{ fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      Quitar
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio_2', '17:00'); actualizarDia(d.dia_semana, 'hora_fin_2', '20:00') }}
+                    style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
+                    + Agregar bloque tarde
+                  </button>
+                )}
+              </div>
+
+            </div>
+          )}
         </div>
       ))}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
@@ -254,29 +295,18 @@ export default function TabConfiguracion({
   const [editNombre, setEditNombre] = useState('')
   const [editWhatsapp, setEditWhatsapp] = useState('')
   const [busquedaClientes, setBusquedaClientes] = useState('')
-
-  // Estado para edición de servicios
   const [editandoServicio, setEditandoServicio] = useState<string | null>(null)
   const [editServicioNombre, setEditServicioNombre] = useState('')
   const [editServicioDuracion, setEditServicioDuracion] = useState(60)
 
   async function cargarArchivos(clienteId: string) {
-    const { data } = await supabase
-      .from('archivos_clientes')
-      .select('*')
-      .eq('cliente_id', clienteId)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    const { data } = await supabase.from('archivos_clientes').select('*').eq('cliente_id', clienteId).eq('user_id', userId).order('created_at', { ascending: false })
     setArchivos(prev => ({ ...prev, [clienteId]: data || [] }))
   }
 
   async function toggleCliente(clienteId: string) {
-    if (clienteAbierto === clienteId) {
-      setClienteAbierto(null)
-    } else {
-      setClienteAbierto(clienteId)
-      cargarArchivos(clienteId)
-    }
+    if (clienteAbierto === clienteId) { setClienteAbierto(null) }
+    else { setClienteAbierto(clienteId); cargarArchivos(clienteId) }
   }
 
   async function guardarEdicionCliente(id: string) {
@@ -303,18 +333,10 @@ export default function TabConfiguracion({
     setCargando(clienteId)
     const nombreLimpio = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9.-]/g, '')
     const nombreArchivo = `${userId}/${clienteId}/${Date.now()}_${nombreLimpio}`
-    const { error: uploadError } = await supabase.storage
-      .from('archivos-clientes')
-      .upload(nombreArchivo, file)
+    const { error: uploadError } = await supabase.storage.from('archivos-clientes').upload(nombreArchivo, file)
     if (uploadError) { alert('Error al subir: ' + uploadError.message); setCargando(null); return }
     const { data: urlData } = supabase.storage.from('archivos-clientes').getPublicUrl(nombreArchivo)
-    await supabase.from('archivos_clientes').insert([{
-      cliente_id: clienteId,
-      nombre: file.name,
-      url: urlData.publicUrl,
-      tipo: 'pdf',
-      user_id: userId
-    }])
+    await supabase.from('archivos_clientes').insert([{ cliente_id: clienteId, nombre: file.name, url: urlData.publicUrl, tipo: 'pdf', user_id: userId }])
     setArchivoFile(prev => ({ ...prev, [clienteId]: null }))
     setCargando(null)
     cargarArchivos(clienteId)
@@ -324,13 +346,7 @@ export default function TabConfiguracion({
   async function guardarNota(clienteId: string) {
     const texto = notaTexto[clienteId]
     if (!texto?.trim()) return
-    await supabase.from('archivos_clientes').insert([{
-      cliente_id: clienteId,
-      nombre: 'Nota',
-      contenido: texto,
-      tipo: 'nota',
-      user_id: userId
-    }])
+    await supabase.from('archivos_clientes').insert([{ cliente_id: clienteId, nombre: 'Nota', contenido: texto, tipo: 'nota', user_id: userId }])
     setNotaTexto(prev => ({ ...prev, [clienteId]: '' }))
     cargarArchivos(clienteId)
   }
@@ -345,7 +361,8 @@ export default function TabConfiguracion({
   }
 
   async function agregarCliente() {
-    await supabase.from('clientes').insert([{ nombre, whatsapp: telefono, user_id: userId }])
+    const whatsappLimpio = telefono.replace(/\D/g, '')
+    await supabase.from('clientes').insert([{ nombre, whatsapp: whatsappLimpio, user_id: userId }])
     setNombre('')
     setTelefono('')
     cargarClientes(userId)
@@ -359,13 +376,8 @@ export default function TabConfiguracion({
   }
 
   const inp: React.CSSProperties = {
-    padding: '10px',
-    borderRadius: '8px',
-    border: '1px solid #e3dfd6',
-    marginRight: '8px',
-    marginBottom: '8px',
-    fontFamily: 'Arial',
-    width: '220px'
+    padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6',
+    marginRight: '8px', marginBottom: '8px', fontFamily: 'Arial', width: '220px'
   }
 
   return (
@@ -374,7 +386,7 @@ export default function TabConfiguracion({
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
-        <input placeholder="WhatsApp (ej: 1123456789)" value={telefono} onChange={e => setTelefono(e.target.value)} style={input} />
+        <input placeholder="WhatsApp (ej: 3492123456)" value={telefono} onChange={e => setTelefono(e.target.value)} style={input} />
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
@@ -388,69 +400,47 @@ export default function TabConfiguracion({
         </div>
         {mostrarClientes && (
           <div>
-            <input
-              placeholder="Buscar cliente..."
-              value={busquedaClientes}
-              onChange={e => setBusquedaClientes(e.target.value)}
-              style={input}
-            />
+            <input placeholder="Buscar cliente..." value={busquedaClientes} onChange={e => setBusquedaClientes(e.target.value)} style={input} />
             {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaClientes.toLowerCase())).map(c => (
               <div key={c.id} style={{ borderRadius: '10px', border: '1px solid #e3dfd6', marginBottom: '10px', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', backgroundColor: '#f9f7f4' }}>
                   <span style={{ fontWeight: 'bold', color: '#161616', fontSize: '15px' }}>{c.nombre}</span>
-                  <button
-                    onClick={() => toggleCliente(c.id)}
+                  <button onClick={() => toggleCliente(c.id)}
                     style={{ backgroundColor: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', fontFamily: 'Arial', fontSize: '13px' }}>
                     {clienteAbierto === c.id ? 'Cerrar' : 'Ver'}
                   </button>
                 </div>
-
                 {clienteAbierto === c.id && (
                   <div style={{ padding: '16px', backgroundColor: '#ffffff', borderTop: '1px solid #e3dfd6' }}>
                     {editandoCliente === c.id ? (
                       <div style={{ marginBottom: '16px' }}>
                         <input value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre" style={{ ...input, marginBottom: '8px' }} />
-                        <input value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="WhatsApp (ej: 1123456789)" style={{ ...input, marginBottom: '8px' }} />
+                        <input value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="WhatsApp (ej: 3492123456)" style={{ ...input, marginBottom: '8px' }} />
                         <button onClick={() => guardarEdicionCliente(c.id)} style={{ ...btnPrimary, marginRight: '8px', fontSize: '13px', padding: '6px 14px' }}>Guardar</button>
                         <button onClick={() => setEditandoCliente(null)} style={{ ...btnSecondary, fontSize: '13px', padding: '6px 14px' }}>Cancelar</button>
                       </div>
                     ) : (
                       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <p style={{ margin: '0 0 4px', color: '#161616' }}>💬 {c.whatsapp || 'Sin WhatsApp'}</p>
-                        </div>
+                        <p style={{ margin: '0 0 4px', color: '#161616' }}>💬 {c.whatsapp || 'Sin WhatsApp'}</p>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditWhatsapp(c.whatsapp || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
                           <button onClick={() => eliminarCliente(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
                         </div>
                       </div>
                     )}
-
                     <div style={{ marginBottom: '16px' }}>
                       <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📎 Subir PDF</p>
-                      <input type="file" accept=".pdf"
-                        onChange={e => setArchivoFile(prev => ({ ...prev, [c.id]: e.target.files?.[0] || null }))}
-                        style={{ marginBottom: '8px', display: 'block' }} />
-                      <button onClick={() => subirArchivo(c.id)}
-                        style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}
-                        disabled={cargando === c.id}>
+                      <input type="file" accept=".pdf" onChange={e => setArchivoFile(prev => ({ ...prev, [c.id]: e.target.files?.[0] || null }))} style={{ marginBottom: '8px', display: 'block' }} />
+                      <button onClick={() => subirArchivo(c.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }} disabled={cargando === c.id}>
                         {cargando === c.id ? 'Subiendo...' : 'Subir PDF'}
                       </button>
                     </div>
-
                     <div style={{ marginBottom: '16px' }}>
                       <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📝 Agregar Nota</p>
-                      <textarea
-                        placeholder="Escribí una nota..."
-                        value={notaTexto[c.id] || ''}
-                        onChange={e => setNotaTexto(prev => ({ ...prev, [c.id]: e.target.value }))}
+                      <textarea placeholder="Escribí una nota..." value={notaTexto[c.id] || ''} onChange={e => setNotaTexto(prev => ({ ...prev, [c.id]: e.target.value }))}
                         style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', height: '70px', resize: 'vertical', boxSizing: 'border-box' }} />
-                      <button onClick={() => guardarNota(c.id)}
-                        style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px', marginTop: '6px' }}>
-                        Guardar Nota
-                      </button>
+                      <button onClick={() => guardarNota(c.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px', marginTop: '6px' }}>Guardar Nota</button>
                     </div>
-
                     {(archivos[c.id] || []).length > 0 ? (
                       <div>
                         <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>Guardados:</p>
@@ -500,8 +490,7 @@ export default function TabConfiguracion({
           </button>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre}
-            onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
+          <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
           <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
             style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
             <option value={15}>15 min</option>
@@ -513,22 +502,15 @@ export default function TabConfiguracion({
           </select>
         </div>
         <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
-
         {mostrarServicios && (
           <ul style={{ marginTop: '16px', paddingLeft: 0, listStyle: 'none' }}>
             {servicios.map(s => (
               <li key={s.id} style={{ marginBottom: '10px', padding: '10px 14px', border: '1px solid #e3dfd6', borderRadius: '8px', backgroundColor: '#fdf9f5' }}>
                 {editandoServicio === s.id ? (
-                  // MODO EDICIÓN
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <input
-                      value={editServicioNombre}
-                      onChange={e => setEditServicioNombre(e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '180px' }}
-                    />
-                    <select
-                      value={editServicioDuracion}
-                      onChange={e => setEditServicioDuracion(Number(e.target.value))}
+                    <input value={editServicioNombre} onChange={e => setEditServicioNombre(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '180px' }} />
+                    <select value={editServicioDuracion} onChange={e => setEditServicioDuracion(Number(e.target.value))}
                       style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
                       <option value={15}>15 min</option>
                       <option value={30}>30 min</option>
@@ -537,35 +519,18 @@ export default function TabConfiguracion({
                       <option value={75}>75 min</option>
                       <option value={90}>90 min</option>
                     </select>
-                    <button
-                      onClick={() => guardarEdicionServicio(s.id)}
-                      style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}>
-                      Guardar
-                    </button>
-                    <button
-                      onClick={() => setEditandoServicio(null)}
-                      style={{ ...btnSecondary, marginLeft: 0, padding: '6px 14px', fontSize: '13px' }}>
-                      Cancelar
-                    </button>
+                    <button onClick={() => guardarEdicionServicio(s.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}>Guardar</button>
+                    <button onClick={() => setEditandoServicio(null)} style={{ ...btnSecondary, marginLeft: 0, padding: '6px 14px', fontSize: '13px' }}>Cancelar</button>
                   </div>
                 ) : (
-                  // MODO VISUALIZACIÓN
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#161616', fontSize: '14px' }}>
                       {s.nombre}
                       <span style={{ color: '#6B7280', fontSize: '13px', marginLeft: '8px' }}>· {s.duracion ?? 60} min</span>
                     </span>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => iniciarEdicionServicio(s)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => eliminarServicio(s.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>
-                        Eliminar
-                      </button>
+                      <button onClick={() => iniciarEdicionServicio(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
+                      <button onClick={() => eliminarServicio(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
                     </div>
                   </div>
                 )}
@@ -576,31 +541,22 @@ export default function TabConfiguracion({
       </div>
 
       {/* MI LINK DE AGENDA */}
-<div style={card}>
-  <h2 style={{ color: '#161616', marginTop: 0 }}>🔗 Mi link de agenda</h2>
-  <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '12px' }}>
-    Compartí este link con tus clientes para que puedan reservar su turno online.
-  </p>
-  <div style={{ backgroundColor: '#f9f7f4', border: '1px solid #e3dfd6', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px', wordBreak: 'break-all', fontSize: '13px', color: '#161616' }}>
-    {`https://ribelgestion.com/agenda-publica?u=${userId}`}
-  </div>
-  <button
-    onClick={() => {
-      navigator.clipboard.writeText(`https://ribelgestion.com/agenda-publica?u=${userId}`)
-      alert('¡Link copiado!')
-    }}
-    style={{ ...btnPrimary, width: 'auto', padding: '8px 20px', fontSize: '13px' }}>
-    📋 Copiar link
-  </button>
-</div>
+      <div style={card}>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>🔗 Mi link de agenda</h2>
+        <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '12px' }}>
+          Compartí este link con tus clientes para que puedan reservar su turno online.
+        </p>
+        <div style={{ backgroundColor: '#f9f7f4', border: '1px solid #e3dfd6', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px', wordBreak: 'break-all', fontSize: '13px', color: '#161616' }}>
+          {`https://ribelgestion.com/agenda-publica?u=${userId}`}
+        </div>
+        <button onClick={() => { navigator.clipboard.writeText(`https://ribelgestion.com/agenda-publica?u=${userId}`); alert('¡Link copiado!') }}
+          style={{ ...btnPrimary, width: 'auto', padding: '8px 20px', fontSize: '13px' }}>
+          📋 Copiar link
+        </button>
+      </div>
 
       {/* DISPONIBILIDAD */}
-      <SeccionDisponibilidad
-        userId={userId}
-        card={card}
-        btnPrimary={btnPrimary}
-        btnSecondary={btnSecondary}
-      />
+      <SeccionDisponibilidad userId={userId} card={card} btnPrimary={btnPrimary} btnSecondary={btnSecondary} />
 
       {/* CAMBIAR CONTRASEÑA */}
       <div style={card}>
