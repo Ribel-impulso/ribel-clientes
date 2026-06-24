@@ -22,10 +22,7 @@ function generarSlots(horaInicio: string, horaFin: string, duracion: number): st
 }
 
 function limpiarWA(numero: string): string {
-  const soloDigitos = numero.replace(/\D/g, '')
-  if (soloDigitos.startsWith('54')) return soloDigitos
-  const sinCero = soloDigitos.startsWith('0') ? soloDigitos.slice(1) : soloDigitos
-  return '54' + sinCero
+  return numero.replace(/\D/g, '')
 }
 
 type Paso = 'whatsapp' | 'servicio' | 'fecha' | 'horario' | 'confirmado'
