@@ -54,7 +54,6 @@ function limpiarWhatsapp(numero: string): string {
   return '54' + sinCero;
 }
 
-// Genera array de slots "HH:MM" entre hora_inicio y hora_fin con paso duracion_turno (min)
 function generarSlots(horaInicio: string, horaFin: string, duracion: number): string[] {
   const slots: string[] = [];
   const [hI, mI] = horaInicio.split(':').map(Number);
@@ -92,7 +91,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     const cargarDatos = async () => {
       const { data: dataClientes } = await supabase.from('clientes').select('id, nombre, whatsapp').order('nombre');
       if (dataClientes) setClientes(dataClientes);
-      const { data: dataServicios } = await supabase.from('servicios').select('id, nombre').order('nombre');
+      const { data: dataServicios } = await supabase.from('servicios').select('id, nombre, duracion').order('nombre');
       if (dataServicios) setServicios(dataServicios);
       if (userId) {
         const { data: dataDisp } = await supabase
@@ -131,7 +130,6 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
   const whatsappCliente = (id: string) => clientes.find((c) => c.id === id)?.whatsapp ?? null;
 
-  // Disponibilidad del día seleccionado
   const dispDelDia = (() => {
     if (!diaSeleccionado) return null;
     const diaSemana = new Date(diaSeleccionado + 'T12:00:00').getDay();
@@ -142,24 +140,21 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
     : [];
 
-  // Dado un slot "HH:MM", devuelve la sesión que lo ocupa (si existe)
   const sesionEnSlot = (slot: string): Sesion | null => {
-  const slotMin = (() => {
-    const [h, m] = slot.split(':').map(Number);
-    return h * 60 + m;
-  })();
+    const slotMin = (() => {
+      const [h, m] = slot.split(':').map(Number);
+      return h * 60 + m;
+    })();
+    return sesionesSeleccionadas.find(s => {
+      if (!s.horario) return false;
+      const [h, m] = s.horario.substring(0, 5).split(':').map(Number);
+      const inicioMin = h * 60 + m;
+      const duracion = s.duracion ?? dispDelDia?.duracion_turno ?? 30;
+      const finMin = inicioMin + duracion;
+      return slotMin >= inicioMin && slotMin < finMin;
+    }) ?? null;
+  };
 
-  return sesionesSeleccionadas.find(s => {
-    if (!s.horario) return false;
-    const [h, m] = s.horario.substring(0, 5).split(':').map(Number);
-    const inicioMin = h * 60 + m;
-    const duracion = s.duracion ?? dispDelDia?.duracion_turno ?? 30;
-    const finMin = inicioMin + duracion;
-    return slotMin >= inicioMin && slotMin < finMin;
-  }) ?? null;
-};
-
-  // Sesiones que NO caen en ningún slot configurado (fuera de horario)
   const sesionesForaDeSlot = sesionesSeleccionadas.filter(
     s => s.horario && !slotsDelDia.includes(s.horario.substring(0, 5))
   );
@@ -172,7 +167,9 @@ export default function TabAgenda({ userId }: { userId?: string }) {
       facturado: false,
       cobrado: false,
       monto_senia: null,
-      fecha_senia: null
+      fecha_senia: null,
+      monto2: null,
+      forma_pago2: null,
     });
     setModoEdicion(false);
     setBusquedaCliente('');
@@ -215,22 +212,22 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   };
 
   const guardar = async () => {
-  if (!sesionEditando.cliente_id || !sesionEditando.fecha) return;
-  
-  // Si tiene servicio pero no duración, buscar la duración del servicio
-  let duracionFinal = sesionEditando.duracion;
-  if (!duracionFinal && sesionEditando.tipo_masaje) {
-    const srv = servicios.find((s: any) => s.nombre === sesionEditando.tipo_masaje);
-    duracionFinal = srv?.duracion ?? null;
-  }
+    if (!sesionEditando.cliente_id || !sesionEditando.fecha) return;
 
-  if (modoEdicion && sesionEditando.id) {
-    const { id, ...datos } = sesionEditando;
-    await supabase.from('sesiones').update({ ...datos, duracion: duracionFinal }).eq('id', id);
-  } else {
-    const { id, ...datos } = sesionEditando;
-    await supabase.from('sesiones').insert({ ...datos, duracion: duracionFinal, user_id: userId });
-  }
+    // Buscar duración desde el servicio seleccionado
+    let duracionFinal = sesionEditando.duracion;
+    if (!duracionFinal && sesionEditando.tipo_masaje) {
+      const srv = servicios.find((s: any) => s.nombre === sesionEditando.tipo_masaje);
+      duracionFinal = srv?.duracion ?? null;
+    }
+
+    if (modoEdicion && sesionEditando.id) {
+      const { id, ...datos } = sesionEditando;
+      await supabase.from('sesiones').update({ ...datos, duracion: duracionFinal }).eq('id', id);
+    } else {
+      const { id, ...datos } = sesionEditando;
+      await supabase.from('sesiones').insert({ ...datos, duracion: duracionFinal, user_id: userId });
+    }
     setModalAbierto(false);
     await recargar();
   };
@@ -260,7 +257,6 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     ? new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
     : '';
 
-  // Tarjeta de turno (reutilizada en slots y fuera-de-slot)
   const TarjetaTurno = ({ s }: { s: Sesion }) => (
     <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#FAFAFA' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -271,6 +267,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
           <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
           <div style={{ fontSize: '12px', color: '#6B7280' }}>
             {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
+            {s.monto2 ? ` + $${s.monto2}` : ''}{s.forma_pago2 ? ` · ${s.forma_pago2}` : ''}
             {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
           </div>
         </div>
@@ -356,33 +353,29 @@ export default function TabAgenda({ userId }: { userId?: string }) {
           {cargando ? (
             <p style={{ textAlign: 'center', color: '#9CA3AF', padding: '24px 0' }}>Cargando...</p>
           ) : slotsDelDia.length > 0 ? (
-            // VISTA CON SLOTS (tiene disponibilidad configurada)
             <div>
               {slotsDelDia.map((slot) => {
                 const sesion = sesionEnSlot(slot);
                 const ocupado = !!sesion;
                 return (
                   <div key={slot} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'flex-start' }}>
-                    {/* Hora */}
                     <div style={{ minWidth: '44px', paddingTop: '10px', fontSize: '12px', fontWeight: 600, color: ocupado ? '#EF4444' : '#16A34A', textAlign: 'right' }}>
                       {slot}
                     </div>
-                    {/* Línea de tiempo */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '14px' }}>
                       <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ocupado ? '#EF4444' : '#22C55E', flexShrink: 0 }} />
                       <div style={{ width: '2px', flex: 1, backgroundColor: '#E2E8F0', minHeight: '16px' }} />
                     </div>
-                    {/* Contenido */}
                     <div style={{ flex: 1 }}>
                       {ocupado && sesion ? (
-  sesion.horario?.substring(0, 5) === slot ? (
-    <TarjetaTurno s={sesion} />
-  ) : (
-    <div style={{ border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#FFF5F5', fontSize: '13px', color: '#EF4444', fontWeight: 500 }}>
-      🔒 Ocupado · {sesion.horario?.substring(0, 5)} – {nombreCliente(sesion.cliente_id)}
-    </div>
-  )
-) : (
+                        sesion.horario?.substring(0, 5) === slot ? (
+                          <TarjetaTurno s={sesion} />
+                        ) : (
+                          <div style={{ border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#FFF5F5', fontSize: '13px', color: '#EF4444', fontWeight: 500 }}>
+                            🔒 Ocupado · {sesion.horario?.substring(0, 5)} – {nombreCliente(sesion.cliente_id)}
+                          </div>
+                        )
+                      ) : (
                         <div onClick={() => abrirNuevo(slot)}
                           style={{ border: '1px dashed #D1FAE5', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#F0FDF4', cursor: 'pointer', fontSize: '13px', color: '#16A34A', fontWeight: 500 }}>
                           + Agendar turno
@@ -393,7 +386,6 @@ export default function TabAgenda({ userId }: { userId?: string }) {
                 );
               })}
 
-              {/* Sesiones fuera del horario configurado */}
               {sesionesForaDeSlot.length > 0 && (
                 <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
                   <p style={{ fontSize: '12px', color: '#D97706', fontWeight: 600, marginBottom: '8px' }}>⚠️ Fuera del horario configurado</p>
@@ -404,7 +396,6 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               )}
             </div>
           ) : (
-            // VISTA SIN SLOTS (sin disponibilidad o día no activo)
             <div>
               {sesionesSeleccionadas.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px 0' }}>
@@ -455,6 +446,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
           <div style={{ backgroundColor: '#fff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '18px' }}>{modoEdicion ? 'Editar turno' : 'Nuevo turno'}</div>
 
+            {/* CLIENTE */}
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Cliente *</label>
             <input type="text" placeholder="Buscar cliente..."
               value={sesionEditando.cliente_id ? (clientes.find(c => c.id === sesionEditando.cliente_id)?.nombre ?? '') : busquedaCliente}
@@ -471,6 +463,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               </div>
             )}
 
+            {/* FECHA Y HORARIO */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Fecha *</label>
@@ -484,28 +477,23 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Duración (min)</label>
-                <input type="number" value={sesionEditando.duracion ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, duracion: Number(e.target.value) || null })}
-                  placeholder="60" style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
-                <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => {
-  const servicio = servicios.find((s: any) => s.nombre === e.target.value)
-  setSesionEditando({ 
-    ...sesionEditando, 
-    tipo_masaje: e.target.value,
-    duracion: servicio?.duracion ?? sesionEditando.duracion ?? null
-  })
-}} style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
-  <option value="">Seleccionar...</option>
-  {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-</select>
-              </div>
+            {/* SERVICIO */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
+              <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => {
+                const servicio = servicios.find((s: any) => s.nombre === e.target.value);
+                setSesionEditando({
+                  ...sesionEditando,
+                  tipo_masaje: e.target.value,
+                  duracion: servicio?.duracion ?? sesionEditando.duracion ?? null
+                });
+              }} style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
+                <option value="">Seleccionar...</option>
+                {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+              </select>
             </div>
 
+            {/* MONTO Y FORMA DE PAGO */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto total</label>
@@ -525,8 +513,32 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               </div>
             </div>
 
+            {/* PAGO COMBINADO */}
             <div style={{ backgroundColor: '#F8F7FF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4F46E5', display: 'block', marginBottom: '10px' }}>💰 Seña (opcional)</label>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4F46E5', display: 'block', marginBottom: '10px' }}>💳 Pago combinado (opcional)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto 2</label>
+                  <input type="number" value={sesionEditando.monto2 ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, monto2: Number(e.target.value) || null })}
+                    placeholder="0" style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Forma de pago 2</label>
+                  <select value={sesionEditando.forma_pago2 ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, forma_pago2: e.target.value || null })}
+                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
+                    <option value="">Sin pago adicional</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Cuenta corriente">Cuenta corriente</option>
+                    <option value="Obra social">Obra social</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* SEÑA */}
+            <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#D97706', display: 'block', marginBottom: '10px' }}>💰 Seña (opcional)</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto seña</label>
@@ -541,6 +553,7 @@ export default function TabAgenda({ userId }: { userId?: string }) {
               </div>
             </div>
 
+            {/* NOTAS */}
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Notas clínicas</label>
             <textarea value={sesionEditando.notas_clinicas ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, notas_clinicas: e.target.value })}
               placeholder="Observaciones, evolución..."

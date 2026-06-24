@@ -7,7 +7,7 @@ import TabAgenda from './components/TabAgenda'
 import TabFinanzas from './components/TabFinanzas'
 
 export default function Home() {
-  const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda'>('turnos')
+  const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda'>('agenda')
   const [clientes, setClientes] = useState<any[]>([])
   const [sesiones, setSesiones] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])

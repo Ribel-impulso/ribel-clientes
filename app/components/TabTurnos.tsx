@@ -94,92 +94,9 @@ export default function TabTurnos({
   const [mostrarTurnos, setMostrarTurnos] = useState(false)
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
-  const serviciosFiltrados = servicios.filter(s =>
-    s.nombre.toLowerCase().includes(busquedaServicio.toLowerCase()) ||
-    s.codigo.toLowerCase().includes(busquedaServicio.toLowerCase())
-  )
-
   return (
     <>
-      {/* REGISTRAR TURNO */}
-      <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Registrar Turno</h2>
-        <input
-          placeholder="Buscar cliente..."
-          value={busquedaCliente}
-          onChange={e => { setBusquedaCliente(e.target.value); setClienteSeleccionado('') }}
-          style={input}
-        />
-        {busquedaCliente && !clienteSeleccionado && (
-          <ul style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', listStyle: 'none', margin: 0 }}>
-            {clientes
-              .filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()))
-              .map(c => (
-                <li key={c.id}
-                  onClick={() => { setClienteSeleccionado(c.id); setBusquedaCliente(c.nombre) }}
-                  style={{ padding: '8px', cursor: 'pointer' }}>
-                  {c.nombre}
-                </li>
-              ))}
-          </ul>
-        )}
-        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
-        <input type="time" value={horario} onChange={e => setHorario(e.target.value)} style={input} />
-        <input
-          placeholder="Buscar servicio por código o nombre"
-          value={busquedaServicio}
-          onChange={e => { setBusquedaServicio(e.target.value); setServicioSeleccionado('') }}
-          style={{ ...input, width: '280px' }}
-        />
-        {busquedaServicio && serviciosFiltrados.length > 0 && !servicioSeleccionado && (
-          <ul style={{ border: '1px solid #e3dfd6', borderRadius: '8px', padding: '8px', listStyle: 'none', marginBottom: '8px' }}>
-            {serviciosFiltrados.map(s => (
-              <li key={s.id}
-                onClick={() => { setServicioSeleccionado(s.nombre); setBusquedaServicio(s.codigo + ' - ' + s.nombre) }}
-                style={{ padding: '6px', cursor: 'pointer', color: '#161616' }}>
-                {s.codigo} - {s.nombre}
-              </li>
-            ))}
-          </ul>
-        )}
-        <input placeholder="Monto" type="number" value={monto} onChange={e => setMonto(e.target.value)} style={input} />
-        <select value={formaPago} onChange={e => setFormaPago(e.target.value)} style={input}>
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
-          <option value="obra_social">Obra Social</option>
-          <option value="cuenta_corriente">Cuenta corriente</option>
-        </select>
-        <br />
-        <small style={{ color: '#9e9e9e' }}>Pago adicional (opcional)</small>
-        <br />
-        <input placeholder="Monto adicional" type="number" value={monto2} onChange={e => setMonto2(e.target.value)} style={input} />
-        <select value={formaPago2} onChange={e => setFormaPago2(e.target.value)} style={input}>
-          <option value="">Sin pago adicional</option>
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
-          <option value="obra_social">Obra Social</option>
-        </select>
-        <br />
-        <small style={{ color: '#9e9e9e' }}>Seña (opcional)</small>
-        <br />
-        <input
-          placeholder="Monto seña"
-          type="number"
-          value={montoSenia}
-          onChange={e => setMontoSenia(e.target.value)}
-          style={input}
-        />
-        <input
-          type="date"
-          value={fechaSenia}
-          onChange={e => setFechaSenia(e.target.value)}
-          style={input}
-        />
-        <br />
-        <button onClick={agregarSesion} style={btnPrimary}>Registrar Turno</button>
-      </div>
-
-      {/* RESUMEN DEL MES */}
+      {/* 1. RESUMEN DEL MES */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Resumen del mes</h2>
         <input type="month" value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} style={input} />
@@ -197,46 +114,13 @@ export default function TabTurnos({
             <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ffffff' }}>${totalMes}</p>
           </div>
         </div>
-      </div>
-      <div style={{ backgroundColor: '#f0e6d3', borderRadius: '8px', padding: '16px', flex: 1 }}>
-        <p style={{ margin: 0, color: '#161616' }}>📋 Cuenta Corriente</p>
-        <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalCuentaCorriente}</p>
-      </div>
-
-      {/* RANKING SERVICIOS */}
-      <div style={card}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Servicios del mes</h2>
-        {rankingServicios.length === 0 ? (
-          <p style={{ color: '#161616' }}>No hay turnos este mes.</p>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={th}>Servicio</th>
-                <th style={th}>Cantidad</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rankingServicios.map(([nombre, cantidad]) => (
-                <tr key={nombre} style={{ backgroundColor: '#ffffff' }}>
-                  <td style={td}>{nombre}</td>
-                  <td style={td}>{cantidad as number}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>
-                <td style={td}>Total</td>
-                <td style={td}>
-                  {rankingServicios.reduce((acc, [, cantidad]) => acc + (cantidad as number), 0)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        )}
+        <div style={{ backgroundColor: '#f0e6d3', borderRadius: '8px', padding: '16px', marginTop: '12px' }}>
+          <p style={{ margin: 0, color: '#161616' }}>📋 Cuenta Corriente</p>
+          <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#161616' }}>${totalCuentaCorriente}</p>
+        </div>
       </div>
 
-      {/* TURNOS DEL MES */}
+      {/* 2. TURNOS DEL MES */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Turnos de {mesSeleccionado}</h2>
         <button
@@ -330,7 +214,7 @@ export default function TabTurnos({
         )}
       </div>
 
-      {/* HISTORIAL POR CLIENTE */}
+      {/* 3. HISTORIAL POR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Historial por Cliente</h2>
         <input
@@ -389,6 +273,39 @@ export default function TabTurnos({
         )}
         {clienteHistorial && historial.length === 0 && (
           <p style={{ color: '#9e9e9e', marginTop: '12px' }}>Este cliente no tiene turnos registrados.</p>
+        )}
+      </div>
+
+      {/* 4. SERVICIOS DEL MES */}
+      <div style={card}>
+        <h2 style={{ color: '#161616', marginTop: 0 }}>Servicios del mes</h2>
+        {rankingServicios.length === 0 ? (
+          <p style={{ color: '#161616' }}>No hay turnos este mes.</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={th}>Servicio</th>
+                <th style={th}>Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rankingServicios.map(([nombre, cantidad]) => (
+                <tr key={nombre} style={{ backgroundColor: '#ffffff' }}>
+                  <td style={td}>{nombre}</td>
+                  <td style={td}>{cantidad as number}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>
+                <td style={td}>Total</td>
+                <td style={td}>
+                  {rankingServicios.reduce((acc, [, cantidad]) => acc + (cantidad as number), 0)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         )}
       </div>
     </>

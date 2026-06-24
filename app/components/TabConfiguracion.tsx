@@ -25,9 +25,9 @@ interface Props {
   telefono: string
   setTelefono: (v: string) => void
   nuevoServicioNombre: string
-setNuevoServicioNombre: (v: string) => void
-nuevoServicioDuracion: number
-setNuevoServicioDuracion: (v: number) => void
+  setNuevoServicioNombre: (v: string) => void
+  nuevoServicioDuracion: number
+  setNuevoServicioDuracion: (v: number) => void
   userId: string
   cargarClientes: (uid: string) => void
   cargarServicios: (uid: string) => void
@@ -93,7 +93,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     hora_inicio: '09:00',
     hora_fin: '18:00',
     duracion_turno: 60,
-    activo: i >= 1 && i <= 5, // Lun-Vie activos por defecto
+    activo: i >= 1 && i <= 5,
   }))
 
   useEffect(() => {
@@ -108,7 +108,6 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
       .order('dia_semana')
 
     if (data && data.length > 0) {
-      // Mezclar con defaults para días no configurados
       const merged = disponibilidadDefault.map(def => {
         const guardado = data.find((d: any) => d.dia_semana === def.dia_semana)
         return guardado ? { ...guardado } : def
@@ -128,7 +127,6 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
   async function guardar() {
     setGuardando(true)
     setMensaje('')
-
     for (const d of disponibilidad) {
       const payload = {
         user_id: userId,
@@ -138,14 +136,12 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
         duracion_turno: d.duracion_turno,
         activo: d.activo,
       }
-
       if (d.id) {
         await supabase.from('disponibilidad').update(payload).eq('id', d.id)
       } else {
         await supabase.from('disponibilidad').upsert({ ...payload }, { onConflict: 'user_id,dia_semana' })
       }
     }
-
     await cargarDisponibilidad()
     setMensaje('¡Disponibilidad guardada!')
     setGuardando(false)
@@ -158,11 +154,9 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
       <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
         Configurá los días y horarios en los que atendés. Esto te permitirá ver los turnos libres y ocupados en la agenda.
       </p>
-
       <div style={{ marginBottom: '12px', display: 'flex', gap: '16px', fontSize: '12px', color: '#6B7280' }}>
         <span>⏱️ Duración: tiempo por turno en minutos</span>
       </div>
-
       {disponibilidad.map((d) => (
         <div key={d.dia_semana} style={{
           border: `1px solid ${d.activo ? '#ba9a7d' : '#e3dfd6'}`,
@@ -173,7 +167,6 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
           opacity: d.activo ? 1 : 0.6,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            {/* Día + toggle */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '110px' }}>
               <div
                 onClick={() => actualizarDia(d.dia_semana, 'activo', !d.activo)}
@@ -194,32 +187,23 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                 {DIAS_SEMANA[d.dia_semana]}
               </span>
             </div>
-
-            {/* Horarios y duración — solo si activo */}
             {d.activo && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
-                  <input
-                    type="time"
-                    value={d.hora_inicio}
+                  <input type="time" value={d.hora_inicio}
                     onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
-                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}
-                  />
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
-                  <input
-                    type="time"
-                    value={d.hora_fin}
+                  <input type="time" value={d.hora_fin}
                     onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
-                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}
-                  />
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
-                  <select
-                    value={d.duracion_turno}
+                  <select value={d.duracion_turno}
                     onChange={e => actualizarDia(d.dia_semana, 'duracion_turno', Number(e.target.value))}
                     style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
                     <option value={15}>15 min</option>
@@ -233,19 +217,14 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                 </div>
               </div>
             )}
-
             {!d.activo && (
               <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>No atiende</span>
             )}
           </div>
         </div>
       ))}
-
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
-        <button
-          onClick={guardar}
-          disabled={guardando}
-          style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
+        <button onClick={guardar} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
           {guardando ? 'Guardando...' : 'Guardar disponibilidad'}
         </button>
         {mensaje && <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensaje}</span>}
@@ -276,6 +255,11 @@ export default function TabConfiguracion({
   const [editWhatsapp, setEditWhatsapp] = useState('')
   const [busquedaClientes, setBusquedaClientes] = useState('')
 
+  // Estado para edición de servicios
+  const [editandoServicio, setEditandoServicio] = useState<string | null>(null)
+  const [editServicioNombre, setEditServicioNombre] = useState('')
+  const [editServicioDuracion, setEditServicioDuracion] = useState(60)
+
   async function cargarArchivos(clienteId: string) {
     const { data } = await supabase
       .from('archivos_clientes')
@@ -299,6 +283,18 @@ export default function TabConfiguracion({
     await supabase.from('clientes').update({ nombre: editNombre, whatsapp: editWhatsapp }).eq('id', id)
     setEditandoCliente(null)
     cargarClientes(userId)
+  }
+
+  async function iniciarEdicionServicio(s: any) {
+    setEditandoServicio(s.id)
+    setEditServicioNombre(s.nombre)
+    setEditServicioDuracion(s.duracion ?? 60)
+  }
+
+  async function guardarEdicionServicio(id: string) {
+    await supabase.from('servicios').update({ nombre: editServicioNombre, duracion: editServicioDuracion }).eq('id', id)
+    setEditandoServicio(null)
+    cargarServicios(userId)
   }
 
   async function subirArchivo(clienteId: string) {
@@ -356,11 +352,11 @@ export default function TabConfiguracion({
   }
 
   async function agregarServicio() {
-  await supabase.from('servicios').insert([{ nombre: nuevoServicioNombre, duracion: nuevoServicioDuracion, user_id: userId }])
-  setNuevoServicioNombre('')
-  setNuevoServicioDuracion(60)
-  cargarServicios(userId)
-}
+    await supabase.from('servicios').insert([{ nombre: nuevoServicioNombre, duracion: nuevoServicioDuracion, user_id: userId }])
+    setNuevoServicioNombre('')
+    setNuevoServicioDuracion(60)
+    cargarServicios(userId)
+  }
 
   const inp: React.CSSProperties = {
     padding: '10px',
@@ -374,7 +370,7 @@ export default function TabConfiguracion({
 
   return (
     <>
-            {/* AGREGAR CLIENTE */}
+      {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
@@ -432,14 +428,10 @@ export default function TabConfiguracion({
 
                     <div style={{ marginBottom: '16px' }}>
                       <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📎 Subir PDF</p>
-                      <input
-                        type="file"
-                        accept=".pdf"
+                      <input type="file" accept=".pdf"
                         onChange={e => setArchivoFile(prev => ({ ...prev, [c.id]: e.target.files?.[0] || null }))}
-                        style={{ marginBottom: '8px', display: 'block' }}
-                      />
-                      <button
-                        onClick={() => subirArchivo(c.id)}
+                        style={{ marginBottom: '8px', display: 'block' }} />
+                      <button onClick={() => subirArchivo(c.id)}
                         style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}
                         disabled={cargando === c.id}>
                         {cargando === c.id ? 'Subiendo...' : 'Subir PDF'}
@@ -452,10 +444,8 @@ export default function TabConfiguracion({
                         placeholder="Escribí una nota..."
                         value={notaTexto[c.id] || ''}
                         onChange={e => setNotaTexto(prev => ({ ...prev, [c.id]: e.target.value }))}
-                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', height: '70px', resize: 'vertical', boxSizing: 'border-box' }}
-                      />
-                      <button
-                        onClick={() => guardarNota(c.id)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', height: '70px', resize: 'vertical', boxSizing: 'border-box' }} />
+                      <button onClick={() => guardarNota(c.id)}
                         style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px', marginTop: '6px' }}>
                         Guardar Nota
                       </button>
@@ -502,40 +492,90 @@ export default function TabConfiguracion({
       </div>
 
       {/* SERVICIOS */}
-<div style={card}>
-  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-    <h2 style={{ color: '#161616', margin: 0 }}>Servicios ({servicios.length})</h2>
-    <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
-      {mostrarServicios ? 'Ocultar' : 'Ver'}
-    </button>
-  </div>
-  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-    <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre}
-      onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
-    <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
-      style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
-      <option value={15}>15 min</option>
-      <option value={30}>30 min</option>
-      <option value={45}>45 min</option>
-      <option value={60}>60 min</option>
-      <option value={75}>75 min</option>
-      <option value={90}>90 min</option>
-    </select>
-  </div>
-  <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
-  {mostrarServicios && (
-    <ul style={{ marginTop: '16px', paddingLeft: '16px' }}>
-      {servicios.map(s => (
-        <li key={s.id} style={{ marginBottom: '8px', color: '#161616' }}>
-          {s.nombre} · <span style={{ color: '#6B7280', fontSize: '13px' }}>{s.duracion ?? 60} min</span>
-          <button onClick={() => eliminarServicio(s.id)} style={{ marginLeft: '10px', color: '#ba9a7d', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
-        </li>
-      ))}
-    </ul>
-  )}
-</div>
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+          <h2 style={{ color: '#161616', margin: 0 }}>Servicios ({servicios.length})</h2>
+          <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
+            {mostrarServicios ? 'Ocultar' : 'Ver'}
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+          <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre}
+            onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
+          <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
+            style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
+            <option value={15}>15 min</option>
+            <option value={30}>30 min</option>
+            <option value={45}>45 min</option>
+            <option value={60}>60 min</option>
+            <option value={75}>75 min</option>
+            <option value={90}>90 min</option>
+          </select>
+        </div>
+        <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
 
-      {/* DISPONIBILIDAD — primera sección para que sea fácil de encontrar */}
+        {mostrarServicios && (
+          <ul style={{ marginTop: '16px', paddingLeft: 0, listStyle: 'none' }}>
+            {servicios.map(s => (
+              <li key={s.id} style={{ marginBottom: '10px', padding: '10px 14px', border: '1px solid #e3dfd6', borderRadius: '8px', backgroundColor: '#fdf9f5' }}>
+                {editandoServicio === s.id ? (
+                  // MODO EDICIÓN
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <input
+                      value={editServicioNombre}
+                      onChange={e => setEditServicioNombre(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '180px' }}
+                    />
+                    <select
+                      value={editServicioDuracion}
+                      onChange={e => setEditServicioDuracion(Number(e.target.value))}
+                      style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
+                      <option value={15}>15 min</option>
+                      <option value={30}>30 min</option>
+                      <option value={45}>45 min</option>
+                      <option value={60}>60 min</option>
+                      <option value={75}>75 min</option>
+                      <option value={90}>90 min</option>
+                    </select>
+                    <button
+                      onClick={() => guardarEdicionServicio(s.id)}
+                      style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}>
+                      Guardar
+                    </button>
+                    <button
+                      onClick={() => setEditandoServicio(null)}
+                      style={{ ...btnSecondary, marginLeft: 0, padding: '6px 14px', fontSize: '13px' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  // MODO VISUALIZACIÓN
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#161616', fontSize: '14px' }}>
+                      {s.nombre}
+                      <span style={{ color: '#6B7280', fontSize: '13px', marginLeft: '8px' }}>· {s.duracion ?? 60} min</span>
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => iniciarEdicionServicio(s)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => eliminarServicio(s.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* DISPONIBILIDAD */}
       <SeccionDisponibilidad
         userId={userId}
         card={card}
