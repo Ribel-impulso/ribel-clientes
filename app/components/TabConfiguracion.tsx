@@ -575,6 +575,25 @@ export default function TabConfiguracion({
         )}
       </div>
 
+      {/* MI LINK DE AGENDA */}
+<div style={card}>
+  <h2 style={{ color: '#161616', marginTop: 0 }}>🔗 Mi link de agenda</h2>
+  <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '12px' }}>
+    Compartí este link con tus clientes para que puedan reservar su turno online.
+  </p>
+  <div style={{ backgroundColor: '#f9f7f4', border: '1px solid #e3dfd6', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px', wordBreak: 'break-all', fontSize: '13px', color: '#161616' }}>
+    {`https://ribelgestion.com/agenda-publica?u=${userId}`}
+  </div>
+  <button
+    onClick={() => {
+      navigator.clipboard.writeText(`https://ribelgestion.com/agenda-publica?u=${userId}`)
+      alert('¡Link copiado!')
+    }}
+    style={{ ...btnPrimary, width: 'auto', padding: '8px 20px', fontSize: '13px' }}>
+    📋 Copiar link
+  </button>
+</div>
+
       {/* DISPONIBILIDAD */}
       <SeccionDisponibilidad
         userId={userId}
