@@ -255,7 +255,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                   <button
                     onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio_2', '17:00'); actualizarDia(d.dia_semana, 'hora_fin_2', '20:00') }}
                     style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-                    + Agregar bloque tarde
+                    + Agregar bloque
                   </button>
                 )}
               </div>
