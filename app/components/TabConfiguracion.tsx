@@ -202,13 +202,13 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                 <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '60px' }}>Bloque 1</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
-                  <input type="time" value={d.hora_inicio}
+                  <input type="time" value={d.hora_inicio ?? ''}
                     onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
                     style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
-                  <input type="time" value={d.hora_fin}
+                  <input type="time" value={d.hora_fin ?? ''}
                     onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
                     style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
                 </div>
