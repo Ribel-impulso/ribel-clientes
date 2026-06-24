@@ -7,8 +7,8 @@ const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Vier
 interface Disponibilidad {
   id?: string
   dia_semana: number
-  hora_inicio: string
-  hora_fin: string
+  hora_inicio: string | null
+  hora_fin: string | null
   hora_inicio_2?: string | null
   hora_fin_2?: string | null
   duracion_turno: number
@@ -92,8 +92,8 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
 
   const disponibilidadDefault: Disponibilidad[] = DIAS_SEMANA.map((_, i) => ({
     dia_semana: i,
-    hora_inicio: '09:00',
-    hora_fin: '18:00',
+    hora_inicio: null,
+    hora_fin: null,
     hora_inicio_2: null,
     hora_fin_2: null,
     duracion_turno: 60,
@@ -135,8 +135,8 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
       const payload = {
         user_id: userId,
         dia_semana: d.dia_semana,
-        hora_inicio: d.hora_inicio,
-        hora_fin: d.hora_fin,
+        hora_inicio: d.hora_inicio ?? null,
+        hora_fin: d.hora_fin ?? null,
         hora_inicio_2: d.hora_inicio_2 ?? null,
         hora_fin_2: d.hora_fin_2 ?? null,
         duracion_turno: d.duracion_turno,
