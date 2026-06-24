@@ -215,14 +215,22 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   };
 
   const guardar = async () => {
-    if (!sesionEditando.cliente_id || !sesionEditando.fecha) return;
-    if (modoEdicion && sesionEditando.id) {
-      const { id, ...datos } = sesionEditando;
-      await supabase.from('sesiones').update(datos).eq('id', id);
-    } else {
-      const { id, ...datos } = sesionEditando;
-      await supabase.from('sesiones').insert({ ...datos, user_id: userId });
-    }
+  if (!sesionEditando.cliente_id || !sesionEditando.fecha) return;
+  
+  // Si tiene servicio pero no duración, buscar la duración del servicio
+  let duracionFinal = sesionEditando.duracion;
+  if (!duracionFinal && sesionEditando.tipo_masaje) {
+    const srv = servicios.find((s: any) => s.nombre === sesionEditando.tipo_masaje);
+    duracionFinal = srv?.duracion ?? null;
+  }
+
+  if (modoEdicion && sesionEditando.id) {
+    const { id, ...datos } = sesionEditando;
+    await supabase.from('sesiones').update({ ...datos, duracion: duracionFinal }).eq('id', id);
+  } else {
+    const { id, ...datos } = sesionEditando;
+    await supabase.from('sesiones').insert({ ...datos, duracion: duracionFinal, user_id: userId });
+  }
     setModalAbierto(false);
     await recargar();
   };
