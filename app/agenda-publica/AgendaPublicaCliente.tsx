@@ -144,11 +144,20 @@ export default function AgendaPublicaCliente() {
   async function confirmarTurno() {
     if (!clienteId || !diaSeleccionado || !horarioSeleccionado || !servicioSeleccionado) return
     setCargando(true)
-    await supabase.from('sesiones').insert([{
-      cliente_id: clienteId, fecha: diaSeleccionado, horario: horarioSeleccionado,
-      tipo_masaje: servicioSeleccionado.nombre, duracion: servicioSeleccionado.duracion ?? dispDelDia?.duracion_turno ?? null,
-      user_id: profesionalId, facturado: false, cobrado: false,
-    }])
+    const res = await fetch('/api/reservar-turno', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cliente_id: clienteId,
+        fecha: diaSeleccionado,
+        horario: horarioSeleccionado,
+        tipo_masaje: servicioSeleccionado.nombre,
+        duracion: servicioSeleccionado.duracion ?? dispDelDia?.duracion_turno ?? null,
+        user_id: profesionalId
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) { setError(data.error || 'Error al confirmar'); setCargando(false); return }
     setCargando(false)
     setPaso('confirmado')
   }
