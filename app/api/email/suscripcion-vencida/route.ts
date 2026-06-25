@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const { error } = await resend.emails.send({
     from: 'Ribel Gestión <hola@ribelgestion.com>',
     to: email,
-    subject: '¡Bienvenida a Ribel Gestión! 🌿',
+    subject: 'Tu suscripción venció — te esperamos de vuelta 🌿',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
         <div style="background-color: #161616; padding: 32px; text-align: center;">
@@ -18,20 +18,14 @@ export async function POST(req: Request) {
         <div style="padding: 40px 32px; background-color: #e3dfd6;">
           <h2 style="color: #161616;">¡Hola ${nombre}! 👋</h2>
           <p style="color: #161616; font-size: 16px; line-height: 1.6;">
-            Bienvenida a <strong>Ribel Gestión</strong>. Estamos muy contentos de tenerte con nosotros.
+            Tu suscripción a <strong>Ribel Gestión</strong> ha vencido y tu cuenta está pausada.
           </p>
           <p style="color: #161616; font-size: 16px; line-height: 1.6;">
-            Tenés <strong>15 días de prueba gratuita</strong> para explorar todas las funcionalidades:
+            Todos tus datos están guardados y te esperan. Cuando quieras volver, en un clic retomás desde donde dejaste.
           </p>
-          <ul style="color: #161616; font-size: 15px; line-height: 2;">
-            <li>📋 Gestión de turnos y clientes</li>
-            <li>📅 Agenda visual</li>
-            <li>💰 Control de finanzas</li>
-            <li>📎 Archivos y notas por cliente</li>
-          </ul>
           <div style="text-align: center; margin: 32px 0;">
-            <a href="https://ribelgestion.com" style="background-color: #ba9a7d; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold;">
-              Ir a mi cuenta
+            <a href="https://ribelgestion.com/planes" style="background-color: #ba9a7d; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold;">
+              Reactivar mi cuenta
             </a>
           </div>
           <p style="color: #9e9e9e; font-size: 13px; text-align: center;">
