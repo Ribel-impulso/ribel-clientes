@@ -73,7 +73,7 @@ export default function NotificacionesCampana() {
       </button>
 
       {abierto && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-50">
+        <div className="fixed left-2 right-2 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-50" style={{top: '60px'}}>
           <div className="p-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-800">Notificaciones</h3>
           </div>
