@@ -5,6 +5,7 @@ import TabConfiguracion from './components/TabConfiguracion'
 import TabTurnos from './components/TabTurnos'
 import TabAgenda from './components/TabAgenda'
 import TabFinanzas from './components/TabFinanzas'
+import NotificacionesCampana from './components/NotificacionesCampana'
 
 export default function Home() {
   const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda'>('agenda')
@@ -382,7 +383,10 @@ export default function Home() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
-        <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <NotificacionesCampana />
+          <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
+        </div>
       </div>
 
       <div style={{ marginBottom: '0px' }}>
