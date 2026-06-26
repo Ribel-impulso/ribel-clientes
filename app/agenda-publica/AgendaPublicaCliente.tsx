@@ -126,7 +126,16 @@ export default function AgendaPublicaCliente() {
     return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null
   })()
 
-  const slotsDelDia = dispDelDia ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno) : []
+  const slotsDelDia = (() => {
+  if (!dispDelDia) return []
+  const slots1 = (dispDelDia.hora_inicio && dispDelDia.hora_fin)
+    ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
+    : []
+  const slots2 = (dispDelDia.hora_inicio_2 && dispDelDia.hora_fin_2)
+    ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno)
+    : []
+  return [...slots1, ...slots2]
+})()
 
   const slotEsLibre = (slot: string) => {
     const sesionesDelDia = sesionesOcupadas.filter(s => s.fecha === diaSeleccionado)
@@ -259,18 +268,56 @@ export default function AgendaPublicaCliente() {
           <button onClick={() => { setPaso('fecha'); setHorarioSeleccionado(null) }} style={{ background: 'none', border: 'none', color: '#ba9a7d', cursor: 'pointer', fontSize: '13px', padding: 0, marginBottom: '12px' }}>← Volver</button>
           <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px', textTransform: 'capitalize' }}>{labelFecha}</h2>
           <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>Elegí un horario disponible</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '20px' }}>
-            {slotsDelDia.map(slot => {
-              const libre = slotEsLibre(slot)
-              const selec = slot === horarioSeleccionado
-              return (
-                <div key={slot} onClick={() => { if (libre) setHorarioSeleccionado(slot) }}
-                  style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: selec ? 700 : 500, cursor: libre ? 'pointer' : 'not-allowed', backgroundColor: selec ? '#ba9a7d' : libre ? '#fdf9f5' : '#F3F4F6', color: selec ? '#fff' : libre ? '#161616' : '#9CA3AF', border: selec ? '2px solid #ba9a7d' : libre ? '1px solid #e3dfd6' : '1px solid #E5E7EB', textDecoration: !libre ? 'line-through' : 'none' }}>
-                  {slot}
-                </div>
-              )
-            })}
+          <div style={{ marginBottom: '20px' }}>
+  {(() => {
+    const slots1 = (dispDelDia?.hora_inicio && dispDelDia?.hora_fin)
+      ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
+      : []
+    const slots2 = (dispDelDia?.hora_inicio_2 && dispDelDia?.hora_fin_2)
+      ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno)
+      : []
+
+    const renderSlots = (slots: string[]) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        {slots.map(slot => {
+          const libre = slotEsLibre(slot)
+          const selec = slot === horarioSeleccionado
+          return (
+            <div key={slot} onClick={() => { if (libre) setHorarioSeleccionado(slot) }}
+              style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: selec ? 700 : 500, cursor: libre ? 'pointer' : 'not-allowed', backgroundColor: selec ? '#ba9a7d' : libre ? '#fdf9f5' : '#F3F4F6', color: selec ? '#fff' : libre ? '#161616' : '#9CA3AF', border: selec ? '2px solid #ba9a7d' : libre ? '1px solid #e3dfd6' : '1px solid #E5E7EB', textDecoration: !libre ? 'line-through' : 'none' }}>
+              {slot}
+            </div>
+          )
+        })}
+      </div>
+    )
+
+    return (
+      <>
+        {slots1.length > 0 && (
+          <div style={{ marginBottom: slots2.length > 0 ? '16px' : '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>☀️ Turno mañana</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
+            </div>
+            {renderSlots(slots1)}
           </div>
+        )}
+        {slots2.length > 0 && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>🌙 Turno tarde</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
+            </div>
+            {renderSlots(slots2)}
+          </div>
+        )}
+      </>
+    )
+  })()}
+</div>
           {horarioSeleccionado && (
             <button onClick={confirmarTurno} disabled={cargando} style={{ ...btn, opacity: cargando ? 0.7 : 1 }}>
               {cargando ? 'Confirmando...' : `Confirmar turno a las ${horarioSeleccionado}`}
