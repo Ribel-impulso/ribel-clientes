@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
   const paymentId = body.data?.id
   if (!paymentId) return NextResponse.json({ ok: true })
 
-  // Consultar el pago a MP
   const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: { 'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}` }
   })
@@ -40,7 +39,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // Buscar el usuario por email
   const { data: usuarios } = await supabase.auth.admin.listUsers()
   const usuario = usuarios?.users?.find(u => u.email === userEmail)
 
@@ -50,8 +48,8 @@ export async function POST(req: NextRequest) {
   const hoy = new Date()
   const vencimiento = new Date()
   vencimiento.setDate(hoy.getDate() + dias)
+  const fechaVencimientoStr = vencimiento.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
-  // Actualizar o insertar suscripción
   const { data: suscExistente } = await supabase
     .from('suscripciones')
     .select('*')
@@ -79,6 +77,24 @@ export async function POST(req: NextRequest) {
         fecha_vencimiento: vencimiento.toISOString().split('T')[0]
       })
   }
+
+  // Buscar nombre del usuario
+  const { data: perfil } = await supabase
+    .from('profiles')
+    .select('nombre')
+    .eq('id', usuario.id)
+    .single()
+
+  // Enviar email de suscripción renovada
+  await fetch(`${process.env.NEXT_PUBLIC_URL}/api/email/suscripcion-renovada`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: userEmail,
+      nombre: perfil?.nombre || 'Profesional',
+      fechaVencimiento: fechaVencimientoStr
+    })
+  })
 
   return NextResponse.json({ ok: true })
 }
