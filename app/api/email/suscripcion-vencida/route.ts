@@ -8,6 +8,7 @@ export async function POST(req: Request) {
 
   const { error } = await resend.emails.send({
     from: 'Ribel Gestión <hola@ribelgestion.com>',
+    replyTo: 'ribel.contacto@gmail.com',
     to: email,
     subject: 'Tu suscripción venció — te esperamos de vuelta 🌿',
     html: `
