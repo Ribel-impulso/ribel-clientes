@@ -37,7 +37,8 @@ interface Disponibilidad {
   hora_fin: string;
   hora_inicio_2?: string | null;
   hora_fin_2?: string | null;
-  duracion_turno: number;
+  duracion_turno: number | null;
+  duracion_turno_2?: number | null; // ← AGREGADO
   activo: boolean;
 }
 
@@ -132,24 +133,24 @@ export default function TabAgenda({ userId }: { userId?: string }) {
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
   const whatsappCliente = (id: string) => clientes.find((c) => c.id === id)?.whatsapp ?? null;
 
+  // ← CORREGIDO: dispDelDia como variable normal (no dentro de JSX)
   const dispDelDia = (() => {
-  if (!diaSeleccionado) return null;
-  const diaSemana = new Date(diaSeleccionado + 'T12:00:00').getDay();
-  return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null;
-})();
+    if (!diaSeleccionado) return null;
+    const diaSemana = new Date(diaSeleccionado + 'T12:00:00').getDay();
+    return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null;
+  })();
 
-const slotsDelDia: string[] = (() => {
-  if (!dispDelDia) return [];
-  const slots1 = (dispDelDia.hora_inicio && dispDelDia.hora_fin)
-    ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
+  // ← CORREGIDO: slotsDelDia definido como variable antes de usarla
+  const slots1 = (dispDelDia?.hora_inicio && dispDelDia?.hora_fin)
+    ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno ?? 60)
     : [];
-  const slots2 = (dispDelDia.hora_inicio_2 && dispDelDia.hora_fin_2)
-    ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno)
+  const slots2 = (dispDelDia?.hora_inicio_2 && dispDelDia?.hora_fin_2)
+    ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno_2 ?? dispDelDia.duracion_turno ?? 60)
     : [];
-  return [...slots1, ...slots2];
-})();
+  const slotsDelDia = [...slots1, ...slots2];
 
-    const sesionEnSlot = (slot: string): Sesion | null => {
+  // ← CORREGIDO: sesionEnSlot definida antes de usarla
+  const sesionEnSlot = (slot: string): Sesion | null => {
     const slotMin = (() => {
       const [h, m] = slot.split(':').map(Number);
       return h * 60 + m;
@@ -222,14 +223,11 @@ const slotsDelDia: string[] = (() => {
 
   const guardar = async () => {
     if (!sesionEditando.cliente_id || !sesionEditando.fecha) return;
-
-    // Buscar duración desde el servicio seleccionado
     let duracionFinal = sesionEditando.duracion;
     if (!duracionFinal && sesionEditando.tipo_masaje) {
       const srv = servicios.find((s: any) => s.nombre === sesionEditando.tipo_masaje);
       duracionFinal = srv?.duracion ?? null;
     }
-
     if (modoEdicion && sesionEditando.id) {
       const { id, ...datos } = sesionEditando;
       await supabase.from('sesiones').update({ ...datos, duracion: duracionFinal }).eq('id', id);
@@ -364,66 +362,55 @@ const slotsDelDia: string[] = (() => {
           ) : slotsDelDia.length > 0 ? (
             <div>
               {slotsDelDia.map((slot) => {
-  const sesion = sesionEnSlot(slot);
-  const ocupado = !!sesion;
+                const sesion = sesionEnSlot(slot);
+                const ocupado = !!sesion;
+                const esPrimeroBloque1 = slot === slots1[0];
+                const esSeparador = slots2.length > 0 && slot === slots2[0];
 
-  const slots1 = (dispDelDia?.hora_inicio && dispDelDia?.hora_fin)
-    ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
-    : [];
-  const primerSlotBloque2 = (dispDelDia?.hora_inicio_2 && dispDelDia?.hora_fin_2)
-    ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno)[0]
-    : null;
-  const esPrimeroBloque1 = slot === slots1[0];
-  const esSeparador = primerSlotBloque2 && slot === primerSlotBloque2;
-
-  return (
-    <div key={slot}>
-      {esPrimeroBloque1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px' }}>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-          <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>
-            ☀️ Turno mañana
-          </span>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-        </div>
-      )}
-      {esSeparador && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0 8px' }}>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-          <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>
-            🌙 Turno tarde
-          </span>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-        </div>
-      )}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'flex-start' }}>
-        <div style={{ minWidth: '44px', paddingTop: '10px', fontSize: '12px', fontWeight: 600, color: ocupado ? '#EF4444' : '#16A34A', textAlign: 'right' }}>
-          {slot}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '14px' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ocupado ? '#EF4444' : '#22C55E', flexShrink: 0 }} />
-          <div style={{ width: '2px', flex: 1, backgroundColor: '#E2E8F0', minHeight: '16px' }} />
-        </div>
-        <div style={{ flex: 1 }}>
-          {ocupado && sesion ? (
-            sesion.horario?.substring(0, 5) === slot ? (
-              <TarjetaTurno s={sesion} />
-            ) : (
-              <div style={{ border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#FFF5F5', fontSize: '13px', color: '#EF4444', fontWeight: 500 }}>
-                🔒 Ocupado · {sesion.horario?.substring(0, 5)} – {nombreCliente(sesion.cliente_id)}
-              </div>
-            )
-          ) : (
-            <div onClick={() => abrirNuevo(slot)}
-              style={{ border: '1px dashed #D1FAE5', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#F0FDF4', cursor: 'pointer', fontSize: '13px', color: '#16A34A', fontWeight: 500 }}>
-              + Agendar turno
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-})}
+                return (
+                  <div key={slot}>
+                    {esPrimeroBloque1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px' }}>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>☀️ Turno mañana</span>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
+                      </div>
+                    )}
+                    {esSeparador && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0 8px' }}>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>🌙 Turno tarde</span>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'flex-start' }}>
+                      <div style={{ minWidth: '44px', paddingTop: '10px', fontSize: '12px', fontWeight: 600, color: ocupado ? '#EF4444' : '#16A34A', textAlign: 'right' }}>
+                        {slot}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '14px' }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ocupado ? '#EF4444' : '#22C55E', flexShrink: 0 }} />
+                        <div style={{ width: '2px', flex: 1, backgroundColor: '#E2E8F0', minHeight: '16px' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        {ocupado && sesion ? (
+                          sesion.horario?.substring(0, 5) === slot ? (
+                            <TarjetaTurno s={sesion} />
+                          ) : (
+                            <div style={{ border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#FFF5F5', fontSize: '13px', color: '#EF4444', fontWeight: 500 }}>
+                              🔒 Ocupado · {sesion.horario?.substring(0, 5)} – {nombreCliente(sesion.cliente_id)}
+                            </div>
+                          )
+                        ) : (
+                          <div onClick={() => abrirNuevo(slot)}
+                            style={{ border: '1px dashed #D1FAE5', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#F0FDF4', cursor: 'pointer', fontSize: '13px', color: '#16A34A', fontWeight: 500 }}>
+                            + Agendar turno
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
 
               {sesionesForaDeSlot.length > 0 && (
                 <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
@@ -485,7 +472,6 @@ const slotsDelDia: string[] = (() => {
           <div style={{ backgroundColor: '#fff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '18px' }}>{modoEdicion ? 'Editar turno' : 'Nuevo turno'}</div>
 
-            {/* CLIENTE */}
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Cliente *</label>
             <input type="text" placeholder="Buscar cliente..."
               value={sesionEditando.cliente_id ? (clientes.find(c => c.id === sesionEditando.cliente_id)?.nombre ?? '') : busquedaCliente}
@@ -502,7 +488,6 @@ const slotsDelDia: string[] = (() => {
               </div>
             )}
 
-            {/* FECHA Y HORARIO */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Fecha *</label>
@@ -516,23 +501,17 @@ const slotsDelDia: string[] = (() => {
               </div>
             </div>
 
-            {/* SERVICIO */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
               <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => {
                 const servicio = servicios.find((s: any) => s.nombre === e.target.value);
-                setSesionEditando({
-                  ...sesionEditando,
-                  tipo_masaje: e.target.value,
-                  duracion: servicio?.duracion ?? sesionEditando.duracion ?? null
-                });
+                setSesionEditando({ ...sesionEditando, tipo_masaje: e.target.value, duracion: servicio?.duracion ?? sesionEditando.duracion ?? null });
               }} style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
                 <option value="">Seleccionar...</option>
                 {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
               </select>
             </div>
 
-            {/* MONTO Y FORMA DE PAGO */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Monto total</label>
@@ -552,7 +531,6 @@ const slotsDelDia: string[] = (() => {
               </div>
             </div>
 
-            {/* PAGO COMBINADO */}
             <div style={{ backgroundColor: '#F8F7FF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#4F46E5', display: 'block', marginBottom: '10px' }}>💳 Pago combinado (opcional)</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -575,7 +553,6 @@ const slotsDelDia: string[] = (() => {
               </div>
             </div>
 
-            {/* SEÑA */}
             <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#D97706', display: 'block', marginBottom: '10px' }}>💰 Seña (opcional)</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -592,7 +569,6 @@ const slotsDelDia: string[] = (() => {
               </div>
             </div>
 
-            {/* NOTAS */}
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Notas clínicas</label>
             <textarea value={sesionEditando.notas_clinicas ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, notas_clinicas: e.target.value })}
               placeholder="Observaciones, evolución..."

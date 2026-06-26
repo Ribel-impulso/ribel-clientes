@@ -12,6 +12,7 @@ interface Disponibilidad {
   hora_inicio_2?: string | null
   hora_fin_2?: string | null
   duracion_turno: number
+  duracion_turno_2?: number | null
   activo: boolean
 }
 
@@ -97,6 +98,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     hora_inicio_2: null,
     hora_fin_2: null,
     duracion_turno: 60,
+    duracion_turno_2: null,
     activo: i >= 1 && i <= 5,
   }))
 
@@ -140,6 +142,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
         hora_inicio_2: d.hora_inicio_2 ?? null,
         hora_fin_2: d.hora_fin_2 ?? null,
         duracion_turno: d.duracion_turno,
+        duracion_turno_2: d.duracion_turno_2 ?? null,
         activo: d.activo,
       }
       if (d.id) {
@@ -169,7 +172,6 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
           backgroundColor: d.activo ? '#fdf9f5' : '#f9f9f9',
           opacity: d.activo ? 1 : 0.6,
         }}>
-          {/* ENCABEZADO DÍA */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: d.activo ? '12px' : '0' }}>
             <div
               onClick={() => actualizarDia(d.dia_semana, 'activo', !d.activo)}
@@ -198,50 +200,35 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
               {/* BLOQUE 1 */}
-<div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-  <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '60px' }}>Bloque 1</span>
-  {d.hora_inicio ? (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
-        <input type="time" value={d.hora_inicio}
-          onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
-          style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
-        <input type="time" value={d.hora_fin ?? ''}
-          onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
-          style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
-        <select value={d.duracion_turno}
-          onChange={e => actualizarDia(d.dia_semana, 'duracion_turno', Number(e.target.value))}
-          style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
-          <option value={15}>15 min</option>
-          <option value={20}>20 min</option>
-          <option value={30}>30 min</option>
-          <option value={45}>45 min</option>
-          <option value={60}>60 min</option>
-          <option value={90}>90 min</option>
-          <option value={120}>120 min</option>
-        </select>
-      </div>
-      <button
-        onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio', null); actualizarDia(d.dia_semana, 'hora_fin', null) }}
-        style={{ fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-        Quitar
-      </button>
-    </>
-  ) : (
-    <button
-      onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio', '09:00'); actualizarDia(d.dia_semana, 'hora_fin', '13:00') }}
-      style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-      + Agregar bloque
-    </button>
-  )}
-</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '60px' }}>Bloque 1</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
+                  <input type="time" value={d.hora_inicio ?? ''}
+                    onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
+                  <input type="time" value={d.hora_fin ?? ''}
+                    onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
+                  <select value={d.duracion_turno}
+                    onChange={e => actualizarDia(d.dia_semana, 'duracion_turno', Number(e.target.value))}
+                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
+                    <option value={15}>15 min</option>
+                    <option value={20}>20 min</option>
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                    <option value={60}>60 min</option>
+                    <option value={90}>90 min</option>
+                    <option value={120}>120 min</option>
+                  </select>
+                </div>
+              </div>
 
               {/* BLOQUE 2 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -260,15 +247,37 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                         onChange={e => actualizarDia(d.dia_semana, 'hora_fin_2', e.target.value)}
                         style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
+                      <select value={d.duracion_turno_2 ?? d.duracion_turno}
+                        onChange={e => actualizarDia(d.dia_semana, 'duracion_turno_2', Number(e.target.value))}
+                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
+                        <option value={15}>15 min</option>
+                        <option value={20}>20 min</option>
+                        <option value={30}>30 min</option>
+                        <option value={45}>45 min</option>
+                        <option value={60}>60 min</option>
+                        <option value={90}>90 min</option>
+                        <option value={120}>120 min</option>
+                      </select>
+                    </div>
                     <button
-                      onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio_2', null); actualizarDia(d.dia_semana, 'hora_fin_2', null) }}
+                      onClick={() => {
+                        actualizarDia(d.dia_semana, 'hora_inicio_2', null)
+                        actualizarDia(d.dia_semana, 'hora_fin_2', null)
+                        actualizarDia(d.dia_semana, 'duracion_turno_2', null)
+                      }}
                       style={{ fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
                       Quitar
                     </button>
                   </>
                 ) : (
                   <button
-                    onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio_2', '17:00'); actualizarDia(d.dia_semana, 'hora_fin_2', '20:00') }}
+                    onClick={() => {
+                      actualizarDia(d.dia_semana, 'hora_inicio_2', '17:00')
+                      actualizarDia(d.dia_semana, 'hora_fin_2', '20:00')
+                      actualizarDia(d.dia_semana, 'duracion_turno_2', d.duracion_turno)
+                    }}
                     style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
                     + Agregar bloque
                   </button>
@@ -397,7 +406,6 @@ export default function TabConfiguracion({
 
   return (
     <>
-      {/* AGREGAR CLIENTE */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
@@ -405,7 +413,6 @@ export default function TabConfiguracion({
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
-      {/* LISTA CLIENTES */}
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
           <h2 style={{ color: '#161616', margin: 0 }}>Clientes ({clientes.length})</h2>
@@ -496,7 +503,6 @@ export default function TabConfiguracion({
         )}
       </div>
 
-      {/* SERVICIOS */}
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
           <h2 style={{ color: '#161616', margin: 0 }}>Servicios ({servicios.length})</h2>
@@ -555,7 +561,6 @@ export default function TabConfiguracion({
         )}
       </div>
 
-      {/* MI LINK DE AGENDA */}
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>🔗 Mi link de agenda</h2>
         <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '12px' }}>
@@ -570,10 +575,8 @@ export default function TabConfiguracion({
         </button>
       </div>
 
-      {/* DISPONIBILIDAD */}
       <SeccionDisponibilidad userId={userId} card={card} btnPrimary={btnPrimary} btnSecondary={btnSecondary} />
 
-      {/* CAMBIAR CONTRASEÑA */}
       <div style={card}>
         <CambiarPassword btnPrimary={btnPrimary} inp={inp} />
       </div>
