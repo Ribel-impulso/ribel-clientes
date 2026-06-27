@@ -23,6 +23,8 @@ export default function Home() {
   const [monto, setMonto] = useState('')
   const [formaPago, setFormaPago] = useState('efectivo')
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
+  const [turnoResaltado, setTurnoResaltado] = useState<string | null>(null)
+  const [fechaInicialAgenda, setFechaInicialAgenda] = useState<string | null>(null)
   const [mostrarClientes, setMostrarClientes] = useState(false)
   const [mostrarServicios, setMostrarServicios] = useState(false)
   const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
@@ -384,7 +386,17 @@ export default function Home() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <NotificacionesCampana />
+          <NotificacionesCampana
+  onVerTurno={(sesionId, fecha) => {
+    setTurnoResaltado(null)
+    setFechaInicialAgenda(null)
+    setTimeout(() => {
+      setTurnoResaltado(sesionId)
+      setFechaInicialAgenda(fecha)
+      setPestanaActiva('agenda')
+    }, 50)
+  }}
+/>
           <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
         </div>
       </div>
@@ -457,7 +469,12 @@ nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevo
         )}
 
         {pestanaActiva === 'agenda' && (
-          <TabAgenda userId={userId!} />
+           <TabAgenda
+  userId={userId!}
+  turnoResaltado={turnoResaltado}
+  fechaInicial={fechaInicialAgenda}
+  onTurnoResaltadoVisto={() => setTurnoResaltado(null)}
+  />
         )}
 
         {pestanaActiva === 'finanzas' && (
