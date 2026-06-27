@@ -72,7 +72,21 @@ function generarSlots(horaInicio: string, horaFin: string, duracion: number): st
   return slots;
 }
 
-export default function TabAgenda({ userId }: { userId?: string }) {
+interface TabAgendaProps {
+  userId?: string
+  turnoResaltado?: string | null
+  fechaInicial?: string | null
+  onTurnoResaltadoVisto?: () => void
+}
+
+interface TabAgendaProps {
+  userId?: string
+  turnoResaltado?: string | null
+  fechaInicial?: string | null
+  onTurnoResaltadoVisto?: () => void
+}
+
+export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurnoResaltadoVisto }: TabAgendaProps) {
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [mes, setMes] = useState(hoy.getMonth());
@@ -120,6 +134,19 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     };
     cargarSesiones();
   }, [anio, mes]);
+
+  useEffect(() => {
+  if (fechaInicial) {
+    const fecha = new Date(fechaInicial + 'T12:00:00')
+    setAnio(fecha.getFullYear())
+    setMes(fecha.getMonth())
+    setDiaSeleccionado(fechaInicial)
+    setTimeout(() => {
+      const el = document.getElementById(`turno-${turnoResaltado}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 400)
+  }
+}, [fechaInicial, turnoResaltado])
 
   const primerDiaMes = new Date(anio, mes, 1).getDay();
   const diasEnMes = new Date(anio, mes + 1, 0).getDate();
@@ -264,8 +291,34 @@ export default function TabAgenda({ userId }: { userId?: string }) {
     ? new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
     : '';
 
-  const TarjetaTurno = ({ s }: { s: Sesion }) => (
-    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#FAFAFA' }}>
+  const TarjetaTurno = ({ s }: { s: Sesion }) => {
+  const esResaltado = turnoResaltado === s.id
+
+  const confirmarTurnoWA = () => {
+    const nombre = nombreCliente(s.cliente_id)
+    const telefono = whatsappCliente(s.cliente_id)
+    if (!telefono) { alert('Este cliente no tiene número de WhatsApp registrado.'); return }
+    const fechaLegible = formatearFechaLegible(s.fecha)
+    const hora = s.horario ? s.horario.substring(0, 5) : ''
+    const servicio = s.tipo_masaje ?? ''
+    const msg = `Hola ${nombre}! 👋 Tu turno de ${servicio} quedó confirmado para el ${fechaLegible}${hora ? ` a las ${hora}hs` : ''}. ¡Te esperamos! 😊`
+    const numero = limpiarWhatsapp(telefono)
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
+    if (onTurnoResaltadoVisto) onTurnoResaltadoVisto()
+  }
+
+  return (
+    <div
+      id={`turno-${s.id}`}
+      style={{
+        border: esResaltado ? '2px solid #4F46E5' : '1px solid #E2E8F0',
+        borderRadius: '12px',
+        padding: '12px 14px',
+        backgroundColor: esResaltado ? '#EEF2FF' : '#FAFAFA',
+        transition: 'all 0.3s ease',
+        boxShadow: esResaltado ? '0 0 0 4px rgba(79,70,229,0.15)' : 'none'
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>
@@ -287,6 +340,32 @@ export default function TabAgenda({ userId }: { userId?: string }) {
             style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
         </div>
       </div>
+
+      {esResaltado && (
+        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #C7D2FE' }}>
+          <button
+            onClick={confirmarTurnoWA}
+            style={{
+              width: '100%',
+              backgroundColor: '#25D366',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 14px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            ✅ Confirmar turno por WhatsApp
+          </button>
+        </div>
+      )}
+
       {s.monto_senia && s.monto && !s.cobrado && (
         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '12px', color: '#6B7280' }}>Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong></span>
@@ -300,7 +379,8 @@ export default function TabAgenda({ userId }: { userId?: string }) {
         <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
       )}
     </div>
-  );
+  )
+}
 
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#F7F8FA', minHeight: '100%', padding: '16px' }}>

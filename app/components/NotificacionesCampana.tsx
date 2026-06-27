@@ -9,13 +9,19 @@ interface Notificacion {
   mensaje: string
   leida: boolean
   created_at: string
+  sesion_id?: string | null
+  fecha_sesion?: string | null
 }
 
 interface RealtimePayload {
   new: Notificacion
 }
 
-export default function NotificacionesCampana() {
+interface Props {
+  onVerTurno?: (sesionId: string, fecha: string) => void
+}
+
+export default function NotificacionesCampana({ onVerTurno }: Props) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [abierto, setAbierto] = useState(false)
 
@@ -44,18 +50,21 @@ export default function NotificacionesCampana() {
         }
       )
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [])
 
   const abrirPanel = async () => {
     setAbierto(!abierto)
     if (!abierto && noLeidas > 0) {
-      await supabase
-        .from('notificaciones')
-        .update({ leida: true })
-        .eq('leida', false)
+      await supabase.from('notificaciones').update({ leida: true }).eq('leida', false)
       setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))
+    }
+  }
+
+  const handleClickNotificacion = (n: Notificacion) => {
+    if (n.sesion_id && n.fecha_sesion && onVerTurno) {
+      onVerTurno(n.sesion_id, n.fecha_sesion)
+      setAbierto(false)
     }
   }
 
@@ -73,7 +82,7 @@ export default function NotificacionesCampana() {
       </button>
 
       {abierto && (
-        <div className="fixed left-2 right-2 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-50" style={{top: '60px'}}>
+        <div className="fixed left-2 right-2 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-50" style={{ top: '60px' }}>
           <div className="p-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-800">Notificaciones</h3>
           </div>
@@ -81,15 +90,31 @@ export default function NotificacionesCampana() {
             {notificaciones.length === 0 ? (
               <p className="text-sm text-gray-400 p-4 text-center">Sin notificaciones</p>
             ) : (
-              notificaciones.map(n => (
-                <div key={n.id} className={`p-4 border-b border-gray-50 ${!n.leida ? 'bg-orange-50' : ''}`}>
-                  <p className="text-sm font-medium text-gray-800">{n.titulo}</p>
-                  <p className="text-sm text-gray-600 mt-0.5">{n.mensaje}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(n.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              ))
+              notificaciones.map(n => {
+                const esTurno = !!n.sesion_id && !!n.fecha_sesion
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => handleClickNotificacion(n)}
+                    className={`p-4 border-b border-gray-50 ${!n.leida ? 'bg-orange-50' : ''} ${esTurno ? 'cursor-pointer hover:bg-indigo-50' : ''}`}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{n.titulo}</p>
+                        <p className="text-sm text-gray-600 mt-0.5">{n.mensaje}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(n.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      {esTurno && (
+                        <span style={{ fontSize: '11px', color: '#4F46E5', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: '8px', marginTop: '2px' }}>
+                          Ver turno →
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
             )}
           </div>
         </div>
