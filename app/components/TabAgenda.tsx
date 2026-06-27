@@ -106,7 +106,7 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
 
   useEffect(() => {
     const cargarDatos = async () => {
-      const { data: dataClientes } = await supabase.from('clientes').select('id, nombre, whatsapp').order('nombre');
+      const { data: dataClientes } = await supabase.from('clientes').select('id, nombre, whatsapp').eq('user_id', userId).order('nombre');
       if (dataClientes) setClientes(dataClientes);
       const { data: dataServicios } = await supabase.from('servicios').select('id, nombre, duracion').order('nombre');
       if (dataServicios) setServicios(dataServicios);
