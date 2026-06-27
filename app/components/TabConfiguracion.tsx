@@ -161,7 +161,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     <div style={card}>
       <h2 style={{ color: '#161616', marginTop: 0 }}>🗓️ Días y horarios de atención</h2>
       <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
-        Configurá los días y horarios en los que atendés. Podés agregar un segundo bloque horario por día.
+        Configurá los días y horarios en los que atendés. Podés agregar turno mañana y/o turno tarde por día.
       </p>
       {disponibilidad.map((d) => (
         <div key={d.dia_semana} style={{
@@ -199,40 +199,55 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
           {d.activo && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-              {/* BLOQUE 1 */}
+              {/* TURNO MAÑANA */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '60px' }}>Bloque 1</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
-                  <input type="time" value={d.hora_inicio ?? ''}
-                    onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
-                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
-                  <input type="time" value={d.hora_fin ?? ''}
-                    onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
-                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
-                  <select value={d.duracion_turno}
-                    onChange={e => actualizarDia(d.dia_semana, 'duracion_turno', Number(e.target.value))}
-                    style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
-                    <option value={15}>15 min</option>
-                    <option value={20}>20 min</option>
-                    <option value={30}>30 min</option>
-                    <option value={45}>45 min</option>
-                    <option value={60}>60 min</option>
-                    <option value={90}>90 min</option>
-                    <option value={120}>120 min</option>
-                  </select>
-                </div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '90px' }}>☀️ Turno mañana</span>
+                {d.hora_inicio ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
+                      <input type="time" value={d.hora_inicio ?? ''}
+                        onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
+                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
+                      <input type="time" value={d.hora_fin ?? ''}
+                        onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
+                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
+                      <select value={d.duracion_turno}
+                        onChange={e => actualizarDia(d.dia_semana, 'duracion_turno', Number(e.target.value))}
+                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
+                        <option value={15}>15 min</option>
+                        <option value={20}>20 min</option>
+                        <option value={30}>30 min</option>
+                        <option value={45}>45 min</option>
+                        <option value={60}>60 min</option>
+                        <option value={90}>90 min</option>
+                        <option value={120}>120 min</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio', null); actualizarDia(d.dia_semana, 'hora_fin', null) }}
+                      style={{ fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      Quitar
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio', '09:00'); actualizarDia(d.dia_semana, 'hora_fin', '13:00') }}
+                    style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
+                    + Agregar bloque
+                  </button>
+                )}
               </div>
 
-              {/* BLOQUE 2 */}
+              {/* TURNO TARDE */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '60px' }}>Bloque 2</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '90px' }}>🌙 Turno tarde</span>
                 {d.hora_inicio_2 ? (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
