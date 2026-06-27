@@ -23,26 +23,27 @@ export async function POST(req: Request) {
     }
 
     const { data: sesion, error } = await supabaseAdmin
-      .from('sesiones')
-      .insert([{
-        cliente_id, fecha, horario, tipo_masaje, duracion,
-        user_id, facturado: false, cobrado: false
-      }])
-      .select('id')
-      .single()
+  .from('sesiones')
+  .insert({
+    cliente_id, fecha, horario, tipo_masaje, duracion,
+    user_id, facturado: false, cobrado: false
+  })
+  .select()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-    await supabaseAdmin.from('notificaciones').insert([{
-      user_id,
-      titulo: '📅 Nuevo turno reservado',
-      mensaje: `${cliente.nombre} agendó un turno para el ${fecha} a las ${horario}hs`,
-      leida: false,
-      sesion_id: sesion.id,
-      fecha_sesion: fecha
-    }])
+const sesionId = sesion?.[0]?.id ?? null
 
-    return NextResponse.json({ ok: true })
+await supabaseAdmin.from('notificaciones').insert([{
+  user_id,
+  titulo: '📅 Nuevo turno reservado',
+  mensaje: `${cliente.nombre} agendó un turno para el ${fecha} a las ${horario}hs`,
+  leida: false,
+  sesion_id: sesionId,
+  fecha_sesion: fecha
+}])
+
+return NextResponse.json({ ok: true })
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
