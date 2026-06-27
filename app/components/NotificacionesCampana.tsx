@@ -43,12 +43,17 @@ export default function NotificacionesCampana({ onVerTurno }: Props) {
     const channel = supabase
       .channel('notificaciones-realtime')
       .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notificaciones' },
-        (payload: RealtimePayload) => {
-          setNotificaciones(prev => [payload.new, ...prev])
-        }
-      )
+  'postgres_changes',
+  { event: 'INSERT', schema: 'public', table: 'notificaciones' },
+  async (payload: RealtimePayload) => {
+    const { data } = await supabase
+      .from('notificaciones')
+      .select('*')
+      .eq('id', payload.new.id)
+      .single()
+    if (data) setNotificaciones(prev => [data, ...prev])
+  }
+)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
