@@ -24,48 +24,39 @@ interface Props {
 export default function NotificacionesCampana({ onVerTurno }: Props) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [abierto, setAbierto] = useState(false)
-  const audioCtxRef = useRef<AudioContext | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const noLeidas = notificaciones.filter(n => !n.leida).length
 
-  // Desbloquear audio con el primer toque en cualquier parte de la pantalla
+  // Precargar y desbloquear el audio con el primer toque
   useEffect(() => {
+    const audio = new Audio('/sounds/notificacion.wav')
+    audio.preload = 'auto'
+    audioRef.current = audio
+
     const unlock = () => {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext()
-      }
-      if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume()
-      }
-      document.removeEventListener('click', unlock)
+      audio.play().then(() => {
+        audio.pause()
+        audio.currentTime = 0
+      }).catch(() => {})
       document.removeEventListener('touchstart', unlock)
+      document.removeEventListener('click', unlock)
     }
-    document.addEventListener('click', unlock)
+
     document.addEventListener('touchstart', unlock)
+    document.addEventListener('click', unlock)
+
     return () => {
-      document.removeEventListener('click', unlock)
       document.removeEventListener('touchstart', unlock)
+      document.removeEventListener('click', unlock)
     }
   }, [])
 
   const playNotificationSound = () => {
-    const ctx = audioCtxRef.current
-    if (!ctx) return
-
-    const oscillator = ctx.createOscillator()
-    const gainNode = ctx.createGain()
-
-    oscillator.connect(gainNode)
-    gainNode.connect(ctx.destination)
-
-    oscillator.frequency.value = 880
-    oscillator.type = 'sine'
-
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8)
-
-    oscillator.start(ctx.currentTime)
-    oscillator.stop(ctx.currentTime + 0.8)
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch(() => {})
+    }
   }
 
   useEffect(() => {
