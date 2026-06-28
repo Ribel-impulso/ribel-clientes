@@ -21,6 +21,24 @@ interface Props {
   onVerTurno?: (sesionId: string, fecha: string) => void
 }
 
+const playNotificationSound = () => {
+  const ctx = new AudioContext()
+  const oscillator = ctx.createOscillator()
+  const gainNode = ctx.createGain()
+
+  oscillator.connect(gainNode)
+  gainNode.connect(ctx.destination)
+
+  oscillator.frequency.value = 880
+  oscillator.type = 'sine'
+
+  gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8)
+
+  oscillator.start(ctx.currentTime)
+  oscillator.stop(ctx.currentTime + 0.8)
+}
+
 export default function NotificacionesCampana({ onVerTurno }: Props) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [abierto, setAbierto] = useState(false)
@@ -43,17 +61,20 @@ export default function NotificacionesCampana({ onVerTurno }: Props) {
     const channel = supabase
       .channel('notificaciones-realtime')
       .on(
-  'postgres_changes',
-  { event: 'INSERT', schema: 'public', table: 'notificaciones' },
-  async (payload: RealtimePayload) => {
-    const { data } = await supabase
-      .from('notificaciones')
-      .select('*')
-      .eq('id', payload.new.id)
-      .single()
-    if (data) setNotificaciones(prev => [data, ...prev])
-  }
-)
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notificaciones' },
+        async (payload: RealtimePayload) => {
+          const { data } = await supabase
+            .from('notificaciones')
+            .select('*')
+            .eq('id', payload.new.id)
+            .single()
+          if (data) {
+            setNotificaciones(prev => [data, ...prev])
+            playNotificationSound()
+          }
+        }
+      )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
