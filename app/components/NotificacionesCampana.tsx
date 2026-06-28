@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface Notificacion {
@@ -21,29 +21,52 @@ interface Props {
   onVerTurno?: (sesionId: string, fecha: string) => void
 }
 
-const playNotificationSound = () => {
-  const ctx = new AudioContext()
-  const oscillator = ctx.createOscillator()
-  const gainNode = ctx.createGain()
-
-  oscillator.connect(gainNode)
-  gainNode.connect(ctx.destination)
-
-  oscillator.frequency.value = 880
-  oscillator.type = 'sine'
-
-  gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
-  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8)
-
-  oscillator.start(ctx.currentTime)
-  oscillator.stop(ctx.currentTime + 0.8)
-}
-
 export default function NotificacionesCampana({ onVerTurno }: Props) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [abierto, setAbierto] = useState(false)
+  const audioCtxRef = useRef<AudioContext | null>(null)
 
   const noLeidas = notificaciones.filter(n => !n.leida).length
+
+  // Desbloquear audio con el primer toque en cualquier parte de la pantalla
+  useEffect(() => {
+    const unlock = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext()
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume()
+      }
+      document.removeEventListener('click', unlock)
+      document.removeEventListener('touchstart', unlock)
+    }
+    document.addEventListener('click', unlock)
+    document.addEventListener('touchstart', unlock)
+    return () => {
+      document.removeEventListener('click', unlock)
+      document.removeEventListener('touchstart', unlock)
+    }
+  }, [])
+
+  const playNotificationSound = () => {
+    const ctx = audioCtxRef.current
+    if (!ctx) return
+
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    oscillator.frequency.value = 880
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8)
+
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.8)
+  }
 
   useEffect(() => {
     const cargar = async () => {
