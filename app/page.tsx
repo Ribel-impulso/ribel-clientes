@@ -1,498 +1,671 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
-import TabConfiguracion from './components/TabConfiguracion'
-import TabTurnos from './components/TabTurnos'
-import TabAgenda from './components/TabAgenda'
-import TabFinanzas from './components/TabFinanzas'
-import NotificacionesCampana from './components/NotificacionesCampana'
+import { useEffect, useRef } from 'react'
+import Link from 'next/link'
 
-export default function Home() {
-  const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda'>('agenda')
-  const [clientes, setClientes] = useState<any[]>([])
-  const [sesiones, setSesiones] = useState<any[]>([])
-  const [servicios, setServicios] = useState<any[]>([])
-  const [gastos, setGastos] = useState<any[]>([])
-  const [nombre, setNombre] = useState('')
-  const [telefono, setTelefono] = useState('')
-  const [clienteSeleccionado, setClienteSeleccionado] = useState('')
-  const [busquedaCliente, setBusquedaCliente] = useState('')
-  const [fecha, setFecha] = useState('')
-  const [servicioSeleccionado, setServicioSeleccionado] = useState('')
-  const [busquedaServicio, setBusquedaServicio] = useState('')
-  const [monto, setMonto] = useState('')
-  const [formaPago, setFormaPago] = useState('efectivo')
-  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().toISOString().slice(0, 7))
-  const [turnoResaltado, setTurnoResaltado] = useState<string | null>(null)
-  const [fechaInicialAgenda, setFechaInicialAgenda] = useState<string | null>(null)
-  const [mostrarClientes, setMostrarClientes] = useState(false)
-  const [mostrarServicios, setMostrarServicios] = useState(false)
-  const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
-  const [nuevoServicioDuracion, setNuevoServicioDuracion] = useState(60) 
-  const [userId, setUserId] = useState<string | null>(null)
-  const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [editFecha, setEditFecha] = useState('')
-  const [editServicio, setEditServicio] = useState('')
-  const [editMonto, setEditMonto] = useState('')
-  const [editFormaPago, setEditFormaPago] = useState('efectivo')
-  const [gastoFecha, setGastoFecha] = useState('')
-  const [gastoDescripcion, setGastoDescripcion] = useState('')
-  const [gastoMonto, setGastoMonto] = useState('')
-  const [gastoTipo, setGastoTipo] = useState('egreso')
-  const [mesGastos, setMesGastos] = useState(new Date().toISOString().slice(0, 7))
-  const [clienteHistorial, setClienteHistorial] = useState('')
-  const [horario, setHorario] = useState('')
-  const [monto2, setMonto2] = useState('')
-  const [formaPago2, setFormaPago2] = useState('')
-  const [historial, setHistorial] = useState<any[]>([])
-  const [gastoCategoria, setGastoCategoria] = useState('negocio')
-  const [diasRestantes, setDiasRestantes] = useState<number | null>(null)
-  const [montoSenia, setMontoSenia] = useState('')
-  const [fechaSenia, setFechaSenia] = useState('')
-
-  const card: React.CSSProperties = {
-    backgroundColor: '#ffffff',
-    border: '1px solid #e3dfd6',
-    borderRadius: '12px',
-    padding: '24px',
-    marginBottom: '20px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-  }
-  const input: React.CSSProperties = {
-    padding: '10px',
-    borderRadius: '8px',
-    border: '1px solid #e3dfd6',
-    marginRight: '8px',
-    marginBottom: '8px',
-    fontFamily: 'Arial'
-  }
-  const btnPrimary: React.CSSProperties = {
-    padding: '10px 20px',
-    backgroundColor: '#ba9a7d',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontFamily: 'Arial'
-  }
-  const btnSecondary: React.CSSProperties = {
-    padding: '8px 16px',
-    backgroundColor: '#e3dfd6',
-    color: '#161616',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    marginLeft: '10px',
-    fontFamily: 'Arial'
-  }
-  const th: React.CSSProperties = {
-    border: '1px solid #e3dfd6',
-    padding: '10px',
-    textAlign: 'left',
-    backgroundColor: '#e3dfd6',
-    color: '#161616'
-  }
-  const td: React.CSSProperties = {
-    border: '1px solid #e3dfd6',
-    padding: '10px',
-    color: '#161616'
-  }
-
-  const tabStyle = (activa: boolean): React.CSSProperties => ({
-    padding: '10px 24px',
-    border: 'none',
-    borderRadius: '8px 8px 0 0',
-    cursor: 'pointer',
-    fontFamily: 'Arial',
-    fontWeight: activa ? 'bold' : 'normal',
-    backgroundColor: activa ? '#ffffff' : '#d4cfc6',
-    color: activa ? '#ba9a7d' : '#161616',
-    borderBottom: activa ? '3px solid #ba9a7d' : 'none',
-    marginRight: '4px',
-    fontSize: '14px'
-  })
-
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) {
-        window.location.href = '/login'
-        return
-      }
-
-      const { data: suscripcion } = await supabase
-        .from('suscripciones')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (suscripcion) {
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
-        const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
-        const diffMs = vencimiento.getTime() - hoy.getTime()
-        const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-
-        if (diffDias < 0) {
-          window.location.href = '/planes'
-          return
-        }
-        if (diffDias <= 5) {
-          setDiasRestantes(diffDias)
-        }
-      }
-
-      setUserId(data.user.id)
-      cargarClientes(data.user.id)
-      cargarSesiones(data.user.id)
-      cargarServicios(data.user.id)
-      cargarGastos(data.user.id, mesGastos)
-    })
-  }, [mesSeleccionado])
-
-  useEffect(() => {
-    if (userId) cargarGastos(userId, mesGastos)
-  }, [mesGastos, userId])
-
-  async function cargarClientes(uid: string) {
-    const { data } = await supabase.from('clientes').select('*').eq('user_id', uid)
-    setClientes(data || [])
-  }
-
-  async function cargarSesiones(uid: string, mes?: string) {
-    const { data } = await supabase
-      .from('sesiones')
-      .select('*, clientes(nombre)')
-      .eq('user_id', uid)
-      .order('fecha', { ascending: false })
-    setSesiones(data || [])
-  }
-
-  async function cargarServicios(uid: string) {
-    const { data } = await supabase.from('servicios').select('*').eq('user_id', uid)
-    setServicios(data || [])
-  }
-
-  async function cargarGastos(uid: string, mes: string) {
-    const ultimoDia = new Date(parseInt(mes.slice(0,4)), parseInt(mes.slice(5,7)), 0).toISOString().slice(0,10)
-    const { data, error } = await supabase
-      .from('gastos')
-      .select('*')
-      .eq('user_id', uid)
-      .gte('fecha', mes + '-01')
-      .lte('fecha', ultimoDia)
-      .order('fecha', { ascending: false })
-    if (error) console.log('Error gastos:', error.message)
-    setGastos(data || [])
-  }
-
-  async function cargarHistorial(clienteId: string) {
-    const { data } = await supabase
-      .from('sesiones')
-      .select('*, clientes(nombre)')
-      .eq('user_id', userId!)
-      .eq('cliente_id', clienteId)
-      .order('fecha', { ascending: false })
-    setHistorial(data || [])
-  }
-
-  async function eliminarCliente(id: string) {
-    const confirmar = confirm('¿Seguro? Se borrarán también todos sus turnos.')
-    if (!confirmar) return
-    await supabase.from('sesiones').delete().eq('cliente_id', id)
-    await supabase.from('clientes').delete().eq('id', id)
-    cargarClientes(userId!)
-    cargarSesiones(userId!)
-  }
-
-  async function eliminarServicio(id: string) {
-    const confirmar = confirm('¿Eliminar este servicio?')
-    if (!confirmar) return
-    await supabase.from('servicios').delete().eq('id', id)
-    cargarServicios(userId!)
-  }
-
-  async function agregarSesion() {
-    if (!userId) return
-    const servicioFinal = servicioSeleccionado || busquedaServicio
-    await supabase.from('sesiones').insert([{
-      cliente_id: clienteSeleccionado,
-      fecha,
-      tipo_masaje: servicioFinal,
-      monto: parseFloat(monto) || 0,
-      forma_pago: formaPago,
-      facturado: false,
-      horario: horario,
-      monto2: monto2 ? parseFloat(monto2) : null,
-      forma_pago2: formaPago2 || null,
-      monto_senia: montoSenia ? parseFloat(montoSenia) : null,
-      fecha_senia: fechaSenia || null,
-      user_id: userId
-    }])
-    setFecha('')
-    setServicioSeleccionado('')
-    setBusquedaServicio('')
-    setMonto('')
-    setHorario('')
-    setMonto2('')
-    setFormaPago2('')
-    setMontoSenia('')
-    setFechaSenia('')
-    alert('Turno registrado!')
-    cargarSesiones(userId)
-  }
-
-  async function eliminarSesion(id: string) {
-    const confirmar = confirm('¿Eliminar este turno?')
-    if (!confirmar) return
-    await supabase.from('sesiones').delete().eq('id', id).eq('user_id', userId!)
-    cargarSesiones(userId!)
-  }
-
-  async function toggleFacturado(id: string, valorActual: boolean) {
-    await supabase.from('sesiones').update({ facturado: !valorActual }).eq('id', id)
-    cargarSesiones(userId!)
-  }
-
-  async function cobrarSesion(id: string, formaPago: string) {
-    const hoy = new Date().toISOString().split('T')[0]
-    await supabase.from('sesiones').update({ cobrado: true, forma_pago_cobro: formaPago, fecha_cobro: hoy }).eq('id', id)
-    cargarSesiones(userId!)
-  }
-
-  function iniciarEdicion(s: any) {
-    setEditandoId(s.id)
-    setEditFecha(s.fecha)
-    setEditServicio(s.tipo_masaje || '')
-    setEditMonto(s.monto?.toString() || '')
-    setEditFormaPago(s.forma_pago || 'efectivo')
-  }
-
-  async function guardarEdicion(id: string) {
-    await supabase.from('sesiones').update({
-      fecha: editFecha,
-      tipo_masaje: editServicio,
-      monto: parseFloat(editMonto),
-      forma_pago: editFormaPago
-    }).eq('id', id)
-    setEditandoId(null)
-    cargarSesiones(userId!)
-  }
-
-  async function agregarGasto() {
-    if (!userId) return
-    const { error } = await supabase.from('gastos').insert([{
-      fecha: gastoFecha,
-      descripcion: gastoDescripcion,
-      monto: parseFloat(gastoMonto),
-      tipo: gastoTipo,
-      categoria: gastoCategoria,
-      user_id: userId
-    }])
-    if (error) { alert('Error: ' + error.message); return }
-    setGastoFecha('')
-    setGastoDescripcion('')
-    setGastoMonto('')
-    setGastoTipo('egreso')
-    setGastoCategoria('negocio')
-    cargarGastos(userId, mesGastos)
-  }
-
-  async function eliminarGasto(id: string) {
-    const confirmar = confirm('¿Eliminar este registro?')
-    if (!confirmar) return
-    await supabase.from('gastos').delete().eq('id', id)
-    cargarGastos(userId!, mesGastos)
-  }
-
-  async function cerrarSesion() {
-    await supabase.auth.signOut()
-    window.location.href = '/login'
-  }
-
-  // La seña impacta en el mes de su fecha_senia
-  const totalEfectivo = sesiones.reduce((sum, s) => {
-  const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
-  const enMes = s.fecha?.startsWith(mesSeleccionado)
-  const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'efectivo' && !s.monto_senia ? (s.monto || 0) : 0
-  const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'efectivo' ? (s.monto2 || 0) : 0
-  const cobro = s.forma_pago_cobro?.toLowerCase() === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? ((s.monto || 0) - (s.monto_senia || 0)) : 0
-  const senia = s.fecha_senia?.startsWith(mesSeleccionado) && s.monto_senia ? s.monto_senia : 0
-  return sum + m1 + m2 + cobro + senia
-}, 0)
-
-  const totalTransferencia = sesiones.reduce((sum, s) => {
-  const enMes = s.fecha?.startsWith(mesSeleccionado)
-  const yaPaso = new Date(`${s.fecha}T${s.horario || '23:59'}`) <= new Date()
-  const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'transferencia' && !s.monto_senia ? (s.monto || 0) : 0
-  const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'transferencia' ? (s.monto2 || 0) : 0
-  const cobro = s.forma_pago_cobro?.toLowerCase() === 'transferencia' && s.fecha_cobro?.startsWith(mesSeleccionado) ? ((s.monto || 0) - (s.monto_senia || 0)) : 0
-  return sum + m1 + m2 + cobro
-}, 0)
-
-  const totalCuentaCorriente = sesiones.reduce((sum, s) => {
-    const fp = s.forma_pago?.toLowerCase().replace(' ', '_')
-    const fp2 = s.forma_pago2?.toLowerCase().replace(' ', '_')
-    const m1 = fp === 'cuenta_corriente' && !s.cobrado ? (s.monto || 0) : 0
-    const m2 = fp2 === 'cuenta_corriente' && !s.cobrado ? (s.monto2 || 0) : 0
-    return sum + m1 + m2
-  }, 0)
-
-  const totalMes = totalEfectivo + totalTransferencia
-  const totalIngresos = gastos.filter(g => g.tipo === 'ingreso').reduce((sum, g) => sum + (g.monto || 0), 0) + totalMes + totalCuentaCorriente
-  const totalEgresos = gastos.filter(g => g.tipo === 'egreso').reduce((sum, g) => sum + (g.monto || 0), 0)
-  const balanceNeto = totalIngresos - totalEgresos
-
-  const rankingServicios: [string, number][] = (Object.entries(
-    sesiones
-      .filter(s => s.fecha?.startsWith(mesSeleccionado))
-      .reduce((acc: Record<string, number>, s) => {
-        const key = s.tipo_masaje || 'Sin servicio'
-        acc[key] = (acc[key] || 0) + 1
-        return acc
-      }, {})
-  ) as [string, number][]).sort((a, b) => b[1] - a[1])
-
+export default function Landing() {
   return (
-    <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 
-      {diasRestantes !== null && (
-        <div style={{
-          backgroundColor: '#fff8e1',
-          border: '1px solid #f9a825',
-          borderRadius: '10px',
-          padding: '12px 20px',
-          marginBottom: '16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <span style={{ color: '#e65100', fontSize: '14px' }}>
-            ⏳ Tu período de prueba vence en <strong>{diasRestantes} día{diasRestantes !== 1 ? 's' : ''}</strong>
-          </span>
-          <a href="/planes" style={{
-            backgroundColor: '#ba9a7d',
-            color: '#fff',
-            padding: '6px 14px',
-            borderRadius: '6px',
-            textDecoration: 'none',
-            fontSize: '13px',
-            fontWeight: 'bold'
-          }}>Ver planes</a>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+          --blanco: #ffffff;
+          --negro: #161616;
+          --crema: #e3dfd6;
+          --arena: #ba9a7d;
+          --arena-claro: #d4bfab;
+          --gris: #6b6b6b;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+          font-family: 'DM Sans', sans-serif;
+          background: var(--blanco);
+          color: var(--negro);
+        }
+
+        /* NAV */
+        .nav {
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          z-index: 100;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 48px;
+          background: rgba(255,255,255,0.93);
+          backdrop-filter: blur(10px);
+          border-bottom: 1px solid var(--crema);
+        }
+
+        .nav-logo {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 20px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--negro);
+          text-decoration: none;
+        }
+
+        .nav-links {
+          display: flex;
+          align-items: center;
+          gap: 36px;
+          list-style: none;
+        }
+
+        .nav-links a {
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--negro);
+          text-decoration: none;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+        }
+
+        .nav-links a:hover { opacity: 1; }
+
+        .nav-links .nav-cta {
+          opacity: 1;
+          padding: 9px 22px;
+          background: var(--negro);
+          color: var(--blanco) !important;
+          border-radius: 2px;
+          transition: background 0.2s;
+        }
+
+        .nav-links .nav-cta:hover { background: var(--arena); }
+
+        /* HERO */
+        .hero {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 140px 24px 100px;
+          background: var(--crema);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .hero::after {
+          content: '';
+          position: absolute;
+          bottom: -200px; right: -200px;
+          width: 600px; height: 600px;
+          border-radius: 50%;
+          background: radial-gradient(circle, var(--arena-claro) 0%, transparent 65%);
+          opacity: 0.4;
+          pointer-events: none;
+        }
+
+        .hero-eyebrow {
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--arena);
+          margin-bottom: 28px;
+        }
+
+        .hero h1 {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: clamp(52px, 8vw, 96px);
+          font-weight: 300;
+          line-height: 1.05;
+          color: var(--negro);
+          max-width: 820px;
+          margin-bottom: 32px;
+        }
+
+        .hero h1 em {
+          font-style: italic;
+          color: var(--arena);
+        }
+
+        .hero-sub {
+          font-size: 17px;
+          font-weight: 300;
+          color: var(--gris);
+          max-width: 440px;
+          margin-bottom: 56px;
+          line-height: 1.75;
+        }
+
+        .hero-ctas {
+          display: flex;
+          gap: 14px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .btn-negro {
+          display: inline-block;
+          padding: 15px 40px;
+          background: var(--negro);
+          color: var(--blanco);
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border-radius: 2px;
+          transition: background 0.25s, transform 0.2s;
+        }
+
+        .btn-negro:hover {
+          background: var(--arena);
+          transform: translateY(-2px);
+        }
+
+        .btn-outline {
+          display: inline-block;
+          padding: 15px 40px;
+          background: transparent;
+          color: var(--negro);
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border: 1px solid rgba(22,22,22,0.3);
+          border-radius: 2px;
+          transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.2s;
+        }
+
+        .btn-outline:hover {
+          border-color: var(--negro);
+          background: var(--negro);
+          color: var(--blanco);
+          transform: translateY(-2px);
+        }
+
+        /* PARA QUIEN */
+        .para-quien {
+          padding: 100px 24px;
+          background: var(--blanco);
+          text-align: center;
+        }
+
+        .section-eyebrow {
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--arena);
+          margin-bottom: 18px;
+        }
+
+        .section-title {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: clamp(36px, 4vw, 58px);
+          font-weight: 300;
+          line-height: 1.2;
+          margin-bottom: 18px;
+        }
+
+        .section-sub {
+          font-size: 16px;
+          font-weight: 300;
+          color: var(--gris);
+          max-width: 500px;
+          margin: 0 auto 56px;
+          line-height: 1.75;
+        }
+
+        .tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          justify-content: center;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        .tag {
+          padding: 10px 24px;
+          border: 1px solid var(--arena);
+          border-radius: 40px;
+          font-size: 13px;
+          font-weight: 400;
+          color: var(--negro);
+          letter-spacing: 0.02em;
+        }
+
+        /* APP */
+        .app-section {
+          padding: 100px 24px;
+          background: var(--crema);
+        }
+
+        .section-inner {
+          max-width: 1100px;
+          margin: 0 auto;
+        }
+
+        .app-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 80px;
+          align-items: center;
+          margin-top: 64px;
+        }
+
+        .features {
+          display: flex;
+          flex-direction: column;
+          gap: 36px;
+        }
+
+        .feature {
+          display: flex;
+          gap: 20px;
+          align-items: flex-start;
+        }
+
+        .feature-icon {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          border-radius: 50%;
+          background: var(--blanco);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .feature-body h4 {
+          font-size: 15px;
+          font-weight: 500;
+          margin-bottom: 5px;
+          color: var(--negro);
+        }
+
+        .feature-body p {
+          font-size: 14px;
+          color: var(--gris);
+          line-height: 1.65;
+          font-weight: 300;
+        }
+
+        .pricing-box {
+          background: var(--blanco);
+          border-radius: 4px;
+          padding: 48px 40px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+
+        .pricing-box h3 {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 28px;
+          font-weight: 400;
+          text-align: center;
+          margin-bottom: 36px;
+        }
+
+        .planes {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          margin-bottom: 32px;
+        }
+
+        .plan {
+          padding: 22px 24px;
+          border: 1px solid var(--crema);
+          border-radius: 3px;
+          position: relative;
+        }
+
+        .plan.pro {
+          border-color: var(--arena);
+        }
+
+        .plan-badge {
+          position: absolute;
+          top: -10px; right: 16px;
+          background: var(--arena);
+          color: var(--blanco);
+          font-size: 10px;
+          font-weight: 500;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 3px 12px;
+          border-radius: 20px;
+        }
+
+        .plan-nombre {
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--gris);
+          margin-bottom: 4px;
+        }
+
+        .plan-precio {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 34px;
+          font-weight: 400;
+          color: var(--negro);
+          line-height: 1;
+        }
+
+        .plan-precio span {
+          font-family: 'DM Sans', sans-serif;
+          font-size: 13px;
+          font-weight: 300;
+          color: var(--gris);
+        }
+
+        .plan-desc {
+          font-size: 12px;
+          color: var(--gris);
+          margin-top: 5px;
+          font-weight: 300;
+        }
+
+        .btn-full {
+          display: block;
+          width: 100%;
+          padding: 14px;
+          background: var(--negro);
+          color: var(--blanco);
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border-radius: 2px;
+          text-align: center;
+          transition: background 0.2s, transform 0.2s;
+        }
+
+        .btn-full:hover {
+          background: var(--arena);
+          transform: translateY(-1px);
+        }
+
+        /* ACADEMIA */
+        .academia-section {
+          padding: 100px 24px;
+          background: var(--negro);
+          color: var(--blanco);
+          text-align: center;
+        }
+
+        .academia-section .section-eyebrow { color: var(--arena); }
+        .academia-section .section-title { color: var(--blanco); }
+        .academia-section .section-sub { color: rgba(255,255,255,0.5); }
+
+        .academia-card {
+          max-width: 1000px;
+          margin: 0 auto;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 4px;
+          padding: 64px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 64px;
+          align-items: center;
+          text-align: left;
+        }
+
+        .academia-info h3 {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 44px;
+          font-weight: 300;
+          line-height: 1.15;
+          color: var(--blanco);
+          margin-bottom: 20px;
+        }
+
+        .academia-info p {
+          font-size: 15px;
+          font-weight: 300;
+          color: rgba(255,255,255,0.55);
+          line-height: 1.75;
+          margin-bottom: 36px;
+        }
+
+        .academia-list {
+          list-style: none;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 40px;
+        }
+
+        .academia-list li {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          font-size: 14px;
+          color: rgba(255,255,255,0.7);
+          font-weight: 300;
+        }
+
+        .academia-list li::before {
+          content: '';
+          width: 24px;
+          height: 1px;
+          background: var(--arena);
+          flex-shrink: 0;
+        }
+
+        .precio-box {
+          background: rgba(186,154,125,0.1);
+          border: 1px solid rgba(186,154,125,0.25);
+          border-radius: 4px;
+          padding: 48px 40px;
+          text-align: center;
+        }
+
+        .precio-label {
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--arena);
+          margin-bottom: 20px;
+        }
+
+        .precio-monto {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 64px;
+          font-weight: 300;
+          color: var(--blanco);
+          line-height: 1;
+          margin-bottom: 6px;
+        }
+
+        .precio-usd {
+          font-size: 13px;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 36px;
+          font-weight: 300;
+        }
+
+        .btn-arena {
+          display: block;
+          width: 100%;
+          padding: 15px;
+          background: var(--arena);
+          color: var(--blanco);
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border-radius: 2px;
+          text-align: center;
+          transition: background 0.2s, transform 0.2s;
+          margin-bottom: 14px;
+        }
+
+        .btn-arena:hover {
+          background: var(--arena-claro);
+          transform: translateY(-1px);
+        }
+
+        .precio-nota {
+          font-size: 12px;
+          color: rgba(255,255,255,0.25);
+          font-weight: 300;
+        }
+
+        /* FOOTER */
+        footer {
+          background: var(--negro);
+          border-top: 1px solid rgba(255,255,255,0.06);
+          color: rgba(255,255,255,0.3);
+          text-align: center;
+          padding: 40px 24px;
+          font-size: 13px;
+          font-weight: 300;
+        }
+
+        footer a {
+          color: var(--arena);
+          text-decoration: none;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+          .nav { padding: 16px 20px; }
+          .nav-links { display: none; }
+          .app-grid { grid-template-columns: 1fr; gap: 48px; margin-top: 48px; }
+          .academia-card { grid-template-columns: 1fr; padding: 36px 24px; gap: 40px; }
+          .hero h1 { font-size: 48px; }
+          .hero-ctas { flex-direction: column; align-items: center; }
+        }
+      `}</style>
+
+      {/* NAV */}
+      <nav className="nav">
+        <a href="/" className="nav-logo">Ribel</a>
+        <ul className="nav-links">
+          <li><a href="#app">La App</a></li>
+          <li><a href="#academia">Academia</a></li>
+          <li><a href="/login" className="nav-cta">Ingresar</a></li>
+        </ul>
+      </nav>
+
+      {/* HERO */}
+      <section className="hero">
+        <p className="hero-eyebrow">Para profesionales de la belleza y el bienestar</p>
+        <h1>Gestioná tu negocio.<br /><em>Crecé como profesional.</em></h1>
+        <p className="hero-sub">Todo lo que necesitás para organizar tu agenda, tus clientes y tus finanzas — y la formación para llevar tu negocio al siguiente nivel.</p>
+        <div className="hero-ctas">
+          <a href="#app" className="btn-negro">Conocer la App</a>
+          <a href="#academia" className="btn-outline">Ver Academia</a>
         </div>
-      )}
+      </section>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <NotificacionesCampana
-  onVerTurno={(sesionId, fecha) => {
-    setTurnoResaltado(null)
-    setFechaInicialAgenda(null)
-    setTimeout(() => {
-      setTurnoResaltado(sesionId)
-      setFechaInicialAgenda(fecha)
-      setPestanaActiva('agenda')
-    }, 50)
-  }}
-/>
-          <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
+      {/* PARA QUIEN */}
+      <section className="para-quien">
+        <p className="section-eyebrow">¿Para quién es Ribel?</p>
+        <h2 className="section-title">Hecho para quienes trabajan<br />de forma independiente</h2>
+        <p className="section-sub">Si tenés tu propio negocio en el mundo de la salud, la belleza o el bienestar, Ribel está pensado para vos.</p>
+        <div className="tags">
+          {['Esteticistas', 'Masajistas', 'Manicuras', 'Cosmetólogas', 'Instructoras de yoga', 'Nutricionistas', 'Psicólogas', 'Kinesiólogas', 'Personal trainers'].map(p => (
+            <span key={p} className="tag">{p}</span>
+          ))}
         </div>
-      </div>
+      </section>
 
-      <div style={{ marginBottom: '0px' }}>
-        <button style={tabStyle(pestanaActiva === 'configuracion')} onClick={() => setPestanaActiva('configuracion')}>
-          ⚙️ Configuración
-        </button>
-        <button style={tabStyle(pestanaActiva === 'turnos')} onClick={() => setPestanaActiva('turnos')}>
-          📋 Turnos
-        </button>
-        <button style={tabStyle(pestanaActiva === 'finanzas')} onClick={() => setPestanaActiva('finanzas')}>
-          💰 Finanzas
-        </button>
-        <button style={tabStyle(pestanaActiva === 'agenda')} onClick={() => setPestanaActiva('agenda')}>
-          📅 Agenda
-        </button>
-      </div>
+      {/* APP */}
+      <section className="app-section" id="app">
+        <div className="section-inner">
+          <div style={{ textAlign: 'center' }}>
+            <p className="section-eyebrow">Ribel Gestión — La App</p>
+            <h2 className="section-title">Tu negocio organizado,<br />desde el celular</h2>
+            <p className="section-sub">Agenda, clientes, servicios y finanzas en un solo lugar. Sin papeles, sin excusas.</p>
+          </div>
 
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '0 12px 12px 12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <div className="app-grid">
+            <div className="features">
+              {[
+                { icon: '📅', title: 'Agenda inteligente', desc: 'Gestioná tus turnos con horarios de mañana y tarde configurables. Tus clientes reservan solos.' },
+                { icon: '👥', title: 'Gestión de clientes', desc: 'Historial, datos y seguimiento de cada clienta en un solo lugar.' },
+                { icon: '💰', title: 'Control de finanzas', desc: 'Registrá ingresos y gastos. Sabé exactamente cómo está tu negocio cada mes.' },
+                { icon: '🔔', title: 'Notificaciones en tiempo real', desc: 'Recibís un aviso cada vez que alguien reserva un turno.' },
+              ].map(f => (
+                <div key={f.title} className="feature">
+                  <div className="feature-icon">{f.icon}</div>
+                  <div className="feature-body">
+                    <h4>{f.title}</h4>
+                    <p>{f.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-        {pestanaActiva === 'configuracion' && (
-          <TabConfiguracion
-            clientes={clientes} servicios={servicios}
-            mostrarClientes={mostrarClientes} setMostrarClientes={setMostrarClientes}
-            mostrarServicios={mostrarServicios} setMostrarServicios={setMostrarServicios}
-            nombre={nombre} setNombre={setNombre}
-            telefono={telefono} setTelefono={setTelefono}
-            nuevoServicioNombre={nuevoServicioNombre} setNuevoServicioNombre={setNuevoServicioNombre}
-nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevoServicioDuracion}
-            userId={userId!} cargarClientes={cargarClientes} cargarServicios={cargarServicios}
-            eliminarCliente={eliminarCliente} eliminarServicio={eliminarServicio}
-            card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
-          />
-        )}
+            <div className="pricing-box">
+              <h3>Elegí tu plan</h3>
+              <div className="planes">
+                <div className="plan">
+                  <p className="plan-nombre">Básico</p>
+                  <p className="plan-precio">Gratis <span>para siempre</span></p>
+                  <p className="plan-desc">Funciones esenciales para arrancar</p>
+                </div>
+                <div className="plan pro">
+                  <span className="plan-badge">Más elegido</span>
+                  <p className="plan-nombre">Pro</p>
+                  <p className="plan-precio">$7.000 <span>/ mes</span></p>
+                  <p className="plan-desc">Todas las funciones, sin límites</p>
+                </div>
+              </div>
+              <a href="/login" className="btn-full">Empezar gratis</a>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        {pestanaActiva === 'turnos' && (
-          <TabTurnos
-            clientes={clientes} sesiones={sesiones} servicios={servicios}
-            busquedaCliente={busquedaCliente} setBusquedaCliente={setBusquedaCliente}
-            clienteSeleccionado={clienteSeleccionado} setClienteSeleccionado={setClienteSeleccionado}
-            busquedaServicio={busquedaServicio} setBusquedaServicio={setBusquedaServicio}
-            servicioSeleccionado={servicioSeleccionado} setServicioSeleccionado={setServicioSeleccionado}
-            fecha={fecha} setFecha={setFecha}
-            monto={monto} setMonto={setMonto}
-            horario={horario} setHorario={setHorario}
-            monto2={monto2} setMonto2={setMonto2}
-            formaPago2={formaPago2} setFormaPago2={setFormaPago2}
-            formaPago={formaPago} setFormaPago={setFormaPago}
-            montoSenia={montoSenia} setMontoSenia={setMontoSenia}
-            fechaSenia={fechaSenia} setFechaSenia={setFechaSenia}
-            mesSeleccionado={mesSeleccionado} setMesSeleccionado={setMesSeleccionado}
-            totalEfectivo={totalEfectivo} totalTransferencia={totalTransferencia} totalMes={totalMes}
-            totalCuentaCorriente={totalCuentaCorriente}
-            rankingServicios={rankingServicios}
-            editandoId={editandoId} setEditandoId={setEditandoId}
-            editFecha={editFecha} setEditFecha={setEditFecha}
-            editServicio={editServicio} setEditServicio={setEditServicio}
-            editMonto={editMonto} setEditMonto={setEditMonto}
-            editFormaPago={editFormaPago} setEditFormaPago={setEditFormaPago}
-            clienteHistorial={clienteHistorial} setClienteHistorial={setClienteHistorial}
-            historial={historial}
-            agregarSesion={agregarSesion} eliminarSesion={eliminarSesion}
-            toggleFacturado={toggleFacturado} iniciarEdicion={iniciarEdicion}
-            cobrarSesion={cobrarSesion}
-            guardarEdicion={guardarEdicion} cargarHistorial={cargarHistorial}
-            card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
-            th={th} td={td}
-          />
-        )}
+      {/* ACADEMIA */}
+      <section className="academia-section" id="academia">
+        <p className="section-eyebrow">Ribel Academia</p>
+        <h2 className="section-title">El conocimiento que<br />nadie te enseñó</h2>
+        <p className="section-sub">Aprendé a gestionar tu negocio como una profesional. Formación práctica, a tu ritmo.</p>
 
-        {pestanaActiva === 'agenda' && (
-           <TabAgenda
-  userId={userId!}
-  turnoResaltado={turnoResaltado}
-  fechaInicial={fechaInicialAgenda}
-  onTurnoResaltadoVisto={() => setTurnoResaltado(null)}
-  />
-        )}
+        <div className="academia-card">
+          <div className="academia-info">
+            <h3>Academia Ribel</h3>
+            <p>Un programa completo para que dejes de improvisar y empieces a tomar decisiones con claridad. Precios, clientes, agenda, finanzas — todo lo que necesitás saber para que tu negocio funcione de verdad.</p>
+            <ul className="academia-list">
+              <li>Módulos en video, a tu ritmo</li>
+              <li>Material descargable en PDF</li>
+              <li>Recursos y herramientas prácticas</li>
+              <li>Acceso de por vida</li>
+              <li>Actualizaciones incluidas</li>
+            </ul>
+          </div>
 
-        {pestanaActiva === 'finanzas' && (
-          <TabFinanzas
-            gastos={gastos}
-            gastoFecha={gastoFecha} setGastoFecha={setGastoFecha}
-            gastoDescripcion={gastoDescripcion} setGastoDescripcion={setGastoDescripcion}
-            gastoMonto={gastoMonto} setGastoMonto={setGastoMonto}
-            gastoTipo={gastoTipo} setGastoTipo={setGastoTipo}
-            gastoCategoria={gastoCategoria} setGastoCategoria={setGastoCategoria}
-            mesGastos={mesGastos} setMesGastos={setMesGastos}
-            totalIngresos={totalIngresos} totalEgresos={totalEgresos} balanceNeto={balanceNeto}
-            agregarGasto={agregarGasto} eliminarGasto={eliminarGasto}
-            card={card} input={input} btnPrimary={btnPrimary} th={th} td={td}
-          />
-        )}
+          <div className="precio-box">
+            <p className="precio-label">Pago único</p>
+            <p className="precio-monto">$25.000</p>
+            <p className="precio-usd">USD 23 · un solo pago</p>
+            <a href="#" className="btn-arena">Quiero la Academia</a>
+            <p className="precio-nota">MercadoPago · PayPal · Tarjeta</p>
+          </div>
+        </div>
+      </section>
 
-      </div>
-    </main>
+      {/* FOOTER */}
+      <footer>
+        <p>© 2026 Ribel Gestión · <a href="mailto:hola@ribelgestion.com">hola@ribelgestion.com</a></p>
+      </footer>
+    </>
   )
 }

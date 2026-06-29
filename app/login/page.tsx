@@ -33,7 +33,7 @@ export default function Login() {
       setError('Email o contraseña incorrectos')
       setCargando(false)
     } else {
-      window.location.href = '/'
+      window.location.href = '/dashboard'
     }
   }
 
