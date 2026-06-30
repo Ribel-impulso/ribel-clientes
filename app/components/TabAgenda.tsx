@@ -51,7 +51,13 @@ function formatearFechaLegible(fechaISO: string): string {
 }
 
 function limpiarWhatsapp(numero: string): string {
-  const soloDigitos = numero.replace(/\D/g, '');
+  const numeroLimpio = numero.trim();
+  // Si ya viene en formato internacional (+54911..., +598..., etc), solo sacamos el +
+  if (numeroLimpio.startsWith('+')) {
+    return numeroLimpio.replace(/\D/g, '');
+  }
+  // Compatibilidad con clientes viejos guardados sin código de país (asumimos Argentina)
+  const soloDigitos = numeroLimpio.replace(/\D/g, '');
   if (soloDigitos.startsWith('54')) return soloDigitos;
   const sinCero = soloDigitos.startsWith('0') ? soloDigitos.slice(1) : soloDigitos;
   return '54' + sinCero;

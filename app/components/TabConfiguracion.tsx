@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import PhoneInput from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -41,6 +43,14 @@ interface Props {
   btnPrimary: React.CSSProperties
   btnSecondary: React.CSSProperties
 }
+
+// Estilo para que el PhoneInput combine con el resto de los inputs de la app
+const phoneInputWrapperStyle = (base: React.CSSProperties): React.CSSProperties => ({
+  ...base,
+  display: 'flex',
+  alignItems: 'center',
+  padding: '0 10px',
+})
 
 function CambiarPassword({ btnPrimary, inp }: { btnPrimary: React.CSSProperties, inp: React.CSSProperties }) {
   const [nuevaPassword, setNuevaPassword] = useState('')
@@ -337,6 +347,8 @@ export default function TabConfiguracion({
   const [editandoServicio, setEditandoServicio] = useState<string | null>(null)
   const [editServicioNombre, setEditServicioNombre] = useState('')
   const [editServicioDuracion, setEditServicioDuracion] = useState(60)
+  const [errorTelefono, setErrorTelefono] = useState('')
+  const [errorEditTelefono, setErrorEditTelefono] = useState('')
 
   async function cargarArchivos(clienteId: string) {
     const { data } = await supabase.from('archivos_clientes').select('*').eq('cliente_id', clienteId).eq('user_id', userId).order('created_at', { ascending: false })
@@ -349,6 +361,11 @@ export default function TabConfiguracion({
   }
 
   async function guardarEdicionCliente(id: string) {
+    if (editWhatsapp && !editWhatsapp.startsWith('+')) {
+      setErrorEditTelefono('Revisá el teléfono, el formato no parece válido.')
+      return
+    }
+    setErrorEditTelefono('')
     await supabase.from('clientes').update({ nombre: editNombre, whatsapp: editWhatsapp }).eq('id', id)
     setEditandoCliente(null)
     cargarClientes(userId)
@@ -400,8 +417,13 @@ export default function TabConfiguracion({
   }
 
   async function agregarCliente() {
-    const whatsappLimpio = telefono.replace(/\D/g, '')
-    await supabase.from('clientes').insert([{ nombre, whatsapp: whatsappLimpio, user_id: userId }])
+    if (!telefono || !telefono.startsWith('+')) {
+      setErrorTelefono('Elegí el país y completá el teléfono correctamente.')
+      return
+    }
+    setErrorTelefono('')
+    // telefono ya viene en formato internacional E.164, ej: +5491122334455
+    await supabase.from('clientes').insert([{ nombre, whatsapp: telefono, user_id: userId }])
     setNombre('')
     setTelefono('')
     cargarClientes(userId)
@@ -419,12 +441,45 @@ export default function TabConfiguracion({
     marginRight: '8px', marginBottom: '8px', fontFamily: 'Arial', width: '220px'
   }
 
+  // Estilo del contenedor del PhoneInput para que se vea como los demás inputs de la app
+  const phoneWrapper: React.CSSProperties = {
+    border: '1px solid #e3dfd6',
+    borderRadius: '8px',
+    padding: '10px',
+    marginRight: '8px',
+    marginBottom: '8px',
+    fontFamily: 'Arial',
+    width: '240px',
+    display: 'inline-flex',
+    boxSizing: 'border-box',
+  }
+
   return (
     <>
+      <style>{`
+        .PhoneInputInput {
+          border: none;
+          outline: none;
+          font-family: Arial;
+          font-size: 14px;
+          width: 100%;
+          background: transparent;
+        }
+      `}</style>
+
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
         <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
-        <input placeholder="WhatsApp (ej: 3492123456)" value={telefono} onChange={e => setTelefono(e.target.value)} style={input} />
+        <div style={phoneWrapper}>
+          <PhoneInput
+            international
+            defaultCountry="AR"
+            placeholder="Teléfono del cliente"
+            value={telefono}
+            onChange={(v: string | undefined) => setTelefono(v || '')}
+          />
+        </div>
+        {errorTelefono && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{errorTelefono}</p>}
         <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
       </div>
 
@@ -452,7 +507,16 @@ export default function TabConfiguracion({
                     {editandoCliente === c.id ? (
                       <div style={{ marginBottom: '16px' }}>
                         <input value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre" style={{ ...input, marginBottom: '8px' }} />
-                        <input value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="WhatsApp (ej: 3492123456)" style={{ ...input, marginBottom: '8px' }} />
+                        <div style={{ ...phoneWrapper, display: 'flex' }}>
+                          <PhoneInput
+                            international
+                            defaultCountry="AR"
+                            placeholder="Teléfono del cliente"
+                            value={editWhatsapp}
+                            onChange={(v: string | undefined) => setEditWhatsapp(v || '')}
+                          />
+                        </div>
+                        {errorEditTelefono && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{errorEditTelefono}</p>}
                         <button onClick={() => guardarEdicionCliente(c.id)} style={{ ...btnPrimary, marginRight: '8px', fontSize: '13px', padding: '6px 14px' }}>Guardar</button>
                         <button onClick={() => setEditandoCliente(null)} style={{ ...btnSecondary, fontSize: '13px', padding: '6px 14px' }}>Cancelar</button>
                       </div>
