@@ -6,16 +6,25 @@ import 'react-phone-number-input/style.css'
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+interface Bloque {
+  inicio: string
+  fin: string
+  duracion: number
+}
+
 interface Disponibilidad {
   id?: string
   dia_semana: number
-  hora_inicio: string | null
-  hora_fin: string | null
-  hora_inicio_2?: string | null
-  hora_fin_2?: string | null
-  duracion_turno: number
-  duracion_turno_2?: number | null
   activo: boolean
+  bloques: Bloque[]
+}
+
+interface BloqueoPersonal {
+  id: string
+  fecha: string
+  hora_inicio: string
+  hora_fin: string
+  motivo: string | null
 }
 
 interface Props {
@@ -44,7 +53,6 @@ interface Props {
   btnSecondary: React.CSSProperties
 }
 
-// Estilo para que el PhoneInput combine con el resto de los inputs de la app
 const phoneInputWrapperStyle = (base: React.CSSProperties): React.CSSProperties => ({
   ...base,
   display: 'flex',
@@ -91,6 +99,12 @@ function CambiarPassword({ btnPrimary, inp }: { btnPrimary: React.CSSProperties,
   )
 }
 
+const DURACIONES = [15, 20, 30, 45, 60, 90, 120]
+
+function bloqueVacio(): Bloque {
+  return { inicio: '09:00', fin: '13:00', duracion: 60 }
+}
+
 function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
   userId: string
   card: React.CSSProperties
@@ -103,13 +117,8 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
 
   const disponibilidadDefault: Disponibilidad[] = DIAS_SEMANA.map((_, i) => ({
     dia_semana: i,
-    hora_inicio: null,
-    hora_fin: null,
-    hora_inicio_2: null,
-    hora_fin_2: null,
-    duracion_turno: 60,
-    duracion_turno_2: null,
     activo: i >= 1 && i <= 5,
+    bloques: i >= 1 && i <= 5 ? [bloqueVacio()] : [],
   }))
 
   useEffect(() => {
@@ -126,7 +135,13 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     if (data && data.length > 0) {
       const merged = disponibilidadDefault.map(def => {
         const guardado = data.find((d: any) => d.dia_semana === def.dia_semana)
-        return guardado ? { ...guardado } : def
+        if (!guardado) return def
+        return {
+          id: guardado.id,
+          dia_semana: guardado.dia_semana,
+          activo: guardado.activo,
+          bloques: Array.isArray(guardado.bloques) ? guardado.bloques : [],
+        }
       })
       setDisponibilidad(merged)
     } else {
@@ -134,9 +149,29 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     }
   }
 
-  function actualizarDia(dia: number, campo: keyof Disponibilidad, valor: any) {
+  function actualizarDia(dia: number, campo: 'activo', valor: any) {
     setDisponibilidad(prev => prev.map(d =>
       d.dia_semana === dia ? { ...d, [campo]: valor } : d
+    ))
+  }
+
+  function agregarBloque(dia: number) {
+    setDisponibilidad(prev => prev.map(d =>
+      d.dia_semana === dia ? { ...d, bloques: [...d.bloques, bloqueVacio()] } : d
+    ))
+  }
+
+  function quitarBloque(dia: number, index: number) {
+    setDisponibilidad(prev => prev.map(d =>
+      d.dia_semana === dia ? { ...d, bloques: d.bloques.filter((_, i) => i !== index) } : d
+    ))
+  }
+
+  function actualizarBloque(dia: number, index: number, campo: keyof Bloque, valor: any) {
+    setDisponibilidad(prev => prev.map(d =>
+      d.dia_semana === dia
+        ? { ...d, bloques: d.bloques.map((b, i) => i === index ? { ...b, [campo]: valor } : b) }
+        : d
     ))
   }
 
@@ -147,13 +182,8 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
       const payload = {
         user_id: userId,
         dia_semana: d.dia_semana,
-        hora_inicio: d.hora_inicio ?? null,
-        hora_fin: d.hora_fin ?? null,
-        hora_inicio_2: d.hora_inicio_2 ?? null,
-        hora_fin_2: d.hora_fin_2 ?? null,
-        duracion_turno: d.duracion_turno,
-        duracion_turno_2: d.duracion_turno_2 ?? null,
         activo: d.activo,
+        bloques: d.bloques,
       }
       if (d.id) {
         await supabase.from('disponibilidad').update(payload).eq('id', d.id)
@@ -167,11 +197,26 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     setTimeout(() => setMensaje(''), 3000)
   }
 
+  // Grid fijo para que Desde/Hasta queden siempre alineados, sin importar
+  // el índice del bloque ni el contenido de los demás.
+  const filaBloque: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr auto auto',
+    gap: '8px',
+    alignItems: 'end',
+    marginBottom: '8px',
+  }
+  const campo: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' }
+  const labelCampo: React.CSSProperties = { fontSize: '11px', color: '#6B7280' }
+  const inputHora: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '100%', boxSizing: 'border-box' }
+  const selectDuracion: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '6px 8px', fontSize: '13px' }
+  const btnQuitar: React.CSSProperties = { fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 4px' }
+
   return (
     <div style={card}>
-      <h2 style={{ color: '#161616', marginTop: 0 }}>🗓️ Días y horarios de atención</h2>
+      <h2 style={{ color: '#161616', marginTop: 0 }}>Días y horarios de atención</h2>
       <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
-        Configurá los días y horarios en los que atendés. Podés agregar turno mañana y/o turno tarde por día.
+        Configurá los días y horarios en los que atendés. Podés agregar tantos bloques como necesites por día (por ejemplo, para horario cortado con receso al mediodía).
       </p>
       {disponibilidad.map((d) => (
         <div key={d.dia_semana} style={{
@@ -207,108 +252,39 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
           </div>
 
           {d.activo && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-              {/* TURNO MAÑANA */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '90px' }}>☀️ Turno mañana</span>
-                {d.hora_inicio ? (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
-                      <input type="time" value={d.hora_inicio ?? ''}
-                        onChange={e => actualizarDia(d.dia_semana, 'hora_inicio', e.target.value)}
-                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
-                      <input type="time" value={d.hora_fin ?? ''}
-                        onChange={e => actualizarDia(d.dia_semana, 'hora_fin', e.target.value)}
-                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
-                      <select value={d.duracion_turno}
-                        onChange={e => actualizarDia(d.dia_semana, 'duracion_turno', Number(e.target.value))}
-                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
-                        <option value={15}>15 min</option>
-                        <option value={20}>20 min</option>
-                        <option value={30}>30 min</option>
-                        <option value={45}>45 min</option>
-                        <option value={60}>60 min</option>
-                        <option value={90}>90 min</option>
-                        <option value={120}>120 min</option>
-                      </select>
-                    </div>
-                    <button
-                      onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio', null); actualizarDia(d.dia_semana, 'hora_fin', null) }}
-                      style={{ fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Quitar
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => { actualizarDia(d.dia_semana, 'hora_inicio', '09:00'); actualizarDia(d.dia_semana, 'hora_fin', '13:00') }}
-                    style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-                    + Agregar bloque
+            <div>
+              {d.bloques.map((b, i) => (
+                <div key={i} style={filaBloque}>
+                  <div style={campo}>
+                    <label style={labelCampo}>Desde</label>
+                    <input type="time" value={b.inicio}
+                      onChange={e => actualizarBloque(d.dia_semana, i, 'inicio', e.target.value)}
+                      style={inputHora} />
+                  </div>
+                  <div style={campo}>
+                    <label style={labelCampo}>Hasta</label>
+                    <input type="time" value={b.fin}
+                      onChange={e => actualizarBloque(d.dia_semana, i, 'fin', e.target.value)}
+                      style={inputHora} />
+                  </div>
+                  <div style={campo}>
+                    <label style={labelCampo}>Duración turno</label>
+                    <select value={b.duracion}
+                      onChange={e => actualizarBloque(d.dia_semana, i, 'duracion', Number(e.target.value))}
+                      style={selectDuracion}>
+                      {DURACIONES.map(dur => <option key={dur} value={dur}>{dur} min</option>)}
+                    </select>
+                  </div>
+                  <button onClick={() => quitarBloque(d.dia_semana, i)} style={btnQuitar}>
+                    Quitar
                   </button>
-                )}
-              </div>
-
-              {/* TURNO TARDE */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ba9a7d', minWidth: '90px' }}>🌙 Turno tarde</span>
-                {d.hora_inicio_2 ? (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Desde</label>
-                      <input type="time" value={d.hora_inicio_2}
-                        onChange={e => actualizarDia(d.dia_semana, 'hora_inicio_2', e.target.value)}
-                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: '#6B7280' }}>Hasta</label>
-                      <input type="time" value={d.hora_fin_2 ?? ''}
-                        onChange={e => actualizarDia(d.dia_semana, 'hora_fin_2', e.target.value)}
-                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: '#6B7280' }}>⏱️</label>
-                      <select value={d.duracion_turno_2 ?? d.duracion_turno}
-                        onChange={e => actualizarDia(d.dia_semana, 'duracion_turno_2', Number(e.target.value))}
-                        style={{ border: '1px solid #e3dfd6', borderRadius: '6px', padding: '5px 8px', fontSize: '13px' }}>
-                        <option value={15}>15 min</option>
-                        <option value={20}>20 min</option>
-                        <option value={30}>30 min</option>
-                        <option value={45}>45 min</option>
-                        <option value={60}>60 min</option>
-                        <option value={90}>90 min</option>
-                        <option value={120}>120 min</option>
-                      </select>
-                    </div>
-                    <button
-                      onClick={() => {
-                        actualizarDia(d.dia_semana, 'hora_inicio_2', null)
-                        actualizarDia(d.dia_semana, 'hora_fin_2', null)
-                        actualizarDia(d.dia_semana, 'duracion_turno_2', null)
-                      }}
-                      style={{ fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Quitar
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => {
-                      actualizarDia(d.dia_semana, 'hora_inicio_2', '17:00')
-                      actualizarDia(d.dia_semana, 'hora_fin_2', '20:00')
-                      actualizarDia(d.dia_semana, 'duracion_turno_2', d.duracion_turno)
-                    }}
-                    style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-                    + Agregar bloque
-                  </button>
-                )}
-              </div>
-
+                </div>
+              ))}
+              <button
+                onClick={() => agregarBloque(d.dia_semana)}
+                style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', marginTop: '4px' }}>
+                + Agregar bloque
+              </button>
             </div>
           )}
         </div>
@@ -319,6 +295,88 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
         </button>
         {mensaje && <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensaje}</span>}
       </div>
+    </div>
+  )
+}
+
+function SeccionBloqueosPersonales({ userId, card, btnPrimary, input }: {
+  userId: string
+  card: React.CSSProperties
+  btnPrimary: React.CSSProperties
+  input: React.CSSProperties
+}) {
+  const [bloqueos, setBloqueos] = useState<BloqueoPersonal[]>([])
+  const [fecha, setFecha] = useState('')
+  const [horaInicio, setHoraInicio] = useState('')
+  const [horaFin, setHoraFin] = useState('')
+  const [motivo, setMotivo] = useState('')
+  const [error, setError] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  useEffect(() => { cargarBloqueos() }, [userId])
+
+  async function cargarBloqueos() {
+    const hoy = new Date().toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('bloqueos_personales')
+      .select('id, fecha, hora_inicio, hora_fin, motivo')
+      .eq('user_id', userId)
+      .gte('fecha', hoy)
+      .order('fecha')
+      .order('hora_inicio')
+    if (data) setBloqueos(data as BloqueoPersonal[])
+  }
+
+  async function agregarBloqueo() {
+    setError('')
+    if (!fecha || !horaInicio || !horaFin) { setError('Completá fecha, desde y hasta'); return }
+    if (horaFin <= horaInicio) { setError('El horario "hasta" debe ser posterior al "desde"'); return }
+    setGuardando(true)
+    const { error: err } = await supabase.from('bloqueos_personales').insert([{
+      user_id: userId, fecha, hora_inicio: horaInicio, hora_fin: horaFin, motivo: motivo || null,
+    }])
+    if (err) { setError('Error al guardar: ' + err.message); setGuardando(false); return }
+    setFecha(''); setHoraInicio(''); setHoraFin(''); setMotivo('')
+    await cargarBloqueos()
+    setGuardando(false)
+  }
+
+  async function eliminarBloqueo(id: string) {
+    await supabase.from('bloqueos_personales').delete().eq('id', id)
+    cargarBloqueos()
+  }
+
+  return (
+    <div style={card}>
+      <h2 style={{ color: '#161616', marginTop: 0 }}>Bloqueos personales</h2>
+      <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
+        Reservá horarios para trámites, turnos o compromisos personales. Estos bloqueos ocupan el horario en tu agenda, pero nunca se muestran ni se explican en la agenda pública de tus clientes: simplemente aparecen como no disponibles.
+      </p>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
+        <input type="time" value={horaInicio} onChange={e => setHoraInicio(e.target.value)} style={input} />
+        <input type="time" value={horaFin} onChange={e => setHoraFin(e.target.value)} style={input} />
+        <input type="text" placeholder="Motivo (opcional, solo vos lo ves)" value={motivo} onChange={e => setMotivo(e.target.value)} style={input} />
+      </div>
+      {error && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{error}</p>}
+      <button onClick={agregarBloqueo} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
+        {guardando ? 'Guardando...' : 'Agregar bloqueo'}
+      </button>
+
+      {bloqueos.length > 0 && (
+        <div style={{ marginTop: '16px' }}>
+          {bloqueos.map(b => (
+            <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e3dfd6', borderRadius: '8px', padding: '10px 14px', marginBottom: '8px', backgroundColor: '#fdf9f5' }}>
+              <div style={{ fontSize: '13px', color: '#161616' }}>
+                <strong>{new Date(b.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}</strong>
+                {' · '}{b.hora_inicio.substring(0, 5)} a {b.hora_fin.substring(0, 5)}
+                {b.motivo && <span style={{ color: '#6B7280' }}> · {b.motivo}</span>}
+              </div>
+              <button onClick={() => eliminarBloqueo(b.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -422,7 +480,6 @@ export default function TabConfiguracion({
       return
     }
     setErrorTelefono('')
-    // telefono ya viene en formato internacional E.164, ej: +5491122334455
     await supabase.from('clientes').insert([{ nombre, whatsapp: telefono, user_id: userId }])
     setNombre('')
     setTelefono('')
@@ -441,7 +498,6 @@ export default function TabConfiguracion({
     marginRight: '8px', marginBottom: '8px', fontFamily: 'Arial', width: '220px'
   }
 
-  // Estilo del contenedor del PhoneInput para que se vea como los demás inputs de la app
   const phoneWrapper: React.CSSProperties = {
     border: '1px solid #e3dfd6',
     borderRadius: '8px',
@@ -655,6 +711,8 @@ export default function TabConfiguracion({
       </div>
 
       <SeccionDisponibilidad userId={userId} card={card} btnPrimary={btnPrimary} btnSecondary={btnSecondary} />
+
+      <SeccionBloqueosPersonales userId={userId} card={card} btnPrimary={btnPrimary} input={input} />
 
       <div style={card}>
         <CambiarPassword btnPrimary={btnPrimary} inp={inp} />

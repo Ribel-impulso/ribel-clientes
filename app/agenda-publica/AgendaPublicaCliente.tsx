@@ -6,19 +6,32 @@ import { supabase } from '../../lib/supabase'
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS_SEMANA_CORTO = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
-function generarSlots(horaInicio: string, horaFin: string, duracion: number): string[] {
+interface Bloque {
+  inicio: string
+  fin: string
+  duracion: number
+}
+
+// Genera los horarios de inicio posibles dentro de un bloque, pero SOLO si el
+// servicio elegido (duracionServicio) entra completo antes de que termine el bloque.
+// "intervalo" es el paso entre turnos (ej: cada 30 min), independiente de cuánto dure el servicio.
+function generarSlots(horaInicio: string, horaFin: string, intervalo: number, duracionServicio: number): string[] {
   const slots: string[] = []
   const [hI, mI] = horaInicio.split(':').map(Number)
   const [hF, mF] = horaFin.split(':').map(Number)
   let totalMin = hI * 60 + mI
   const finMin = hF * 60 + mF
-  while (totalMin + duracion <= finMin) {
+  while (totalMin + duracionServicio <= finMin) {
     const h = String(Math.floor(totalMin / 60)).padStart(2, '0')
     const m = String(totalMin % 60).padStart(2, '0')
     slots.push(`${h}:${m}`)
-    totalMin += duracion
+    totalMin += intervalo
   }
   return slots
+}
+
+function haySolapamiento(inicioA: number, finA: number, inicioB: number, finB: number): boolean {
+  return inicioA < finB && finA > inicioB
 }
 
 function limpiarWA(numero: string): string {
@@ -41,6 +54,7 @@ export default function AgendaPublicaCliente() {
   const [servicioSeleccionado, setServicioSeleccionado] = useState<any>(null)
   const [disponibilidad, setDisponibilidad] = useState<any[]>([])
   const [sesionesOcupadas, setSesionesOcupadas] = useState<any[]>([])
+  const [bloqueosOcupados, setBloqueosOcupados] = useState<any[]>([])
   const [anio, setAnio] = useState(new Date().getFullYear())
   const [mes, setMes] = useState(new Date().getMonth())
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null)
@@ -61,14 +75,25 @@ export default function AgendaPublicaCliente() {
 
   useEffect(() => {
     if (!profesionalId) return
-    async function cargarSesiones() {
+    async function cargarSesionesYBloqueos() {
       const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`
       const ultimoDia = new Date(anio, mes + 1, 0)
       const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`
-      const { data } = await supabase.from('sesiones').select('fecha, horario, duracion').eq('user_id', profesionalId).gte('fecha', primerDia).lte('fecha', ultimoDiaStr)
-      if (data) setSesionesOcupadas(data)
+
+      const { data: sesiones } = await supabase.from('sesiones').select('fecha, horario, duracion').eq('user_id', profesionalId).gte('fecha', primerDia).lte('fecha', ultimoDiaStr)
+      if (sesiones) setSesionesOcupadas(sesiones)
+
+      // Bloqueos personales del profesional: nunca se muestra el motivo,
+      // solo se usan para saber qué horarios NO están disponibles.
+      const { data: bloqueos } = await supabase
+        .from('bloqueos_personales')
+        .select('fecha, hora_inicio, hora_fin')
+        .eq('user_id', profesionalId)
+        .gte('fecha', primerDia)
+        .lte('fecha', ultimoDiaStr)
+      if (bloqueos) setBloqueosOcupados(bloqueos)
     }
-    cargarSesiones()
+    cargarSesionesYBloqueos()
   }, [anio, mes, profesionalId])
 
   if (!profesionalId) {
@@ -126,28 +151,38 @@ export default function AgendaPublicaCliente() {
     return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null
   })()
 
-  const slotsDelDia = (() => {
-  if (!dispDelDia) return []
-  const slots1 = (dispDelDia.hora_inicio && dispDelDia.hora_fin)
-    ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
-    : []
-  const slots2 = (dispDelDia.hora_inicio_2 && dispDelDia.hora_fin_2)
-    ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno)
-    : []
-  return [...slots1, ...slots2]
-})()
+  const bloquesDelDia: Bloque[] = Array.isArray(dispDelDia?.bloques) ? dispDelDia.bloques : []
+  const duracionServicio: number = servicioSeleccionado?.duracion ?? 60
 
+  // Un slot es libre si el servicio elegido (desde el horario del slot hasta
+  // slot + duración) no se solapa con ninguna sesión reservada ni con
+  // ningún bloqueo personal del profesional.
   const slotEsLibre = (slot: string) => {
-    const sesionesDelDia = sesionesOcupadas.filter(s => s.fecha === diaSeleccionado)
     const [h, m] = slot.split(':').map(Number)
-    const slotMin = h * 60 + m
-    return !sesionesDelDia.some(s => {
-      if (!s.horario) return false
-      const [sh, sm] = s.horario.substring(0, 5).split(':').map(Number)
-      const inicio = sh * 60 + sm
-      const dur = s.duracion ?? dispDelDia?.duracion_turno ?? 60
-      return slotMin >= inicio && slotMin < inicio + dur
-    })
+    const inicioNuevo = h * 60 + m
+    const finNuevo = inicioNuevo + duracionServicio
+
+    const chocaConSesion = sesionesOcupadas
+      .filter(s => s.fecha === diaSeleccionado)
+      .some(s => {
+        if (!s.horario) return false
+        const [sh, sm] = s.horario.substring(0, 5).split(':').map(Number)
+        const inicioExistente = sh * 60 + sm
+        const finExistente = inicioExistente + (s.duracion ?? 60)
+        return haySolapamiento(inicioNuevo, finNuevo, inicioExistente, finExistente)
+      })
+    if (chocaConSesion) return false
+
+    const chocaConBloqueo = bloqueosOcupados
+      .filter(b => b.fecha === diaSeleccionado)
+      .some(b => {
+        const [bih, bim] = b.hora_inicio.substring(0, 5).split(':').map(Number)
+        const [bfh, bfm] = b.hora_fin.substring(0, 5).split(':').map(Number)
+        const inicioB = bih * 60 + bim
+        const finB = bfh * 60 + bfm
+        return haySolapamiento(inicioNuevo, finNuevo, inicioB, finB)
+      })
+    return !chocaConBloqueo
   }
 
   async function confirmarTurno() {
@@ -161,7 +196,7 @@ export default function AgendaPublicaCliente() {
         fecha: diaSeleccionado,
         horario: horarioSeleccionado,
         tipo_masaje: servicioSeleccionado.nombre,
-        duracion: servicioSeleccionado.duracion ?? dispDelDia?.duracion_turno ?? null,
+        duracion: duracionServicio,
         user_id: profesionalId
       })
     })
@@ -269,55 +304,37 @@ export default function AgendaPublicaCliente() {
           <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px', textTransform: 'capitalize' }}>{labelFecha}</h2>
           <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>Elegí un horario disponible</p>
           <div style={{ marginBottom: '20px' }}>
-  {(() => {
-    const slots1 = (dispDelDia?.hora_inicio && dispDelDia?.hora_fin)
-      ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno)
-      : []
-    const slots2 = (dispDelDia?.hora_inicio_2 && dispDelDia?.hora_fin_2)
-      ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno)
-      : []
-
-    const renderSlots = (slots: string[]) => (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-        {slots.map(slot => {
-          const libre = slotEsLibre(slot)
-          const selec = slot === horarioSeleccionado
-          return (
-            <div key={slot} onClick={() => { if (libre) setHorarioSeleccionado(slot) }}
-              style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: selec ? 700 : 500, cursor: libre ? 'pointer' : 'not-allowed', backgroundColor: selec ? '#ba9a7d' : libre ? '#fdf9f5' : '#F3F4F6', color: selec ? '#fff' : libre ? '#161616' : '#9CA3AF', border: selec ? '2px solid #ba9a7d' : libre ? '1px solid #e3dfd6' : '1px solid #E5E7EB', textDecoration: !libre ? 'line-through' : 'none' }}>
-              {slot}
-            </div>
-          )
-        })}
-      </div>
-    )
-
-    return (
-      <>
-        {slots1.length > 0 && (
-          <div style={{ marginBottom: slots2.length > 0 ? '16px' : '0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
-              <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>☀️ Turno mañana</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
-            </div>
-            {renderSlots(slots1)}
+            {bloquesDelDia.map((bloque, idx) => {
+              const slots = generarSlots(bloque.inicio, bloque.fin, bloque.duracion, duracionServicio)
+              if (slots.length === 0) return null
+              return (
+                <div key={idx} style={{ marginBottom: idx < bloquesDelDia.length - 1 ? '16px' : '0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>{bloque.inicio} a {bloque.fin}</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {slots.map(slot => {
+                      const libre = slotEsLibre(slot)
+                      const selec = slot === horarioSeleccionado
+                      return (
+                        <div key={slot} onClick={() => { if (libre) setHorarioSeleccionado(slot) }}
+                          style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: selec ? 700 : 500, cursor: libre ? 'pointer' : 'not-allowed', backgroundColor: selec ? '#ba9a7d' : libre ? '#fdf9f5' : '#F3F4F6', color: selec ? '#fff' : libre ? '#161616' : '#9CA3AF', border: selec ? '2px solid #ba9a7d' : libre ? '1px solid #e3dfd6' : '1px solid #E5E7EB', textDecoration: !libre ? 'line-through' : 'none' }}>
+                          {slot}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+            {bloquesDelDia.every(b => generarSlots(b.inicio, b.fin, b.duracion, duracionServicio).length === 0) && (
+              <p style={{ color: '#9CA3AF', fontSize: '13px', textAlign: 'center' }}>
+                No hay horarios disponibles para este servicio en el día elegido (la duración del servicio no entra en los bloques configurados).
+              </p>
+            )}
           </div>
-        )}
-        {slots2.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
-              <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>🌙 Turno tarde</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
-            </div>
-            {renderSlots(slots2)}
-          </div>
-        )}
-      </>
-    )
-  })()}
-</div>
           {horarioSeleccionado && (
             <button onClick={confirmarTurno} disabled={cargando} style={{ ...btn, opacity: cargando ? 0.7 : 1 }}>
               {cargando ? 'Confirmando...' : `Confirmar turno a las ${horarioSeleccionado}`}
