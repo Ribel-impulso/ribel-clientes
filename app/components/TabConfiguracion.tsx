@@ -197,23 +197,38 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
     setTimeout(() => setMensaje(''), 3000)
   }
 
-  // Grid fijo para que Desde/Hasta queden siempre alineados, sin importar
-  // el índice del bloque ni el contenido de los demás.
-  const filaBloque: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr auto auto',
-    gap: '8px',
-    alignItems: 'end',
-    marginBottom: '8px',
-  }
-  const campo: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' }
+  const campo: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }
   const labelCampo: React.CSSProperties = { fontSize: '11px', color: '#6B7280' }
   const inputHora: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '100%', boxSizing: 'border-box' }
-  const selectDuracion: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '6px 8px', fontSize: '13px' }
-  const btnQuitar: React.CSSProperties = { fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 4px' }
+  const selectDuracion: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '100%', boxSizing: 'border-box' }
+  const btnQuitar: React.CSSProperties = { fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 4px', whiteSpace: 'nowrap' }
 
   return (
     <div style={card}>
+      <style>{`
+        .disp-fila-bloque {
+          display: grid;
+          grid-template-columns: 1fr 1fr auto auto;
+          gap: 8px;
+          align-items: end;
+          margin-bottom: 10px;
+        }
+        @media (max-width: 480px) {
+          .disp-fila-bloque {
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas:
+              "desde hasta"
+              "duracion quitar";
+            row-gap: 8px;
+            border-bottom: 1px dashed #e3dfd6;
+            padding-bottom: 10px;
+          }
+          .disp-campo-desde { grid-area: desde; }
+          .disp-campo-hasta { grid-area: hasta; }
+          .disp-campo-duracion { grid-area: duracion; }
+          .disp-btn-quitar { grid-area: quitar; justify-self: end; align-self: center; }
+        }
+      `}</style>
       <h2 style={{ color: '#161616', marginTop: 0 }}>Días y horarios de atención</h2>
       <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
         Configurá los días y horarios en los que atendés. Podés agregar tantos bloques como necesites por día (por ejemplo, para horario cortado con receso al mediodía).
@@ -254,20 +269,20 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
           {d.activo && (
             <div>
               {d.bloques.map((b, i) => (
-                <div key={i} style={filaBloque}>
-                  <div style={campo}>
+                <div key={i} className="disp-fila-bloque">
+                  <div className="disp-campo-desde" style={campo}>
                     <label style={labelCampo}>Desde</label>
                     <input type="time" value={b.inicio}
                       onChange={e => actualizarBloque(d.dia_semana, i, 'inicio', e.target.value)}
                       style={inputHora} />
                   </div>
-                  <div style={campo}>
+                  <div className="disp-campo-hasta" style={campo}>
                     <label style={labelCampo}>Hasta</label>
                     <input type="time" value={b.fin}
                       onChange={e => actualizarBloque(d.dia_semana, i, 'fin', e.target.value)}
                       style={inputHora} />
                   </div>
-                  <div style={campo}>
+                  <div className="disp-campo-duracion" style={campo}>
                     <label style={labelCampo}>Duración turno</label>
                     <select value={b.duracion}
                       onChange={e => actualizarBloque(d.dia_semana, i, 'duracion', Number(e.target.value))}
@@ -275,7 +290,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                       {DURACIONES.map(dur => <option key={dur} value={dur}>{dur} min</option>)}
                     </select>
                   </div>
-                  <button onClick={() => quitarBloque(d.dia_semana, i)} style={btnQuitar}>
+                  <button className="disp-btn-quitar" onClick={() => quitarBloque(d.dia_semana, i)} style={btnQuitar}>
                     Quitar
                   </button>
                 </div>

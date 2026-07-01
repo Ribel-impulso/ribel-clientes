@@ -30,16 +30,25 @@ interface Cliente {
   whatsapp?: string | null;
 }
 
+interface Bloque {
+  inicio: string;
+  fin: string;
+  duracion: number;
+}
+
 interface Disponibilidad {
   id?: string;
   dia_semana: number;
+  activo: boolean;
+  bloques: Bloque[];
+}
+
+interface BloqueoPersonal {
+  id: string;
+  fecha: string;
   hora_inicio: string;
   hora_fin: string;
-  hora_inicio_2?: string | null;
-  hora_fin_2?: string | null;
-  duracion_turno: number | null;
-  duracion_turno_2?: number | null; // ← AGREGADO
-  activo: boolean;
+  motivo: string | null;
 }
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -85,13 +94,6 @@ interface TabAgendaProps {
   onTurnoResaltadoVisto?: () => void
 }
 
-interface TabAgendaProps {
-  userId?: string
-  turnoResaltado?: string | null
-  fechaInicial?: string | null
-  onTurnoResaltadoVisto?: () => void
-}
-
 export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurnoResaltadoVisto }: TabAgendaProps) {
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -100,6 +102,7 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [disponibilidad, setDisponibilidad] = useState<Disponibilidad[]>([]);
+  const [bloqueosPersonales, setBloqueosPersonales] = useState<BloqueoPersonal[]>([]);
   const [cargando, setCargando] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [sesionEditando, setSesionEditando] = useState<Partial<Sesion>>({});
@@ -122,7 +125,16 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
           .select('*')
           .eq('user_id', userId)
           .order('dia_semana');
-        if (dataDisp) setDisponibilidad(dataDisp);
+        if (dataDisp) {
+          setDisponibilidad(
+            dataDisp.map((d: any) => ({
+              id: d.id,
+              dia_semana: d.dia_semana,
+              activo: d.activo,
+              bloques: Array.isArray(d.bloques) ? d.bloques : [],
+            }))
+          );
+        }
       }
     };
     cargarDatos();
@@ -142,17 +154,34 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   }, [anio, mes]);
 
   useEffect(() => {
-  if (fechaInicial) {
-    const fecha = new Date(fechaInicial + 'T12:00:00')
-    setAnio(fecha.getFullYear())
-    setMes(fecha.getMonth())
-    setDiaSeleccionado(fechaInicial)
-    setTimeout(() => {
-      const el = document.getElementById(`turno-${turnoResaltado}`)
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 400)
-  }
-}, [fechaInicial, turnoResaltado])
+    const cargarBloqueos = async () => {
+      if (!userId) return;
+      const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
+      const ultimoDia = new Date(anio, mes + 1, 0);
+      const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+      const { data } = await supabase
+        .from('bloqueos_personales')
+        .select('id, fecha, hora_inicio, hora_fin, motivo')
+        .eq('user_id', userId)
+        .gte('fecha', primerDia)
+        .lte('fecha', ultimoDiaStr);
+      if (data) setBloqueosPersonales(data as BloqueoPersonal[]);
+    };
+    cargarBloqueos();
+  }, [anio, mes, userId]);
+
+  useEffect(() => {
+    if (fechaInicial) {
+      const fecha = new Date(fechaInicial + 'T12:00:00')
+      setAnio(fecha.getFullYear())
+      setMes(fecha.getMonth())
+      setDiaSeleccionado(fechaInicial)
+      setTimeout(() => {
+        const el = document.getElementById(`turno-${turnoResaltado}`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 400)
+    }
+  }, [fechaInicial, turnoResaltado])
 
   const primerDiaMes = new Date(anio, mes, 1).getDay();
   const diasEnMes = new Date(anio, mes + 1, 0).getDate();
@@ -162,27 +191,39 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   const fechaStr = (dia: number) => `${anio}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
   const sesionesDelDia = (dia: number) => sesiones.filter((s) => s.fecha === fechaStr(dia));
   const sesionesSeleccionadas = diaSeleccionado ? sesiones.filter((s) => s.fecha === diaSeleccionado) : [];
+  const bloqueosSeleccionados = diaSeleccionado ? bloqueosPersonales.filter((b) => b.fecha === diaSeleccionado) : [];
   const hoyStr = hoy.toISOString().split('T')[0];
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
   const whatsappCliente = (id: string) => clientes.find((c) => c.id === id)?.whatsapp ?? null;
 
-  // ← CORREGIDO: dispDelDia como variable normal (no dentro de JSX)
+  // Disponibilidad configurada para el día seleccionado (con sus N bloques, definidos libremente por el profesional)
   const dispDelDia = (() => {
     if (!diaSeleccionado) return null;
     const diaSemana = new Date(diaSeleccionado + 'T12:00:00').getDay();
     return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null;
   })();
 
-  // ← CORREGIDO: slotsDelDia definido como variable antes de usarla
-  const slots1 = (dispDelDia?.hora_inicio && dispDelDia?.hora_fin)
-    ? generarSlots(dispDelDia.hora_inicio, dispDelDia.hora_fin, dispDelDia.duracion_turno ?? 60)
-    : [];
-  const slots2 = (dispDelDia?.hora_inicio_2 && dispDelDia?.hora_fin_2)
-    ? generarSlots(dispDelDia.hora_inicio_2, dispDelDia.hora_fin_2, dispDelDia.duracion_turno_2 ?? dispDelDia.duracion_turno ?? 60)
-    : [];
-  const slotsDelDia = [...slots1, ...slots2];
+  // Bloques ordenados cronológicamente (por si se cargaron fuera de orden)
+  const bloquesOrdenados = (dispDelDia?.bloques ?? [])
+    .slice()
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
 
-  // ← CORREGIDO: sesionEnSlot definida antes de usarla
+  // Slots generados dinámicamente a partir de todos los bloques configurados, sin asumir mañana/tarde
+  const slotsDelDia = bloquesOrdenados.flatMap(b => generarSlots(b.inicio, b.fin, b.duracion));
+
+  // Devuelve el bloque de disponibilidad al que pertenece un horario, para poder inferir su duración
+  const bloqueDeSlot = (slot: string): Bloque | null => {
+    const [h, m] = slot.split(':').map(Number);
+    const slotMin = h * 60 + m;
+    return bloquesOrdenados.find(b => {
+      const [hI, mI] = b.inicio.split(':').map(Number);
+      const [hF, mF] = b.fin.split(':').map(Number);
+      const inicioMin = hI * 60 + mI;
+      const finMin = hF * 60 + mF;
+      return slotMin >= inicioMin && slotMin < finMin;
+    }) ?? null;
+  };
+
   const sesionEnSlot = (slot: string): Sesion | null => {
     const slotMin = (() => {
       const [h, m] = slot.split(':').map(Number);
@@ -192,14 +233,32 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
       if (!s.horario) return false;
       const [h, m] = s.horario.substring(0, 5).split(':').map(Number);
       const inicioMin = h * 60 + m;
-      const duracion = s.duracion ?? dispDelDia?.duracion_turno ?? 30;
+      const duracion = s.duracion ?? bloqueDeSlot(slot)?.duracion ?? 30;
       const finMin = inicioMin + duracion;
+      return slotMin >= inicioMin && slotMin < finMin;
+    }) ?? null;
+  };
+
+  const bloqueoEnSlot = (slot: string): BloqueoPersonal | null => {
+    const slotMin = (() => {
+      const [h, m] = slot.split(':').map(Number);
+      return h * 60 + m;
+    })();
+    return bloqueosSeleccionados.find(b => {
+      const [hI, mI] = b.hora_inicio.substring(0, 5).split(':').map(Number);
+      const [hF, mF] = b.hora_fin.substring(0, 5).split(':').map(Number);
+      const inicioMin = hI * 60 + mI;
+      const finMin = hF * 60 + mF;
       return slotMin >= inicioMin && slotMin < finMin;
     }) ?? null;
   };
 
   const sesionesForaDeSlot = sesionesSeleccionadas.filter(
     s => s.horario && !slotsDelDia.includes(s.horario.substring(0, 5))
+  );
+
+  const bloqueosForaDeSlot = bloqueosSeleccionados.filter(
+    b => !slotsDelDia.includes(b.hora_inicio.substring(0, 5))
   );
 
   const abrirNuevo = (horario?: string) => {
@@ -298,95 +357,109 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
     : '';
 
   const TarjetaTurno = ({ s }: { s: Sesion }) => {
-  const esResaltado = turnoResaltado === s.id
+    const esResaltado = turnoResaltado === s.id
 
-  const confirmarTurnoWA = () => {
-    const nombre = nombreCliente(s.cliente_id)
-    const telefono = whatsappCliente(s.cliente_id)
-    if (!telefono) { alert('Este cliente no tiene número de WhatsApp registrado.'); return }
-    const fechaLegible = formatearFechaLegible(s.fecha)
-    const hora = s.horario ? s.horario.substring(0, 5) : ''
-    const servicio = s.tipo_masaje ?? ''
-    const msg = `Hola ${nombre}! 👋 Tu turno de ${servicio} quedó confirmado para el ${fechaLegible}${hora ? ` a las ${hora}hs` : ''}. ¡Te esperamos! 😊`
-    const numero = limpiarWhatsapp(telefono)
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
-    if (onTurnoResaltadoVisto) onTurnoResaltadoVisto()
+    const confirmarTurnoWA = () => {
+      const nombre = nombreCliente(s.cliente_id)
+      const telefono = whatsappCliente(s.cliente_id)
+      if (!telefono) { alert('Este cliente no tiene número de WhatsApp registrado.'); return }
+      const fechaLegible = formatearFechaLegible(s.fecha)
+      const hora = s.horario ? s.horario.substring(0, 5) : ''
+      const servicio = s.tipo_masaje ?? ''
+      const msg = `Hola ${nombre}! 👋 Tu turno de ${servicio} quedó confirmado para el ${fechaLegible}${hora ? ` a las ${hora}hs` : ''}. ¡Te esperamos! 😊`
+      const numero = limpiarWhatsapp(telefono)
+      window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
+      if (onTurnoResaltadoVisto) onTurnoResaltadoVisto()
+    }
+
+    return (
+      <div
+        id={`turno-${s.id}`}
+        style={{
+          border: esResaltado ? '2px solid #4F46E5' : '1px solid #E2E8F0',
+          borderRadius: '12px',
+          padding: '12px 14px',
+          backgroundColor: esResaltado ? '#EEF2FF' : '#FAFAFA',
+          transition: 'all 0.3s ease',
+          boxShadow: esResaltado ? '0 0 0 4px rgba(79,70,229,0.15)' : 'none'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>
+              {s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
+            <div style={{ fontSize: '12px', color: '#6B7280' }}>
+              {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
+              {s.monto2 ? ` + $${s.monto2}` : ''}{s.forma_pago2 ? ` · ${s.forma_pago2}` : ''}
+              {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => abrirModalWA(s)} title="Recordatorio WhatsApp"
+              style={{ background: 'none', border: '1px solid #86EFAC', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '14px' }}>💬</button>
+            <button onClick={() => abrirEdicion(s)}
+              style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
+            <button onClick={() => eliminar(s.id)}
+              style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
+          </div>
+        </div>
+
+        {esResaltado && (
+          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #C7D2FE' }}>
+            <button
+              onClick={confirmarTurnoWA}
+              style={{
+                width: '100%',
+                backgroundColor: '#25D366',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              ✅ Confirmar turno por WhatsApp
+            </button>
+          </div>
+        )}
+
+        {s.monto_senia && s.monto && !s.cobrado && (
+          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '12px', color: '#6B7280' }}>Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong></span>
+            <button onClick={() => cobrarDiferencia(s)}
+              style={{ fontSize: '12px', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
+              Cobrar diferencia
+            </button>
+          </div>
+        )}
+        {s.cobrado && s.monto_senia && (
+          <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
+        )}
+      </div>
+    )
   }
 
-  return (
-    <div
-      id={`turno-${s.id}`}
-      style={{
-        border: esResaltado ? '2px solid #4F46E5' : '1px solid #E2E8F0',
-        borderRadius: '12px',
-        padding: '12px 14px',
-        backgroundColor: esResaltado ? '#EEF2FF' : '#FAFAFA',
-        transition: 'all 0.3s ease',
-        boxShadow: esResaltado ? '0 0 0 4px rgba(79,70,229,0.15)' : 'none'
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>
-            {s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}
-          </div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
-          <div style={{ fontSize: '12px', color: '#6B7280' }}>
-            {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
-            {s.monto2 ? ` + $${s.monto2}` : ''}{s.forma_pago2 ? ` · ${s.forma_pago2}` : ''}
-            {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button onClick={() => abrirModalWA(s)} title="Recordatorio WhatsApp"
-            style={{ background: 'none', border: '1px solid #86EFAC', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '14px' }}>💬</button>
-          <button onClick={() => abrirEdicion(s)}
-            style={{ background: 'none', border: '1px solid #CBD5E0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
-          <button onClick={() => eliminar(s.id)}
-            style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>🗑️</button>
-        </div>
+  const TarjetaBloqueo = ({ b }: { b: BloqueoPersonal }) => (
+    <div style={{
+      border: '1px solid #D1D5DB',
+      borderRadius: '12px',
+      padding: '12px 14px',
+      backgroundColor: '#F3F4F6',
+    }}>
+      <div style={{ fontSize: '13px', fontWeight: 700, color: '#6B7280' }}>
+        {b.hora_inicio.substring(0, 5)} – {b.hora_fin.substring(0, 5)}
       </div>
-
-      {esResaltado && (
-        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #C7D2FE' }}>
-          <button
-            onClick={confirmarTurnoWA}
-            style={{
-              width: '100%',
-              backgroundColor: '#25D366',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '13px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
-          >
-            ✅ Confirmar turno por WhatsApp
-          </button>
-        </div>
-      )}
-
-      {s.monto_senia && s.monto && !s.cobrado && (
-        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '12px', color: '#6B7280' }}>Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong></span>
-          <button onClick={() => cobrarDiferencia(s)}
-            style={{ fontSize: '12px', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
-            Cobrar diferencia
-          </button>
-        </div>
-      )}
-      {s.cobrado && s.monto_senia && (
-        <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
-      )}
+      <div style={{ fontSize: '13px', color: '#4B5563', marginTop: '2px' }}>🔒 No disponible</div>
     </div>
   )
-}
 
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#F7F8FA', minHeight: '100%', padding: '16px' }}>
@@ -449,26 +522,11 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
             <div>
               {slotsDelDia.map((slot) => {
                 const sesion = sesionEnSlot(slot);
-                const ocupado = !!sesion;
-                const esPrimeroBloque1 = slot === slots1[0];
-                const esSeparador = slots2.length > 0 && slot === slots2[0];
+                const bloqueo = bloqueoEnSlot(slot);
+                const ocupado = !!sesion || !!bloqueo;
 
                 return (
                   <div key={slot}>
-                    {esPrimeroBloque1 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px' }}>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>☀️ Turno mañana</span>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-                      </div>
-                    )}
-                    {esSeparador && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0 8px' }}>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>🌙 Turno tarde</span>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
-                      </div>
-                    )}
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'flex-start' }}>
                       <div style={{ minWidth: '44px', paddingTop: '10px', fontSize: '12px', fontWeight: 600, color: ocupado ? '#EF4444' : '#16A34A', textAlign: 'right' }}>
                         {slot}
@@ -478,7 +536,15 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
                         <div style={{ width: '2px', flex: 1, backgroundColor: '#E2E8F0', minHeight: '16px' }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        {ocupado && sesion ? (
+                        {bloqueo ? (
+                          bloqueo.hora_inicio.substring(0, 5) === slot ? (
+                            <TarjetaBloqueo b={bloqueo} />
+                          ) : (
+                            <div style={{ border: '1px solid #D1D5DB', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#F3F4F6', fontSize: '13px', color: '#9CA3AF', fontWeight: 500 }}>
+                              🔒 No disponible
+                            </div>
+                          )
+                        ) : sesion ? (
                           sesion.horario?.substring(0, 5) === slot ? (
                             <TarjetaTurno s={sesion} />
                           ) : (
@@ -498,18 +564,19 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
                 );
               })}
 
-              {sesionesForaDeSlot.length > 0 && (
+              {(sesionesForaDeSlot.length > 0 || bloqueosForaDeSlot.length > 0) && (
                 <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
                   <p style={{ fontSize: '12px', color: '#D97706', fontWeight: 600, marginBottom: '8px' }}>⚠️ Fuera del horario configurado</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {sesionesForaDeSlot.map(s => <TarjetaTurno key={s.id} s={s} />)}
+                    {bloqueosForaDeSlot.map(b => <TarjetaBloqueo key={b.id} b={b} />)}
                   </div>
                 </div>
               )}
             </div>
           ) : (
             <div>
-              {sesionesSeleccionadas.length === 0 ? (
+              {sesionesSeleccionadas.length === 0 && bloqueosSeleccionados.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px 0' }}>
                   <p style={{ color: '#9CA3AF', marginBottom: '8px' }}>Sin turnos agendados</p>
                   {disponibilidad.length === 0 && (
@@ -522,6 +589,7 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {sesionesSeleccionadas.map(s => <TarjetaTurno key={s.id} s={s} />)}
+                  {bloqueosSeleccionados.map(b => <TarjetaBloqueo key={b.id} b={b} />)}
                 </div>
               )}
             </div>
