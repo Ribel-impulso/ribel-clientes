@@ -6,9 +6,10 @@ import TabTurnos from '../components/TabTurnos'
 import TabAgenda from '../components/TabAgenda'
 import TabFinanzas from '../components/TabFinanzas'
 import NotificacionesCampana from '../components/NotificacionesCampana'
+import TabAgendaPersonal from '../components/TabAgendaPersonal'
 
 export default function Home() {
-  const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda'>('agenda')
+const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda' | 'agendaPersonal'>('agenda')
   const [clientes, setClientes] = useState<any[]>([])
   const [sesiones, setSesiones] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
@@ -414,6 +415,9 @@ export default function Home() {
         <button style={tabStyle(pestanaActiva === 'agenda')} onClick={() => setPestanaActiva('agenda')}>
           📅 Agenda
         </button>
+        <button style={tabStyle(pestanaActiva === 'agendaPersonal')} onClick={() => setPestanaActiva('agendaPersonal')}>
+  🔒 Agenda Personal
+</button>
       </div>
 
       <div style={{ backgroundColor: '#ffffff', borderRadius: '0 12px 12px 12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -476,6 +480,10 @@ nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevo
   onTurnoResaltadoVisto={() => setTurnoResaltado(null)}
   />
         )}
+
+        {pestanaActiva === 'agendaPersonal' && (
+  <TabAgendaPersonal userId={userId!} card={card} btnPrimary={btnPrimary} />
+)}
 
         {pestanaActiva === 'finanzas' && (
           <TabFinanzas

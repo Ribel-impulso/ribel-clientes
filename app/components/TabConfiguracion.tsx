@@ -19,14 +19,6 @@ interface Disponibilidad {
   bloques: Bloque[]
 }
 
-interface BloqueoPersonal {
-  id: string
-  fecha: string
-  hora_inicio: string
-  hora_fin: string
-  motivo: string | null
-}
-
 interface Props {
   clientes: any[]
   servicios: any[]
@@ -310,88 +302,6 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
         </button>
         {mensaje && <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensaje}</span>}
       </div>
-    </div>
-  )
-}
-
-function SeccionBloqueosPersonales({ userId, card, btnPrimary, input }: {
-  userId: string
-  card: React.CSSProperties
-  btnPrimary: React.CSSProperties
-  input: React.CSSProperties
-}) {
-  const [bloqueos, setBloqueos] = useState<BloqueoPersonal[]>([])
-  const [fecha, setFecha] = useState('')
-  const [horaInicio, setHoraInicio] = useState('')
-  const [horaFin, setHoraFin] = useState('')
-  const [motivo, setMotivo] = useState('')
-  const [error, setError] = useState('')
-  const [guardando, setGuardando] = useState(false)
-
-  useEffect(() => { cargarBloqueos() }, [userId])
-
-  async function cargarBloqueos() {
-    const hoy = new Date().toISOString().split('T')[0]
-    const { data } = await supabase
-      .from('bloqueos_personales')
-      .select('id, fecha, hora_inicio, hora_fin, motivo')
-      .eq('user_id', userId)
-      .gte('fecha', hoy)
-      .order('fecha')
-      .order('hora_inicio')
-    if (data) setBloqueos(data as BloqueoPersonal[])
-  }
-
-  async function agregarBloqueo() {
-    setError('')
-    if (!fecha || !horaInicio || !horaFin) { setError('Completá fecha, desde y hasta'); return }
-    if (horaFin <= horaInicio) { setError('El horario "hasta" debe ser posterior al "desde"'); return }
-    setGuardando(true)
-    const { error: err } = await supabase.from('bloqueos_personales').insert([{
-      user_id: userId, fecha, hora_inicio: horaInicio, hora_fin: horaFin, motivo: motivo || null,
-    }])
-    if (err) { setError('Error al guardar: ' + err.message); setGuardando(false); return }
-    setFecha(''); setHoraInicio(''); setHoraFin(''); setMotivo('')
-    await cargarBloqueos()
-    setGuardando(false)
-  }
-
-  async function eliminarBloqueo(id: string) {
-    await supabase.from('bloqueos_personales').delete().eq('id', id)
-    cargarBloqueos()
-  }
-
-  return (
-    <div style={card}>
-      <h2 style={{ color: '#161616', marginTop: 0 }}>Bloqueos personales</h2>
-      <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
-        Reservá horarios para trámites, turnos o compromisos personales. Estos bloqueos ocupan el horario en tu agenda, pero nunca se muestran ni se explican en la agenda pública de tus clientes: simplemente aparecen como no disponibles.
-      </p>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={input} />
-        <input type="time" value={horaInicio} onChange={e => setHoraInicio(e.target.value)} style={input} />
-        <input type="time" value={horaFin} onChange={e => setHoraFin(e.target.value)} style={input} />
-        <input type="text" placeholder="Motivo (opcional, solo vos lo ves)" value={motivo} onChange={e => setMotivo(e.target.value)} style={input} />
-      </div>
-      {error && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{error}</p>}
-      <button onClick={agregarBloqueo} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
-        {guardando ? 'Guardando...' : 'Agregar bloqueo'}
-      </button>
-
-      {bloqueos.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          {bloqueos.map(b => (
-            <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e3dfd6', borderRadius: '8px', padding: '10px 14px', marginBottom: '8px', backgroundColor: '#fdf9f5' }}>
-              <div style={{ fontSize: '13px', color: '#161616' }}>
-                <strong>{new Date(b.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}</strong>
-                {' · '}{b.hora_inicio.substring(0, 5)} a {b.hora_fin.substring(0, 5)}
-                {b.motivo && <span style={{ color: '#6B7280' }}> · {b.motivo}</span>}
-              </div>
-              <button onClick={() => eliminarBloqueo(b.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -727,8 +637,7 @@ export default function TabConfiguracion({
 
       <SeccionDisponibilidad userId={userId} card={card} btnPrimary={btnPrimary} btnSecondary={btnSecondary} />
 
-      <SeccionBloqueosPersonales userId={userId} card={card} btnPrimary={btnPrimary} input={input} />
-
+      
       <div style={card}>
         <CambiarPassword btnPrimary={btnPrimary} inp={inp} />
       </div>
