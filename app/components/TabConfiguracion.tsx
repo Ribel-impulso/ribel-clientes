@@ -580,6 +580,7 @@ export default function TabConfiguracion({
             <option value={60}>60 min</option>
             <option value={75}>75 min</option>
             <option value={90}>90 min</option>
+            <option value={120}>120 min</option>
           </select>
         </div>
         <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
@@ -599,6 +600,7 @@ export default function TabConfiguracion({
                       <option value={60}>60 min</option>
                       <option value={75}>75 min</option>
                       <option value={90}>90 min</option>
+                      <option value={120}>120 min</option>
                     </select>
                     <button onClick={() => guardarEdicionServicio(s.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}>Guardar</button>
                     <button onClick={() => setEditandoServicio(null)} style={{ ...btnSecondary, marginLeft: 0, padding: '6px 14px', fontSize: '13px' }}>Cancelar</button>

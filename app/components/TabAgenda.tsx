@@ -210,6 +210,15 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
 
   // Slots generados dinámicamente a partir de todos los bloques configurados, sin asumir mañana/tarde
   const slotsDelDia = bloquesOrdenados.flatMap(b => generarSlots(b.inicio, b.fin, b.duracion));
+  // Oculta los slots intermedios ocupados por un turno o bloqueo,
+// para que el próximo horario disponible aparezca justo después de que termina
+const slotsVisibles = slotsDelDia.filter(slot => {
+  const sesion = sesionEnSlot(slot);
+  if (sesion && sesion.horario?.substring(0, 5) !== slot) return false;
+  const bloqueo = bloqueoEnSlot(slot);
+  if (bloqueo && bloqueo.hora_inicio.substring(0, 5) !== slot) return false;
+  return true;
+});
 
   // Devuelve el bloque de disponibilidad al que pertenece un horario, para poder inferir su duración
   const bloqueDeSlot = (slot: string): Bloque | null => {
@@ -518,9 +527,9 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
 
           {cargando ? (
             <p style={{ textAlign: 'center', color: '#9CA3AF', padding: '24px 0' }}>Cargando...</p>
-          ) : slotsDelDia.length > 0 ? (
-            <div>
-              {slotsDelDia.map((slot) => {
+          ) : slotsVisibles.length > 0 ? (
+  <div>
+    {slotsVisibles.map((slot) => {
                 const sesion = sesionEnSlot(slot);
                 const bloqueo = bloqueoEnSlot(slot);
                 const ocupado = !!sesion || !!bloqueo;
