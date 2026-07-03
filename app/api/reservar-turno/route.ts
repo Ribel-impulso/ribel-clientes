@@ -24,8 +24,7 @@ function haySolapamiento(inicioA: number, finA: number, inicioB: number, finB: n
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { cliente_id, fecha, horario, tipo_masaje, duracion, user_id } = body
-
+    const { cliente_id, fecha, horario, tipo_masaje, duracion, user_id, monto, monto_senia_esperada } = body
     if (!cliente_id || !fecha || !horario || !duracion || !user_id) {
       return NextResponse.json({ error: 'Faltan datos para reservar el turno' }, { status: 400 })
     }
@@ -106,25 +105,32 @@ export async function POST(req: Request) {
 
     // Todo validado, se guarda el turno.
     const { data: sesion, error } = await supabaseAdmin
-      .from('sesiones')
-      .insert({
-        cliente_id, fecha, horario, tipo_masaje, duracion,
-        user_id, facturado: false, cobrado: false
-      })
-      .select()
+  .from('sesiones')
+  .insert({
+    cliente_id, fecha, horario, tipo_masaje, duracion,
+    user_id, facturado: false, cobrado: false,
+    monto: monto ?? null,
+    estado: monto_senia_esperada ? 'pendiente_senia' : 'confirmado'
+  })
+  .select()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
     const sesionId = sesion?.[0]?.id ?? null
 
-    await supabaseAdmin.from('notificaciones').insert([{
-      user_id,
-      titulo: '📅 Nuevo turno reservado',
-      mensaje: `${cliente.nombre} agendó un turno para el ${fecha} a las ${horario}hs`,
-      leida: false,
-      sesion_id: sesionId,
-      fecha_sesion: fecha
-    }])
+    const mensajeBase = `${cliente.nombre} agendó un turno para el ${fecha} a las ${horario}hs`
+const mensajeFinal = monto_senia_esperada
+  ? `${mensajeBase}. 💰 Seña esperada: $${monto_senia_esperada} (pendiente de confirmar el comprobante)`
+  : mensajeBase
+
+await supabaseAdmin.from('notificaciones').insert([{
+  user_id,
+  titulo: '📅 Nuevo turno reservado',
+  mensaje: mensajeFinal,
+  leida: false,
+  sesion_id: sesionId,
+  fecha_sesion: fecha
+}])
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {

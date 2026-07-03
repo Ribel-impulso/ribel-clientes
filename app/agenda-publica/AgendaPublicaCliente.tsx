@@ -61,6 +61,7 @@ export default function AgendaPublicaCliente() {
   const [horarioSeleccionado, setHorarioSeleccionado] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
+  const [configNegocio, setConfigNegocio] = useState<any>(null)
 
   useEffect(() => {
     if (!profesionalId) return
@@ -69,6 +70,8 @@ export default function AgendaPublicaCliente() {
       if (srv) setServicios(srv)
       const { data: disp } = await supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana')
       if (disp) setDisponibilidad(disp)
+      const { data: config } = await supabase.from('configuracion_negocio').select('*').eq('user_id', profesionalId).maybeSingle()
+      if (config) setConfigNegocio(config)
     }
     cargar()
   }, [profesionalId])
@@ -151,6 +154,16 @@ export default function AgendaPublicaCliente() {
     return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null
   })()
 
+  const requiereSeniaEsteServicio = !!(configNegocio?.requiere_senia && servicioSeleccionado?.precio && servicioSeleccionado?.porcentaje_senia)
+const montoSenia = requiereSeniaEsteServicio ? Math.round(servicioSeleccionado.precio * (servicioSeleccionado.porcentaje_senia / 100)) : null
+
+function enviarComprobanteWA() {
+  if (!configNegocio?.whatsapp_profesional) return
+  const numero = limpiarWA(configNegocio.whatsapp_profesional)
+  const msg = `Hola! Soy ${clienteNombre}, reservé ${servicioSeleccionado?.nombre} para el ${labelFecha} a las ${horarioSeleccionado}hs. Ya transferí la seña de $${montoSenia}. Te mando el comprobante 👇`
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
+}
+
   const bloquesDelDia: Bloque[] = Array.isArray(dispDelDia?.bloques) ? dispDelDia.bloques : []
   const duracionServicio: number = servicioSeleccionado?.duracion ?? 60
 
@@ -186,25 +199,27 @@ export default function AgendaPublicaCliente() {
   }
 
   async function confirmarTurno() {
-    if (!clienteId || !diaSeleccionado || !horarioSeleccionado || !servicioSeleccionado) return
-    setCargando(true)
-    const res = await fetch('/api/reservar-turno', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cliente_id: clienteId,
-        fecha: diaSeleccionado,
-        horario: horarioSeleccionado,
-        tipo_masaje: servicioSeleccionado.nombre,
-        duracion: duracionServicio,
-        user_id: profesionalId
-      })
+  if (!clienteId || !diaSeleccionado || !horarioSeleccionado || !servicioSeleccionado) return
+  setCargando(true)
+  const res = await fetch('/api/reservar-turno', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      cliente_id: clienteId,
+      fecha: diaSeleccionado,
+      horario: horarioSeleccionado,
+      tipo_masaje: servicioSeleccionado.nombre,
+      duracion: duracionServicio,
+      user_id: profesionalId,
+      monto: servicioSeleccionado.precio ?? null,
+      monto_senia_esperada: montoSenia
     })
-    const data = await res.json()
-    if (!res.ok) { setError(data.error || 'Error al confirmar'); setCargando(false); return }
-    setCargando(false)
-    setPaso('confirmado')
-  }
+  })
+  const data = await res.json()
+  if (!res.ok) { setError(data.error || 'Error al confirmar'); setCargando(false); return }
+  setCargando(false)
+  setPaso('confirmado')
+}
 
   const cambiarMes = (delta: number) => {
     const nueva = new Date(anio, mes + delta, 1)
@@ -256,13 +271,22 @@ export default function AgendaPublicaCliente() {
           <p style={{ color: '#16A34A', fontWeight: 'bold', fontSize: '14px', marginTop: 0 }}>¡Hola, {clienteNombre}! 👋</p>
           <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px' }}>Elegí el servicio</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {servicios.map(s => (
-              <div key={s.id} onClick={() => { setServicioSeleccionado(s); setPaso('fecha') }}
-                style={{ border: `2px solid ${servicioSeleccionado?.id === s.id ? '#ba9a7d' : '#e3dfd6'}`, borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', backgroundColor: servicioSeleccionado?.id === s.id ? '#fdf9f5' : '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 600, color: '#161616', fontSize: '15px' }}>{s.nombre}</span>
-                <span style={{ fontSize: '13px', color: '#6B7280' }}>{s.duracion ?? 60} min</span>
-              </div>
-            ))}
+            {servicios.map(s => {
+  const seniaDeEsteServicio = configNegocio?.requiere_senia && s.precio && s.porcentaje_senia
+    ? Math.round(s.precio * (s.porcentaje_senia / 100)) : null
+  return (
+    <div key={s.id} onClick={() => { setServicioSeleccionado(s); setPaso('fecha') }}
+      style={{ border: `2px solid ${servicioSeleccionado?.id === s.id ? '#ba9a7d' : '#e3dfd6'}`, borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', backgroundColor: servicioSeleccionado?.id === s.id ? '#fdf9f5' : '#fff' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontWeight: 600, color: '#161616', fontSize: '15px' }}>{s.nombre}</span>
+        <span style={{ fontSize: '13px', color: '#6B7280' }}>{s.duracion ?? 60} min{s.precio ? ` · $${s.precio}` : ''}</span>
+      </div>
+      {seniaDeEsteServicio && (
+        <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#D97706' }}>💰 Requiere seña de ${seniaDeEsteServicio} para confirmar</p>
+      )}
+    </div>
+  )
+})}
           </div>
         </div>
       )}
@@ -357,6 +381,18 @@ export default function AgendaPublicaCliente() {
             <p style={{ margin: 0, color: '#92400E', fontSize: '13px', lineHeight: '1.5' }}>
               📲 Para cancelar o reprogramar tu turno, comunicate por WhatsApp con el profesional.
             </p>
+            {requiereSeniaEsteServicio && (
+  <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '16px', marginTop: '16px', textAlign: 'left' }}>
+    <p style={{ margin: '0 0 10px', color: '#92400E', fontWeight: 700, fontSize: '14px' }}>💰 Para confirmar tu turno, transferí la seña</p>
+    <p style={{ margin: '0 0 6px', fontSize: '14px', color: '#161616' }}>Monto: <strong>${montoSenia}</strong></p>
+    {configNegocio?.alias_transferencia && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Alias/CBU: {configNegocio.alias_transferencia}</p>}
+    {configNegocio?.titular_cuenta && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Titular: {configNegocio.titular_cuenta}</p>}
+    {configNegocio?.banco && <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#161616' }}>Banco: {configNegocio.banco}</p>}
+    <button onClick={enviarComprobanteWA} style={{ width: '100%', backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+      📲 Enviar comprobante por WhatsApp
+    </button>
+  </div>
+)}
           </div>
         </div>
       )}

@@ -22,6 +22,7 @@ interface Sesion {
   fecha_cobro: string | null;
   monto_senia: number | null;
   fecha_senia: string | null;
+  estado: string | null;
 }
 
 interface Cliente {
@@ -354,6 +355,11 @@ const slotsVisibles = slotsDelDia.filter(slot => {
     await recargar();
   };
 
+  const confirmarSeniaRecibida = async (s: Sesion) => {
+    await supabase.from('sesiones').update({ estado: 'confirmado' }).eq('id', s.id);
+    await recargar();
+  };
+
   const cambiarMes = (delta: number) => {
     const nueva = new Date(anio, mes + delta, 1);
     setAnio(nueva.getFullYear());
@@ -385,19 +391,22 @@ const slotsVisibles = slotsDelDia.filter(slot => {
       <div
         id={`turno-${s.id}`}
         style={{
-          border: esResaltado ? '2px solid #4F46E5' : '1px solid #E2E8F0',
-          borderRadius: '12px',
-          padding: '12px 14px',
-          backgroundColor: esResaltado ? '#EEF2FF' : '#FAFAFA',
-          transition: 'all 0.3s ease',
-          boxShadow: esResaltado ? '0 0 0 4px rgba(79,70,229,0.15)' : 'none'
-        }}
+  border: s.estado === 'pendiente_senia' ? '2px solid #F59E0B' : esResaltado ? '2px solid #4F46E5' : '1px solid #E2E8F0',
+  borderRadius: '12px',
+  padding: '12px 14px',
+  backgroundColor: s.estado === 'pendiente_senia' ? '#FFFBEB' : esResaltado ? '#EEF2FF' : '#FAFAFA',
+  transition: 'all 0.3s ease',
+  boxShadow: esResaltado ? '0 0 0 4px rgba(79,70,229,0.15)' : 'none'
+}}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#4F46E5' }}>
               {s.horario ? s.horario.substring(0, 5) : 'Sin hora'}{s.duracion ? ` · ${s.duracion} min` : ''}
             </div>
+            {s.estado === 'pendiente_senia' && (
+  <div style={{ fontSize: '11px', fontWeight: 700, color: '#D97706', marginBottom: '2px' }}>⏳ PENDIENTE DE SEÑA</div>
+)}
             <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E', margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
             <div style={{ fontSize: '12px', color: '#6B7280' }}>
               {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
@@ -450,8 +459,16 @@ const slotsVisibles = slotsDelDia.filter(slot => {
           </div>
         )}
         {s.cobrado && s.monto_senia && (
-          <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
-        )}
+              <div style={{ marginTop: '6px', fontSize: '12px', color: '#16A34A' }}>✓ Diferencia cobrada</div>
+            )}
+            {s.estado === 'pendiente_senia' && (
+              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #FDE68A' }}>
+                <button onClick={() => confirmarSeniaRecibida(s)}
+                  style={{ width: '100%', fontSize: '12px', backgroundColor: '#F59E0B', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>
+                  ✅ Confirmar seña recibida
+                </button>
+              </div>
+            )}
       </div>
     )
   }

@@ -340,6 +340,7 @@ export default function TabConfiguracion({
   const [aliasTransferencia, setAliasTransferencia] = useState('')
   const [titularCuenta, setTitularCuenta] = useState('')
   const [banco, setBanco] = useState('')
+  const [whatsappProfesional, setWhatsappProfesional] = useState('')
   const [guardandoConfig, setGuardandoConfig] = useState(false)
   const [mensajeConfig, setMensajeConfig] = useState('')
 
@@ -352,6 +353,7 @@ async function cargarConfigNegocio() {
     setAliasTransferencia(data.alias_transferencia ?? '')
     setTitularCuenta(data.titular_cuenta ?? '')
     setBanco(data.banco ?? '')
+    setWhatsappProfesional(data.whatsapp_profesional ?? '')
   }
 }
 
@@ -359,13 +361,14 @@ async function guardarConfigNegocio() {
   setGuardandoConfig(true)
   setMensajeConfig('')
   await supabase.from('configuracion_negocio').upsert({
-    user_id: userId,
-    requiere_senia: requiereSenia,
-    alias_transferencia: aliasTransferencia,
-    titular_cuenta: titularCuenta,
-    banco: banco,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' })
+  user_id: userId,
+  requiere_senia: requiereSenia,
+  alias_transferencia: aliasTransferencia,
+  titular_cuenta: titularCuenta,
+  banco: banco,
+  whatsapp_profesional: whatsappProfesional,
+  updated_at: new Date().toISOString(),
+}, { onConflict: 'user_id' })
   setGuardandoConfig(false)
   setMensajeConfig('¡Configuración guardada!')
   setTimeout(() => setMensajeConfig(''), 3000)
@@ -709,6 +712,7 @@ async function guardarEdicionServicio(id: string) {
       <input placeholder="Alias o CBU para transferir" value={aliasTransferencia} onChange={e => setAliasTransferencia(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
       <input placeholder="Titular de la cuenta" value={titularCuenta} onChange={e => setTitularCuenta(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
       <input placeholder="Banco o billetera (ej: Mercado Pago)" value={banco} onChange={e => setBanco(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
+      <input placeholder="Tu WhatsApp (para que te lleguen los comprobantes) - ej: 3492123456" value={whatsappProfesional} onChange={e => setWhatsappProfesional(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
       <p style={{ color: '#6B7280', fontSize: '12px', marginTop: '-4px', marginBottom: '12px' }}>
         Ojo: para que se calcule el monto, cada servicio necesita tener cargado el % de seña arriba, en Servicios.
       </p>
