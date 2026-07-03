@@ -330,8 +330,46 @@ export default function TabConfiguracion({
   const [editandoServicio, setEditandoServicio] = useState<string | null>(null)
   const [editServicioNombre, setEditServicioNombre] = useState('')
   const [editServicioDuracion, setEditServicioDuracion] = useState(60)
+  const [nuevoServicioPrecio, setNuevoServicioPrecio] = useState('')
+  const [nuevoServicioPorcentajeSenia, setNuevoServicioPorcentajeSenia] = useState('')
+  const [editServicioPrecio, setEditServicioPrecio] = useState('')
+  const [editServicioPorcentajeSenia, setEditServicioPorcentajeSenia] = useState('')
   const [errorTelefono, setErrorTelefono] = useState('')
   const [errorEditTelefono, setErrorEditTelefono] = useState('')
+  const [requiereSenia, setRequiereSenia] = useState(false)
+  const [aliasTransferencia, setAliasTransferencia] = useState('')
+  const [titularCuenta, setTitularCuenta] = useState('')
+  const [banco, setBanco] = useState('')
+  const [guardandoConfig, setGuardandoConfig] = useState(false)
+  const [mensajeConfig, setMensajeConfig] = useState('')
+
+useEffect(() => { cargarConfigNegocio() }, [userId])
+
+async function cargarConfigNegocio() {
+  const { data } = await supabase.from('configuracion_negocio').select('*').eq('user_id', userId).maybeSingle()
+  if (data) {
+    setRequiereSenia(data.requiere_senia ?? false)
+    setAliasTransferencia(data.alias_transferencia ?? '')
+    setTitularCuenta(data.titular_cuenta ?? '')
+    setBanco(data.banco ?? '')
+  }
+}
+
+async function guardarConfigNegocio() {
+  setGuardandoConfig(true)
+  setMensajeConfig('')
+  await supabase.from('configuracion_negocio').upsert({
+    user_id: userId,
+    requiere_senia: requiereSenia,
+    alias_transferencia: aliasTransferencia,
+    titular_cuenta: titularCuenta,
+    banco: banco,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' })
+  setGuardandoConfig(false)
+  setMensajeConfig('¡Configuración guardada!')
+  setTimeout(() => setMensajeConfig(''), 3000)
+}
 
   async function cargarArchivos(clienteId: string) {
     const { data } = await supabase.from('archivos_clientes').select('*').eq('cliente_id', clienteId).eq('user_id', userId).order('created_at', { ascending: false })
@@ -355,16 +393,23 @@ export default function TabConfiguracion({
   }
 
   async function iniciarEdicionServicio(s: any) {
-    setEditandoServicio(s.id)
-    setEditServicioNombre(s.nombre)
-    setEditServicioDuracion(s.duracion ?? 60)
-  }
+  setEditandoServicio(s.id)
+  setEditServicioNombre(s.nombre)
+  setEditServicioDuracion(s.duracion ?? 60)
+  setEditServicioPrecio(s.precio != null ? String(s.precio) : '')
+  setEditServicioPorcentajeSenia(s.porcentaje_senia != null ? String(s.porcentaje_senia) : '')
+}
 
-  async function guardarEdicionServicio(id: string) {
-    await supabase.from('servicios').update({ nombre: editServicioNombre, duracion: editServicioDuracion }).eq('id', id)
-    setEditandoServicio(null)
-    cargarServicios(userId)
-  }
+async function guardarEdicionServicio(id: string) {
+  await supabase.from('servicios').update({
+    nombre: editServicioNombre,
+    duracion: editServicioDuracion,
+    precio: editServicioPrecio ? Number(editServicioPrecio) : null,
+    porcentaje_senia: editServicioPorcentajeSenia ? Number(editServicioPorcentajeSenia) : null,
+  }).eq('id', id)
+  setEditandoServicio(null)
+  cargarServicios(userId)
+}
 
   async function subirArchivo(clienteId: string) {
     const file = archivoFile[clienteId]
@@ -412,11 +457,19 @@ export default function TabConfiguracion({
   }
 
   async function agregarServicio() {
-    await supabase.from('servicios').insert([{ nombre: nuevoServicioNombre, duracion: nuevoServicioDuracion, user_id: userId }])
-    setNuevoServicioNombre('')
-    setNuevoServicioDuracion(60)
-    cargarServicios(userId)
-  }
+  await supabase.from('servicios').insert([{
+    nombre: nuevoServicioNombre,
+    duracion: nuevoServicioDuracion,
+    precio: nuevoServicioPrecio ? Number(nuevoServicioPrecio) : null,
+    porcentaje_senia: nuevoServicioPorcentajeSenia ? Number(nuevoServicioPorcentajeSenia) : null,
+    user_id: userId
+  }])
+  setNuevoServicioNombre('')
+  setNuevoServicioDuracion(60)
+  setNuevoServicioPrecio('')
+  setNuevoServicioPorcentajeSenia('')
+  cargarServicios(userId)
+}
 
   const inp: React.CSSProperties = {
     padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6',
@@ -498,6 +551,10 @@ export default function TabConfiguracion({
                           />
                         </div>
                         {errorEditTelefono && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{errorEditTelefono}</p>}
+                         <input type="number" placeholder="Precio" value={editServicioPrecio} onChange={e => setEditServicioPrecio(e.target.value)}
+  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '110px' }} />
+<input type="number" placeholder="% seña" min={0} max={100} value={editServicioPorcentajeSenia} onChange={e => setEditServicioPorcentajeSenia(e.target.value)}
+  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '90px' }} />
                         <button onClick={() => guardarEdicionCliente(c.id)} style={{ ...btnPrimary, marginRight: '8px', fontSize: '13px', padding: '6px 14px' }}>Guardar</button>
                         <button onClick={() => setEditandoCliente(null)} style={{ ...btnSecondary, fontSize: '13px', padding: '6px 14px' }}>Cancelar</button>
                       </div>
@@ -571,18 +628,20 @@ export default function TabConfiguracion({
           </button>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
-          <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
-            style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
-            <option value={15}>15 min</option>
-            <option value={30}>30 min</option>
-            <option value={45}>45 min</option>
-            <option value={60}>60 min</option>
-            <option value={75}>75 min</option>
-            <option value={90}>90 min</option>
-            <option value={120}>120 min</option>
-          </select>
-        </div>
+  <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
+  <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
+    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
+    <option value={15}>15 min</option>
+    <option value={30}>30 min</option>
+    <option value={45}>45 min</option>
+    <option value={60}>60 min</option>
+    <option value={75}>75 min</option>
+    <option value={90}>90 min</option>
+    <option value={120}>120 min</option>
+  </select>
+  <input type="number" placeholder="Precio (opcional)" value={nuevoServicioPrecio} onChange={e => setNuevoServicioPrecio(e.target.value)} style={{ ...input, width: '160px' }} />
+  <input type="number" placeholder="% seña (opcional)" min={0} max={100} value={nuevoServicioPorcentajeSenia} onChange={e => setNuevoServicioPorcentajeSenia(e.target.value)} style={{ ...input, width: '160px' }} />
+</div>
         <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
         {mostrarServicios && (
           <ul style={{ marginTop: '16px', paddingLeft: 0, listStyle: 'none' }}>
@@ -608,9 +667,11 @@ export default function TabConfiguracion({
                 ) : (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#161616', fontSize: '14px' }}>
-                      {s.nombre}
-                      <span style={{ color: '#6B7280', fontSize: '13px', marginLeft: '8px' }}>· {s.duracion ?? 60} min</span>
-                    </span>
+  {s.nombre}
+  <span style={{ color: '#6B7280', fontSize: '13px', marginLeft: '8px' }}>· {s.duracion ?? 60} min</span>
+  {s.precio != null && <span style={{ color: '#6B7280', fontSize: '13px', marginLeft: '8px' }}>· ${s.precio}</span>}
+  {s.porcentaje_senia != null && <span style={{ color: '#ba9a7d', fontSize: '13px', marginLeft: '8px' }}>· Seña {s.porcentaje_senia}%</span>}
+</span>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => iniciarEdicionServicio(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
                       <button onClick={() => eliminarServicio(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
@@ -622,6 +683,42 @@ export default function TabConfiguracion({
           </ul>
         )}
       </div>
+
+      <div style={card}>
+  <h2 style={{ color: '#161616', marginTop: 0 }}>💰 Seña para reservas online</h2>
+  <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>
+    Si la activás, tus clientes van a tener que transferir la seña para confirmar el turno desde tu agenda pública.
+  </p>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: requiereSenia ? '16px' : 0 }}>
+    <div onClick={() => setRequiereSenia(!requiereSenia)} style={{
+      width: '36px', height: '20px', borderRadius: '10px',
+      backgroundColor: requiereSenia ? '#ba9a7d' : '#CBD5E0',
+      cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background-color 0.2s'
+    }}>
+      <div style={{
+        position: 'absolute', top: '3px', left: requiereSenia ? '18px' : '3px',
+        width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s'
+      }} />
+    </div>
+    <span style={{ fontWeight: 600, fontSize: '14px', color: '#161616' }}>
+      {requiereSenia ? 'Seña activada' : 'Seña desactivada'}
+    </span>
+  </div>
+  {requiereSenia && (
+    <div>
+      <input placeholder="Alias o CBU para transferir" value={aliasTransferencia} onChange={e => setAliasTransferencia(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
+      <input placeholder="Titular de la cuenta" value={titularCuenta} onChange={e => setTitularCuenta(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
+      <input placeholder="Banco o billetera (ej: Mercado Pago)" value={banco} onChange={e => setBanco(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
+      <p style={{ color: '#6B7280', fontSize: '12px', marginTop: '-4px', marginBottom: '12px' }}>
+        Ojo: para que se calcule el monto, cada servicio necesita tener cargado el % de seña arriba, en Servicios.
+      </p>
+    </div>
+  )}
+  <button onClick={guardarConfigNegocio} disabled={guardandoConfig} style={{ ...btnPrimary, opacity: guardandoConfig ? 0.7 : 1 }}>
+    {guardandoConfig ? 'Guardando...' : 'Guardar configuración'}
+  </button>
+  {mensajeConfig && <span style={{ marginLeft: '12px', fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensajeConfig}</span>}
+</div>
 
       <div style={card}>
         <h2 style={{ color: '#161616', marginTop: 0 }}>🔗 Mi link de agenda</h2>

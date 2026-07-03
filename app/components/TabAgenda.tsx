@@ -117,7 +117,7 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
     const cargarDatos = async () => {
       const { data: dataClientes } = await supabase.from('clientes').select('id, nombre, whatsapp').eq('user_id', userId).order('nombre');
       if (dataClientes) setClientes(dataClientes);
-      const { data: dataServicios } = await supabase.from('servicios').select('id, nombre, duracion').order('nombre');
+      const { data: dataServicios } = await supabase.from('servicios').select('id, nombre, duracion, precio, porcentaje_senia').order('nombre');
       if (dataServicios) setServicios(dataServicios);
       if (userId) {
         const { data: dataDisp } = await supabase
@@ -667,9 +667,19 @@ const slotsVisibles = slotsDelDia.filter(slot => {
             <div style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
               <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => {
-                const servicio = servicios.find((s: any) => s.nombre === e.target.value);
-                setSesionEditando({ ...sesionEditando, tipo_masaje: e.target.value, duracion: servicio?.duracion ?? sesionEditando.duracion ?? null });
-              }} style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
+  const servicio = servicios.find((s: any) => s.nombre === e.target.value);
+  const montoCalculado = servicio?.precio ?? sesionEditando.monto ?? null;
+  const seniaCalculada = (servicio?.precio && servicio?.porcentaje_senia)
+    ? Math.round(servicio.precio * (servicio.porcentaje_senia / 100))
+    : sesionEditando.monto_senia ?? null;
+  setSesionEditando({
+    ...sesionEditando,
+    tipo_masaje: e.target.value,
+    duracion: servicio?.duracion ?? sesionEditando.duracion ?? null,
+    monto: montoCalculado,
+    monto_senia: seniaCalculada,
+  });
+}} style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const }}>
                 <option value="">Seleccionar...</option>
                 {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
               </select>
