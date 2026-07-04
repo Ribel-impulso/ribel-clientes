@@ -25,6 +25,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
     const { cliente_id, fecha, horario, tipo_masaje, duracion, user_id, monto, monto_senia_esperada } = body
+    console.log('BODY RECIBIDO:', JSON.stringify(body))
     if (!cliente_id || !fecha || !horario || !duracion || !user_id) {
       return NextResponse.json({ error: 'Faltan datos para reservar el turno' }, { status: 400 })
     }
@@ -110,6 +111,7 @@ export async function POST(req: Request) {
     cliente_id, fecha, horario, tipo_masaje, duracion,
     user_id, facturado: false, cobrado: false,
     monto: monto ?? null,
+    monto_senia: monto_senia_esperada ?? null,
     estado: monto_senia_esperada ? 'pendiente_senia' : 'confirmado'
   })
   .select()

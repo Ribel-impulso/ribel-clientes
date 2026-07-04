@@ -63,18 +63,23 @@ export default function AgendaPublicaCliente() {
   const [error, setError] = useState('')
   const [configNegocio, setConfigNegocio] = useState<any>(null)
 
-  useEffect(() => {
-    if (!profesionalId) return
-    async function cargar() {
-      const { data: srv } = await supabase.from('servicios').select('*').eq('user_id', profesionalId).order('nombre')
-      if (srv) setServicios(srv)
-      const { data: disp } = await supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana')
-      if (disp) setDisponibilidad(disp)
-      const { data: config } = await supabase.from('configuracion_negocio').select('*').eq('user_id', profesionalId).maybeSingle()
-      if (config) setConfigNegocio(config)
-    }
-    cargar()
-  }, [profesionalId])
+  const [datosListos, setDatosListos] = useState(false)
+
+useEffect(() => {
+  if (!profesionalId) return
+  async function cargar() {
+    const [{ data: srv }, { data: disp }, { data: config }] = await Promise.all([
+      supabase.from('servicios').select('*').eq('user_id', profesionalId).order('nombre'),
+      supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana'),
+      supabase.from('configuracion_negocio').select('*').eq('user_id', profesionalId).maybeSingle()
+    ])
+    if (srv) setServicios(srv)
+    if (disp) setDisponibilidad(disp)
+    if (config) setConfigNegocio(config)
+    setDatosListos(true)
+  }
+  cargar()
+}, [profesionalId])
 
   useEffect(() => {
     if (!profesionalId) return
@@ -200,6 +205,7 @@ function enviarComprobanteWA() {
 
   async function confirmarTurno() {
   if (!clienteId || !diaSeleccionado || !horarioSeleccionado || !servicioSeleccionado) return
+  if (!datosListos) { setError('Todavía estamos cargando datos, esperá un segundo e intentá de nuevo'); return }
   setCargando(true)
   const res = await fetch('/api/reservar-turno', {
     method: 'POST',

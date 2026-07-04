@@ -356,9 +356,10 @@ const slotsVisibles = slotsDelDia.filter(slot => {
   };
 
   const confirmarSeniaRecibida = async (s: Sesion) => {
-    await supabase.from('sesiones').update({ estado: 'confirmado' }).eq('id', s.id);
-    await recargar();
-  };
+  const hoy = new Date().toISOString().split('T')[0];
+  await supabase.from('sesiones').update({ estado: 'confirmado', fecha_senia: hoy }).eq('id', s.id);
+  await recargar();
+};
 
   const cambiarMes = (delta: number) => {
     const nueva = new Date(anio, mes + delta, 1);
@@ -449,7 +450,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
           </div>
         )}
 
-        {s.monto_senia && s.monto && !s.cobrado && (
+        {s.monto_senia && s.monto && s.estado === 'confirmado' && !s.cobrado && (
           <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '12px', color: '#6B7280' }}>Resta cobrar: <strong style={{ color: '#4F46E5' }}>${s.monto - s.monto_senia}</strong></span>
             <button onClick={() => cobrarDiferencia(s)}

@@ -320,7 +320,7 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
   const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'efectivo' ? (s.monto2 || 0) : 0
   const cobro = s.forma_pago_cobro?.toLowerCase() === 'efectivo' && s.fecha_cobro?.startsWith(mesSeleccionado) ? ((s.monto || 0) - (s.monto_senia || 0)) : 0
   const senia = s.fecha_senia?.startsWith(mesSeleccionado) && s.monto_senia ? s.monto_senia : 0
-  return sum + m1 + m2 + cobro + senia
+  return sum + m1 + m2 + cobro
 }, 0)
 
   const totalTransferencia = sesiones.reduce((sum, s) => {
@@ -329,7 +329,8 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
   const m1 = enMes && yaPaso && s.forma_pago?.toLowerCase() === 'transferencia' && !s.monto_senia ? (s.monto || 0) : 0
   const m2 = enMes && yaPaso && s.forma_pago2?.toLowerCase() === 'transferencia' ? (s.monto2 || 0) : 0
   const cobro = s.forma_pago_cobro?.toLowerCase() === 'transferencia' && s.fecha_cobro?.startsWith(mesSeleccionado) ? ((s.monto || 0) - (s.monto_senia || 0)) : 0
-  return sum + m1 + m2 + cobro
+  const senia = s.estado === 'confirmado' && s.monto_senia && s.fecha_senia?.startsWith(mesSeleccionado) ? s.monto_senia : 0
+  return sum + m1 + m2 + cobro + senia
 }, 0)
 
   const totalCuentaCorriente = sesiones.reduce((sum, s) => {
