@@ -93,6 +93,8 @@ export default function TabTurnos({
 
   const [mostrarTurnos, setMostrarTurnos] = useState(false)
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
+  const [notaAbiertaId, setNotaAbiertaId] = useState<string | null>(null)
+  const [notaAbiertaHistorialId, setNotaAbiertaHistorialId] = useState<string | null>(null)
 
   return (
     <>
@@ -138,7 +140,7 @@ export default function TabTurnos({
                 <th style={th}>Monto</th>
                 <th style={th}>Pago</th>
                 <th style={th}>Seña</th>
-                <th style={th}>Facturado</th>
+                <th style={th}>Nota</th>
                 <th style={th}>Acciones</th>
               </tr>
             </thead>
@@ -166,47 +168,54 @@ export default function TabTurnos({
                     </td>
                   </tr>
                 ) : (
-                  <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
-                    <td style={td}>{s.clientes?.nombre}</td>
-                    <td style={td}>{s.fecha}</td>
-                    <td style={td}>{s.tipo_masaje}</td>
-                    <td style={td}>
-                      ${s.monto}
-                      {s.monto2 ? ` + $${s.monto2}` : ''}
-                    </td>
-                    <td style={td}>
-                      {s.forma_pago}
-                      {s.forma_pago2 ? ` + ${s.forma_pago2}` : ''}
-                    </td>
-                    <td style={td}>
-                      {s.monto_senia ? (
-                        <span style={{ fontSize: '13px', color: '#ba9a7d' }}>
-                          ${s.monto_senia}
-                          {s.fecha_senia ? ` · ${s.fecha_senia}` : ''}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
-                      )}
-                    </td>
-                    <td style={td}>
-                      {s.forma_pago === 'transferencia' ? (
-                        <input type="checkbox" checked={s.facturado || false} onChange={() => toggleFacturado(s.id, s.facturado || false)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ba9a7d' }} />
-                      ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && !s.cobrado ? (
-                        <button onClick={() => {
-                          const fp = window.prompt('¿Cómo se cobró? Escribí: efectivo o transferencia')
-                          if (fp) cobrarSesion(s.id, fp)
-                        }} style={{ background: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}>Cobrar</button>
-                      ) : s.forma_pago?.toLowerCase().replace(' ', '_') === 'cuenta_corriente' && s.cobrado ? (
-                        <span style={{ color: '#4caf50', fontSize: '13px' }}>✓ Cobrado</span>
-                      ) : (
-                        <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
-                      )}
-                    </td>
-                    <td style={td}>
-                      <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
-                      <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
+                      <td style={td}>{s.clientes?.nombre}</td>
+                      <td style={td}>{s.fecha}</td>
+                      <td style={td}>{s.tipo_masaje}</td>
+                      <td style={td}>
+                        ${s.monto}
+                        {s.monto2 ? ` + $${s.monto2}` : ''}
+                      </td>
+                      <td style={td}>
+                        {s.forma_pago}
+                        {s.forma_pago2 ? ` + ${s.forma_pago2}` : ''}
+                      </td>
+                      <td style={td}>
+                        {s.monto_senia ? (
+                          <span style={{ fontSize: '13px', color: '#ba9a7d' }}>
+                            ${s.monto_senia}
+                            {s.fecha_senia ? ` · ${s.fecha_senia}` : ''}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+                        )}
+                      </td>
+                      <td style={td}>
+                        {s.notas_clinicas ? (
+                          <button
+                            onClick={() => setNotaAbiertaId(notaAbiertaId === s.id ? null : s.id)}
+                            title="Ver nota"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
+                            📝
+                          </button>
+                        ) : (
+                          <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+                        )}
+                      </td>
+                      <td style={td}>
+                        <button onClick={() => iniciarEdicion(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', marginRight: '8px' }}>Editar</button>
+                        <button onClick={() => eliminarSesion(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d' }}>Eliminar</button>
+                      </td>
+                    </tr>
+                    {notaAbiertaId === s.id && s.notas_clinicas && (
+                      <tr key={`${s.id}-nota`} style={{ backgroundColor: '#fdf7ee' }}>
+                        <td style={{ ...td, fontStyle: 'italic', color: '#161616' }} colSpan={8}>
+                          📝 {s.notas_clinicas}
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )
               ))}
             </tbody>
@@ -255,16 +264,38 @@ export default function TabTurnos({
                     <th style={th}>Servicio</th>
                     <th style={th}>Monto</th>
                     <th style={th}>Pago</th>
+                    <th style={th}>Nota</th>
                   </tr>
                 </thead>
                 <tbody>
                   {historial.map(s => (
-                    <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
-                      <td style={td}>{s.fecha}</td>
-                      <td style={td}>{s.tipo_masaje}</td>
-                      <td style={td}>${s.monto}</td>
-                      <td style={td}>{s.forma_pago}</td>
-                    </tr>
+                    <>
+                      <tr key={s.id} style={{ backgroundColor: '#ffffff' }}>
+                        <td style={td}>{s.fecha}</td>
+                        <td style={td}>{s.tipo_masaje}</td>
+                        <td style={td}>${s.monto}</td>
+                        <td style={td}>{s.forma_pago}</td>
+                        <td style={td}>
+                          {s.notas_clinicas ? (
+                            <button
+                              onClick={() => setNotaAbiertaHistorialId(notaAbiertaHistorialId === s.id ? null : s.id)}
+                              title="Ver nota"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
+                              📝
+                            </button>
+                          ) : (
+                            <span style={{ color: '#9e9e9e', fontSize: '13px' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                      {notaAbiertaHistorialId === s.id && s.notas_clinicas && (
+                        <tr key={`${s.id}-nota`} style={{ backgroundColor: '#fdf7ee' }}>
+                          <td style={{ ...td, fontStyle: 'italic', color: '#161616' }} colSpan={5}>
+                            📝 {s.notas_clinicas}
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))}
                 </tbody>
               </table>

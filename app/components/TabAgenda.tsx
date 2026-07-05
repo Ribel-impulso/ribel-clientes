@@ -62,11 +62,9 @@ function formatearFechaLegible(fechaISO: string): string {
 
 function limpiarWhatsapp(numero: string): string {
   const numeroLimpio = numero.trim();
-  // Si ya viene en formato internacional (+54911..., +598..., etc), solo sacamos el +
   if (numeroLimpio.startsWith('+')) {
     return numeroLimpio.replace(/\D/g, '');
   }
-  // Compatibilidad con clientes viejos guardados sin código de país (asumimos Argentina)
   const soloDigitos = numeroLimpio.replace(/\D/g, '');
   if (soloDigitos.startsWith('54')) return soloDigitos;
   const sinCero = soloDigitos.startsWith('0') ? soloDigitos.slice(1) : soloDigitos;
@@ -143,17 +141,17 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   }, [userId]);
 
   useEffect(() => {
-    const cargarSesiones = async () => {
-      setCargando(true);
-      const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
-      const ultimoDia = new Date(anio, mes + 1, 0);
-      const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
-      const { data } = await supabase.from('sesiones').select('*').gte('fecha', primerDia).lte('fecha', ultimoDiaStr).order('horario', { ascending: true });
-      if (data) setSesiones(data);
-      setCargando(false);
-    };
-    cargarSesiones();
-  }, [anio, mes]);
+  const cargarSesiones = async () => {
+    setCargando(true);
+    const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
+    const ultimoDia = new Date(anio, mes + 1, 0);
+    const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+    const { data } = await supabase.from('sesiones').select('*').gte('fecha', primerDia).lte('fecha', ultimoDiaStr).order('horario', { ascending: true });
+    if (data) setSesiones(data);
+    setCargando(false);
+  };
+  cargarSesiones();
+}, [anio, mes]);
 
   useEffect(() => {
     const cargarBloqueos = async () => {
@@ -227,22 +225,18 @@ const toggleBloqueoDia = async () => {
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
   const whatsappCliente = (id: string) => clientes.find((c) => c.id === id)?.whatsapp ?? null;
 
-  // Disponibilidad configurada para el día seleccionado (con sus N bloques, definidos libremente por el profesional)
   const dispDelDia = (() => {
     if (!diaSeleccionado) return null;
     const diaSemana = new Date(diaSeleccionado + 'T12:00:00').getDay();
     return disponibilidad.find(d => d.dia_semana === diaSemana && d.activo) ?? null;
   })();
 
-  // Bloques ordenados cronológicamente (por si se cargaron fuera de orden)
   const bloquesOrdenados = (dispDelDia?.bloques ?? [])
     .slice()
     .sort((a, b) => a.inicio.localeCompare(b.inicio));
 
-  // Slots generados dinámicamente a partir de todos los bloques configurados, sin asumir mañana/tarde
   const slotsDelDia = bloquesOrdenados.flatMap(b => generarSlots(b.inicio, b.fin, b.duracion));
 
-  // Devuelve el bloque de disponibilidad al que pertenece un horario, para poder inferir su duración
   const bloqueDeSlot = (slot: string): Bloque | null => {
     const [h, m] = slot.split(':').map(Number);
     const slotMin = h * 60 + m;
@@ -283,8 +277,6 @@ const toggleBloqueoDia = async () => {
       return slotMin >= inicioMin && slotMin < finMin;
     }) ?? null;
   };
-  // Oculta los slots intermedios ocupados por un turno o bloqueo,
-// para que el próximo horario disponible aparezca justo después de que termina
 const slotsVisibles = slotsDelDia.filter(slot => {
   const sesion = sesionEnSlot(slot);
   if (sesion && sesion.horario?.substring(0, 5) !== slot) return false;
@@ -804,7 +796,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
               </div>
             </div>
 
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>Notas clínicas</label>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: '4px' }}>NOTAS</label>
             <textarea value={sesionEditando.notas_clinicas ?? ''} onChange={(e) => setSesionEditando({ ...sesionEditando, notas_clinicas: e.target.value })}
               placeholder="Observaciones, evolución..."
               style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', marginBottom: '20px', boxSizing: 'border-box' as const, minHeight: '80px', resize: 'vertical' }} />
