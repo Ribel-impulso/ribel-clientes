@@ -113,6 +113,7 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   const [modalWA, setModalWA] = useState(false);
   const [mensajeWA, setMensajeWA] = useState('');
   const [numeroWA, setNumeroWA] = useState('');
+  const [diasBloqueados, setDiasBloqueados] = useState<string[]>([]);
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -172,6 +173,23 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   }, [anio, mes, userId]);
 
   useEffect(() => {
+  const cargarDiasBloqueados = async () => {
+    if (!userId) return;
+    const primerDia = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
+    const ultimoDia = new Date(anio, mes + 1, 0);
+    const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+    const { data } = await supabase
+      .from('dias_bloqueados')
+      .select('fecha')
+      .eq('user_id', userId)
+      .gte('fecha', primerDia)
+      .lte('fecha', ultimoDiaStr);
+    if (data) setDiasBloqueados(data.map((d: any) => d.fecha));
+  };
+  cargarDiasBloqueados();
+}, [anio, mes, userId]);
+
+  useEffect(() => {
     if (fechaInicial) {
       const fecha = new Date(fechaInicial + 'T12:00:00')
       setAnio(fecha.getFullYear())
@@ -193,6 +211,18 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   const sesionesDelDia = (dia: number) => sesiones.filter((s) => s.fecha === fechaStr(dia));
   const sesionesSeleccionadas = diaSeleccionado ? sesiones.filter((s) => s.fecha === diaSeleccionado) : [];
   const bloqueosSeleccionados = diaSeleccionado ? bloqueosPersonales.filter((b) => b.fecha === diaSeleccionado) : [];
+  const diaEstaBloqueado = diaSeleccionado ? diasBloqueados.includes(diaSeleccionado) : false;
+
+const toggleBloqueoDia = async () => {
+  if (!diaSeleccionado || !userId) return;
+  if (diaEstaBloqueado) {
+    await supabase.from('dias_bloqueados').delete().eq('user_id', userId).eq('fecha', diaSeleccionado);
+    setDiasBloqueados(prev => prev.filter(f => f !== diaSeleccionado));
+  } else {
+    await supabase.from('dias_bloqueados').insert({ user_id: userId, fecha: diaSeleccionado });
+    setDiasBloqueados(prev => [...prev, diaSeleccionado]);
+  }
+};
   const hoyStr = hoy.toISOString().split('T')[0];
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? 'Desconocido';
   const whatsappCliente = (id: string) => clientes.find((c) => c.id === id)?.whatsapp ?? null;
@@ -513,9 +543,10 @@ const slotsVisibles = slotsDelDia.filter(slot => {
             const seleccionado = fecha === diaSeleccionado;
             const cantidadTurnos = activo ? sesionesDelDia(dia!).length : 0;
             const tieneTurnos = cantidadTurnos > 0;
+            const bloqueado = activo && diasBloqueados.includes(fecha);
             return (
               <div key={i} onClick={() => activo && setDiaSeleccionado(fecha)}
-                style={{ backgroundColor: seleccionado ? '#EEF2FF' : esHoy ? '#F0FDF4' : '#fff', minHeight: '64px', padding: '6px', cursor: activo ? 'pointer' : 'default', opacity: activo ? 1 : 0.3 }}>
+                style={{ backgroundColor: bloqueado ? '#FEF2F2' : seleccionado ? '#EEF2FF' : esHoy ? '#F0FDF4' : '#fff', padding: '6px', cursor: activo ? 'pointer' : 'default', opacity: activo ? 1 : 0.3 }}>
                 {dia && (
                   <>
                     <div style={{ fontSize: '13px', fontWeight: esHoy || seleccionado ? 700 : 400, color: seleccionado ? '#fff' : esHoy ? '#16A34A' : '#374151', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: seleccionado ? '#4F46E5' : esHoy ? '#DCFCE7' : 'transparent' }}>
@@ -539,9 +570,22 @@ const slotsVisibles = slotsDelDia.filter(slot => {
       {diaSeleccionado && (
         <div style={{ backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 1px 6px rgba(0,0,0,0.07)', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A1A2E', textTransform: 'capitalize' }}>{labelFecha}</span>
-            <button onClick={() => abrirNuevo()} style={{ backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>+ Turno</button>
-          </div>
+  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A1A2E', textTransform: 'capitalize' }}>{labelFecha}</span>
+  <div style={{ display: 'flex', gap: '8px' }}>
+    <button onClick={toggleBloqueoDia}
+      style={{
+        backgroundColor: diaEstaBloqueado ? '#FEE2E2' : '#F3F4F6',
+        color: diaEstaBloqueado ? '#DC2626' : '#4B5563',
+        border: diaEstaBloqueado ? '1px solid #FCA5A5' : '1px solid #E2E8F0',
+        borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+      }}>
+      {diaEstaBloqueado ? '🔓 Desbloquear día' : '🔒 Bloquear día'}
+    </button>
+    {!diaEstaBloqueado && (
+      <button onClick={() => abrirNuevo()} style={{ backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>+ Turno</button>
+    )}
+  </div>
+</div>
 
           {cargando ? (
             <p style={{ textAlign: 'center', color: '#9CA3AF', padding: '24px 0' }}>Cargando...</p>
