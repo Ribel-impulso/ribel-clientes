@@ -6,6 +6,22 @@ import { supabase } from '../../lib/supabase'
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS_SEMANA_CORTO = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
+// Códigos de discado más comunes. Agregá o quitá según los países de tus clientes.
+// "Argentina" queda primero porque es el default, el resto en orden alfabético.
+const PAISES = [
+  { nombre: 'Argentina', dial: '54', flag: '🇦🇷' },
+  { nombre: 'Bolivia', dial: '591', flag: '🇧🇴' },
+  { nombre: 'Brasil', dial: '55', flag: '🇧🇷' },
+  { nombre: 'Chile', dial: '56', flag: '🇨🇱' },
+  { nombre: 'Colombia', dial: '57', flag: '🇨🇴' },
+  { nombre: 'España', dial: '34', flag: '🇪🇸' },
+  { nombre: 'Estados Unidos', dial: '1', flag: '🇺🇸' },
+  { nombre: 'México', dial: '52', flag: '🇲🇽' },
+  { nombre: 'Paraguay', dial: '595', flag: '🇵🇾' },
+  { nombre: 'Perú', dial: '51', flag: '🇵🇪' },
+  { nombre: 'Uruguay', dial: '598', flag: '🇺🇾' },
+]
+
 interface Bloque {
   inicio: string
   fin: string
@@ -46,6 +62,7 @@ export default function AgendaPublicaCliente() {
 
   const [paso, setPaso] = useState<Paso>('whatsapp')
   const [whatsapp, setWhatsapp] = useState('')
+  const [paisDial, setPaisDial] = useState('54') // Argentina por defecto, el usuario puede cambiarlo
   const [clienteId, setClienteId] = useState<string | null>(null)
   const [clienteNombre, setClienteNombre] = useState('')
   const [esNuevo, setEsNuevo] = useState(false)
@@ -66,21 +83,21 @@ export default function AgendaPublicaCliente() {
 
   const [datosListos, setDatosListos] = useState(false)
 
-useEffect(() => {
-  if (!profesionalId) return
-  async function cargar() {
-    const [{ data: srv }, { data: disp }, { data: config }] = await Promise.all([
-      supabase.from('servicios').select('*').eq('user_id', profesionalId).order('nombre'),
-      supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana'),
-      supabase.from('configuracion_negocio').select('*').eq('user_id', profesionalId).maybeSingle()
-    ])
-    if (srv) setServicios(srv)
-    if (disp) setDisponibilidad(disp)
-    if (config) setConfigNegocio(config)
-    setDatosListos(true)
-  }
-  cargar()
-}, [profesionalId])
+  useEffect(() => {
+    if (!profesionalId) return
+    async function cargar() {
+      const [{ data: srv }, { data: disp }, { data: config }] = await Promise.all([
+        supabase.from('servicios').select('*').eq('user_id', profesionalId).order('nombre'),
+        supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana'),
+        supabase.from('configuracion_negocio').select('*').eq('user_id', profesionalId).maybeSingle()
+      ])
+      if (srv) setServicios(srv)
+      if (disp) setDisponibilidad(disp)
+      if (config) setConfigNegocio(config)
+      setDatosListos(true)
+    }
+    cargar()
+  }, [profesionalId])
 
   useEffect(() => {
     if (!profesionalId) return
@@ -102,13 +119,13 @@ useEffect(() => {
         .lte('fecha', ultimoDiaStr)
       if (bloqueos) setBloqueosOcupados(bloqueos)
 
-        const { data: diasBloq } = await supabase
-  .from('dias_bloqueados')
-  .select('fecha')
-  .eq('user_id', profesionalId)
-  .gte('fecha', primerDia)
-  .lte('fecha', ultimoDiaStr)
-if (diasBloq) setDiasBloqueados(diasBloq.map((d: any) => d.fecha))
+      const { data: diasBloq } = await supabase
+        .from('dias_bloqueados')
+        .select('fecha')
+        .eq('user_id', profesionalId)
+        .gte('fecha', primerDia)
+        .lte('fecha', ultimoDiaStr)
+      if (diasBloq) setDiasBloqueados(diasBloq.map((d: any) => d.fecha))
     }
     cargarSesionesYBloqueos()
   }, [anio, mes, profesionalId])
@@ -122,11 +139,18 @@ if (diasBloq) setDiasBloqueados(diasBloq.map((d: any) => d.fecha))
     )
   }
 
+  // Arma el número completo con código de país, siempre sin "+" y solo dígitos.
+  // Ej: paisDial "598" + whatsapp "99209088" => "59899209088"
+  function numeroCompleto(): string {
+    return `${paisDial}${limpiarWA(whatsapp)}`
+  }
+
   async function buscarCliente() {
     setError('')
-    const numero = limpiarWA(whatsapp)
-    if (numero.length < 10) { setError('Ingresá un número válido'); return }
+    const local = limpiarWA(whatsapp)
+    if (local.length < 6) { setError('Ingresá un número válido'); return }
     setCargando(true)
+    const numero = numeroCompleto()
     const { data } = await supabase.from('clientes').select('id, nombre').eq('user_id', profesionalId).eq('whatsapp', numero).single()
     if (data) {
       setClienteId(data.id); setClienteNombre(data.nombre); setEsNuevo(false); setPaso('servicio')
@@ -140,7 +164,7 @@ if (diasBloq) setDiasBloqueados(diasBloq.map((d: any) => d.fecha))
     setError('')
     if (!nombreNuevo.trim()) { setError('Ingresá tu nombre'); return }
     setCargando(true)
-    const numero = limpiarWA(whatsapp)
+    const numero = numeroCompleto()
     const { data, error: err } = await supabase.from('clientes').insert([{ nombre: nombreNuevo.trim(), whatsapp: numero, user_id: profesionalId }]).select('id, nombre').single()
     if (err || !data) { setError('Hubo un error, intentá de nuevo'); setCargando(false); return }
     setClienteId(data.id); setClienteNombre(data.nombre); setPaso('servicio'); setCargando(false)
@@ -170,14 +194,14 @@ if (diasBloq) setDiasBloqueados(diasBloq.map((d: any) => d.fecha))
   })()
 
   const requiereSeniaEsteServicio = !!(configNegocio?.requiere_senia && servicioSeleccionado?.precio && servicioSeleccionado?.porcentaje_senia)
-const montoSenia = requiereSeniaEsteServicio ? Math.round(servicioSeleccionado.precio * (servicioSeleccionado.porcentaje_senia / 100)) : null
+  const montoSenia = requiereSeniaEsteServicio ? Math.round(servicioSeleccionado.precio * (servicioSeleccionado.porcentaje_senia / 100)) : null
 
-function enviarComprobanteWA() {
-  if (!configNegocio?.whatsapp_profesional) return
-  const numero = limpiarWA(configNegocio.whatsapp_profesional)
-  const msg = `Hola! Soy ${clienteNombre}, reservé ${servicioSeleccionado?.nombre} para el ${labelFecha} a las ${horarioSeleccionado}hs. Ya transferí la seña de $${montoSenia}. Te mando el comprobante 👇`
-  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
-}
+  function enviarComprobanteWA() {
+    if (!configNegocio?.whatsapp_profesional) return
+    const numero = limpiarWA(configNegocio.whatsapp_profesional)
+    const msg = `Hola! Soy ${clienteNombre}, reservé ${servicioSeleccionado?.nombre} para el ${labelFecha} a las ${horarioSeleccionado}hs. Ya transferí la seña de $${montoSenia}. Te mando el comprobante 👇`
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
 
   const bloquesDelDia: Bloque[] = Array.isArray(dispDelDia?.bloques) ? dispDelDia.bloques : []
   const duracionServicio: number = servicioSeleccionado?.duracion ?? 60
@@ -214,28 +238,28 @@ function enviarComprobanteWA() {
   }
 
   async function confirmarTurno() {
-  if (!clienteId || !diaSeleccionado || !horarioSeleccionado || !servicioSeleccionado) return
-  if (!datosListos) { setError('Todavía estamos cargando datos, esperá un segundo e intentá de nuevo'); return }
-  setCargando(true)
-  const res = await fetch('/api/reservar-turno', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      cliente_id: clienteId,
-      fecha: diaSeleccionado,
-      horario: horarioSeleccionado,
-      tipo_masaje: servicioSeleccionado.nombre,
-      duracion: duracionServicio,
-      user_id: profesionalId,
-      monto: servicioSeleccionado.precio ?? null,
-      monto_senia_esperada: montoSenia
+    if (!clienteId || !diaSeleccionado || !horarioSeleccionado || !servicioSeleccionado) return
+    if (!datosListos) { setError('Todavía estamos cargando datos, esperá un segundo e intentá de nuevo'); return }
+    setCargando(true)
+    const res = await fetch('/api/reservar-turno', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cliente_id: clienteId,
+        fecha: diaSeleccionado,
+        horario: horarioSeleccionado,
+        tipo_masaje: servicioSeleccionado.nombre,
+        duracion: duracionServicio,
+        user_id: profesionalId,
+        monto: servicioSeleccionado.precio ?? null,
+        monto_senia_esperada: montoSenia
+      })
     })
-  })
-  const data = await res.json()
-  if (!res.ok) { setError(data.error || 'Error al confirmar'); setCargando(false); return }
-  setCargando(false)
-  setPaso('confirmado')
-}
+    const data = await res.json()
+    if (!res.ok) { setError(data.error || 'Error al confirmar'); setCargando(false); return }
+    setCargando(false)
+    setPaso('confirmado')
+  }
 
   const cambiarMes = (delta: number) => {
     const nueva = new Date(anio, mes + delta, 1)
@@ -262,7 +286,27 @@ function enviarComprobanteWA() {
         <div style={card}>
           <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px' }}>📱 Ingresá tu número de WhatsApp</h2>
           <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>Lo usamos para identificarte. Si ya sos cliente, tomamos tus datos automáticamente.</p>
-          <input type="tel" placeholder="Ej: 3492123456" value={whatsapp} onChange={e => { setWhatsapp(e.target.value); setEsNuevo(false); setError('') }} style={inp} />
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+            <select
+              value={paisDial}
+              onChange={e => { setPaisDial(e.target.value); setEsNuevo(false); setError('') }}
+              style={{ padding: '12px 8px', borderRadius: '10px', border: '1px solid #e3dfd6', fontSize: '14px', fontFamily: 'Arial', backgroundColor: '#fff', flex: '0 0 130px' }}
+            >
+              {PAISES.map(p => (
+                <option key={p.dial} value={p.dial}>{p.flag} +{p.dial}</option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              placeholder="Ej: 3492123456"
+              value={whatsapp}
+              onChange={e => { setWhatsapp(e.target.value); setEsNuevo(false); setError('') }}
+              style={{ ...inp, marginBottom: 0, flex: 1 }}
+            />
+          </div>
+          <p style={{ color: '#9CA3AF', fontSize: '12px', margin: '0 0 12px' }}>Elegí tu país si no sos de Argentina, y escribí el número sin el 0 ni el código de país.</p>
+
           {error && <p style={{ color: '#EF4444', fontSize: '13px', margin: '0 0 12px' }}>{error}</p>}
           {!esNuevo && (
             <button onClick={buscarCliente} disabled={cargando} style={{ ...btn, opacity: cargando ? 0.7 : 1 }}>
@@ -288,21 +332,21 @@ function enviarComprobanteWA() {
           <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px' }}>Elegí el servicio</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {servicios.map(s => {
-  const seniaDeEsteServicio = configNegocio?.requiere_senia && s.precio && s.porcentaje_senia
-    ? Math.round(s.precio * (s.porcentaje_senia / 100)) : null
-  return (
-    <div key={s.id} onClick={() => { setServicioSeleccionado(s); setPaso('fecha') }}
-      style={{ border: `2px solid ${servicioSeleccionado?.id === s.id ? '#ba9a7d' : '#e3dfd6'}`, borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', backgroundColor: servicioSeleccionado?.id === s.id ? '#fdf9f5' : '#fff' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontWeight: 600, color: '#161616', fontSize: '15px' }}>{s.nombre}</span>
-        <span style={{ fontSize: '13px', color: '#6B7280' }}>{s.duracion ?? 60} min{s.precio ? ` · $${s.precio}` : ''}</span>
-      </div>
-      {seniaDeEsteServicio && (
-        <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#D97706' }}>💰 Requiere seña de ${seniaDeEsteServicio} para confirmar</p>
-      )}
-    </div>
-  )
-})}
+              const seniaDeEsteServicio = configNegocio?.requiere_senia && s.precio && s.porcentaje_senia
+                ? Math.round(s.precio * (s.porcentaje_senia / 100)) : null
+              return (
+                <div key={s.id} onClick={() => { setServicioSeleccionado(s); setPaso('fecha') }}
+                  style={{ border: `2px solid ${servicioSeleccionado?.id === s.id ? '#ba9a7d' : '#e3dfd6'}`, borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', backgroundColor: servicioSeleccionado?.id === s.id ? '#fdf9f5' : '#fff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, color: '#161616', fontSize: '15px' }}>{s.nombre}</span>
+                    <span style={{ fontSize: '13px', color: '#6B7280' }}>{s.duracion ?? 60} min{s.precio ? ` · $${s.precio}` : ''}</span>
+                  </div>
+                  {seniaDeEsteServicio && (
+                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#D97706' }}>💰 Requiere seña de ${seniaDeEsteServicio} para confirmar</p>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -398,17 +442,17 @@ function enviarComprobanteWA() {
               📲 Para cancelar o reprogramar tu turno, comunicate por WhatsApp con el profesional.
             </p>
             {requiereSeniaEsteServicio && (
-  <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '16px', marginTop: '16px', textAlign: 'left' }}>
-    <p style={{ margin: '0 0 10px', color: '#92400E', fontWeight: 700, fontSize: '14px' }}>💰 Para confirmar tu turno, transferí la seña</p>
-    <p style={{ margin: '0 0 6px', fontSize: '14px', color: '#161616' }}>Monto: <strong>${montoSenia}</strong></p>
-    {configNegocio?.alias_transferencia && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Alias/CBU: {configNegocio.alias_transferencia}</p>}
-    {configNegocio?.titular_cuenta && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Titular: {configNegocio.titular_cuenta}</p>}
-    {configNegocio?.banco && <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#161616' }}>Banco: {configNegocio.banco}</p>}
-    <button onClick={enviarComprobanteWA} style={{ width: '100%', backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
-      📲 Enviar comprobante por WhatsApp
-    </button>
-  </div>
-)}
+              <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '16px', marginTop: '16px', textAlign: 'left' }}>
+                <p style={{ margin: '0 0 10px', color: '#92400E', fontWeight: 700, fontSize: '14px' }}>💰 Para confirmar tu turno, transferí la seña</p>
+                <p style={{ margin: '0 0 6px', fontSize: '14px', color: '#161616' }}>Monto: <strong>${montoSenia}</strong></p>
+                {configNegocio?.alias_transferencia && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Alias/CBU: {configNegocio.alias_transferencia}</p>}
+                {configNegocio?.titular_cuenta && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Titular: {configNegocio.titular_cuenta}</p>}
+                {configNegocio?.banco && <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#161616' }}>Banco: {configNegocio.banco}</p>}
+                <button onClick={enviarComprobanteWA} style={{ width: '100%', backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+                  📲 Enviar comprobante por WhatsApp
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
