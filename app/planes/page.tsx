@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 const planes = [
   {
@@ -50,8 +51,20 @@ const planes = [
 export default function Planes() {
   const [moneda, setMoneda] = useState<'ars' | 'usd'>('ars')
   const [cargando, setCargando] = useState<string | null>(null)
+  
+  async function obtenerUserId(): Promise<string | null> {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data?.user) {
+      alert('No pudimos identificar tu sesión. Volvé a iniciar sesión e intentá de nuevo.')
+      return null
+    }
+    return data.user.id
+  }
 
   async function handlePagoMP(plan: typeof planes[0]) {
+    const userId = await obtenerUserId()
+    if (!userId) return
+
     setCargando(plan.id)
     try {
       const res = await fetch('/api/crear-preferencia', {
@@ -60,7 +73,8 @@ export default function Planes() {
         body: JSON.stringify({
           planId: plan.id,
           precio: plan.precio,
-          nombre: plan.nombre
+          nombre: plan.nombre,
+          userId
         })
       })
       const data = await res.json()
@@ -76,6 +90,9 @@ export default function Planes() {
   }
 
   async function handlePagoPayPal(plan: typeof planes[0]) {
+    const userId = await obtenerUserId()
+    if (!userId) return
+
     setCargando(plan.id + '_paypal')
     try {
       const res = await fetch('/api/crear-orden-paypal', {
@@ -84,7 +101,8 @@ export default function Planes() {
         body: JSON.stringify({
           planId: plan.id,
           precio: plan.precioUsd,
-          nombre: plan.nombre
+          nombre: plan.nombre,
+          userId
         })
       })
       const data = await res.json()
