@@ -62,6 +62,7 @@ export default function AgendaPublicaCliente() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [configNegocio, setConfigNegocio] = useState<any>(null)
+  const [diasBloqueados, setDiasBloqueados] = useState<string[]>([])
 
   const [datosListos, setDatosListos] = useState(false)
 
@@ -100,6 +101,14 @@ useEffect(() => {
         .gte('fecha', primerDia)
         .lte('fecha', ultimoDiaStr)
       if (bloqueos) setBloqueosOcupados(bloqueos)
+
+        const { data: diasBloq } = await supabase
+  .from('dias_bloqueados')
+  .select('fecha')
+  .eq('user_id', profesionalId)
+  .gte('fecha', primerDia)
+  .lte('fecha', ultimoDiaStr)
+if (diasBloq) setDiasBloqueados(diasBloq.map((d: any) => d.fecha))
     }
     cargarSesionesYBloqueos()
   }, [anio, mes, profesionalId])
@@ -149,6 +158,7 @@ useEffect(() => {
   const diaEsAtendido = (dia: number) => {
     const f = fechaStr(dia)
     if (f < hoyStr) return false
+    if (diasBloqueados.includes(f)) return false
     const diaSemana = new Date(f + 'T12:00:00').getDay()
     return disponibilidad.some(d => d.dia_semana === diaSemana && d.activo)
   }
