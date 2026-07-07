@@ -32,15 +32,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const planId = pago.external_reference
-  const userEmail = pago.payer?.email
+  const externalRef = pago.external_reference as string | undefined
+  if (!externalRef) return NextResponse.json({ ok: true })
 
-  if (!planId || !userEmail) {
-    return NextResponse.json({ ok: true })
-  }
+  const [userId, planId] = externalRef.split('|')
 
-  const { data: usuarios } = await supabase.auth.admin.listUsers()
-  const usuario = usuarios?.users?.find(u => u.email === userEmail)
+  if (!userId || !planId) return NextResponse.json({ ok: true })
+
+  const { data: usuarioData } = await supabase.auth.admin.getUserById(userId)
+  const usuario = usuarioData?.user
 
   if (!usuario) return NextResponse.json({ ok: true })
 
@@ -85,12 +85,12 @@ export async function POST(req: NextRequest) {
     .eq('id', usuario.id)
     .single()
 
-  // Enviar email de suscripción renovada
+  // Enviar email de suscripción renovada (usamos el mail registrado en la cuenta, no el del pago)
   await fetch(`${process.env.NEXT_PUBLIC_URL}/api/email/suscripcion-renovada`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: userEmail,
+      email: usuario.email,
       nombre: perfil?.nombre || 'Profesional',
       fechaVencimiento: fechaVencimientoStr
     })

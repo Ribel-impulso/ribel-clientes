@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
-  const { planId, precio, nombre } = await req.json()
+  const { planId, precio, nombre, userId } = await req.json()
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Falta userId' }, { status: 400 })
+  }
 
   console.log('ACCESS TOKEN:', process.env.MP_ACCESS_TOKEN ? 'OK' : 'FALTA')
 
@@ -20,7 +24,7 @@ export async function POST(req: NextRequest) {
       pending: `${process.env.NEXT_PUBLIC_URL}/planes`
     },
     auto_return: 'approved',
-    external_reference: planId
+    external_reference: `${userId}|${planId}`
   }
 
   const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
