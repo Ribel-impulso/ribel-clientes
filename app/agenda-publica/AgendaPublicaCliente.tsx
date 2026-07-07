@@ -89,7 +89,7 @@ export default function AgendaPublicaCliente() {
       const [{ data: srv }, { data: disp }, { data: config }] = await Promise.all([
         supabase.from('servicios').select('*').eq('user_id', profesionalId).order('nombre'),
         supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana'),
-        supabase.from('configuracion_negocio').select('*').eq('user_id', profesionalId).maybeSingle()
+        supabase.from('configuracion_negocio_publica').select('*').eq('user_id', profesionalId).maybeSingle()
       ])
       if (srv) setServicios(srv)
       if (disp) setDisponibilidad(disp)
