@@ -278,6 +278,22 @@ export default function AgendaPublicaCliente() {
   return (
     <div style={container}>
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        {configNegocio?.logo_url && (
+          <img
+            src={configNegocio.logo_url}
+            alt={configNegocio?.nombre_negocio || 'Logo'}
+            style={{
+              width: '76px', height: '76px', borderRadius: '16px',
+              objectFit: 'cover', marginBottom: '12px',
+              border: '1px solid #e3dfd6', backgroundColor: '#fff',
+            }}
+          />
+        )}
+        {configNegocio?.nombre_negocio && (
+          <p style={{ color: '#ba9a7d', fontWeight: 700, fontSize: '14px', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {configNegocio.nombre_negocio}
+          </p>
+        )}
         <h1 style={{ color: '#161616', margin: '0 0 6px', fontSize: '22px' }}>Reservá tu turno</h1>
         <p style={{ color: '#6B7280', margin: 0, fontSize: '14px' }}>Elegí el servicio, día y horario que más te convenga</p>
       </div>
