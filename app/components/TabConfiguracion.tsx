@@ -519,15 +519,15 @@ async function guardarConfigNegocio() {
   }
 
   async function guardarEdicionCliente(id: string) {
-    if (editWhatsapp && !editWhatsapp.startsWith('+')) {
-      setErrorEditTelefono('Revisá el teléfono, el formato no parece válido.')
-      return
-    }
-    setErrorEditTelefono('')
-    await supabase.from('clientes').update({ nombre: editNombre, whatsapp: editWhatsapp }).eq('id', id)
-    setEditandoCliente(null)
-    cargarClientes(userId)
+  if (editWhatsapp && !editWhatsapp.startsWith('+')) {
+    setErrorEditTelefono('Revisá el teléfono, el formato no parece válido.')
+    return
   }
+  setErrorEditTelefono('')
+  await supabase.from('clientes').update({ nombre: editNombre, whatsapp: editWhatsapp || null }).eq('id', id)
+  setEditandoCliente(null)
+  cargarClientes(userId)
+}
 
   async function iniciarEdicionServicio(s: any) {
   setEditandoServicio(s.id)
@@ -582,16 +582,16 @@ async function guardarEdicionServicio(id: string) {
   }
 
   async function agregarCliente() {
-    if (!telefono || !telefono.startsWith('+')) {
-      setErrorTelefono('Elegí el país y completá el teléfono correctamente.')
-      return
-    }
-    setErrorTelefono('')
-    await supabase.from('clientes').insert([{ nombre, whatsapp: telefono, user_id: userId }])
-    setNombre('')
-    setTelefono('')
-    cargarClientes(userId)
+  if (telefono && !telefono.startsWith('+')) {
+    setErrorTelefono('Revisá el teléfono, el formato no parece válido.')
+    return
   }
+  setErrorTelefono('')
+  await supabase.from('clientes').insert([{ nombre, whatsapp: telefono || null, user_id: userId }])
+  setNombre('')
+  setTelefono('')
+  cargarClientes(userId)
+}
 
   async function agregarServicio() {
   await supabase.from('servicios').insert([{
