@@ -54,7 +54,7 @@ const phoneInputWrapperStyle = (base: React.CSSProperties): React.CSSProperties 
 
 function MiNegocio({
   userId, nombreNegocio, setNombreNegocio, logoUrl, setLogoUrl,
-  card, input, btnPrimary,
+  card, input, btnPrimary, ubicacion, setUbicacion,
 }: {
   userId: string
   nombreNegocio: string
@@ -64,6 +64,8 @@ function MiNegocio({
   card: React.CSSProperties
   input: React.CSSProperties
   btnPrimary: React.CSSProperties
+  ubicacion: string
+  setUbicacion: (v: string) => void
 }) {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [previewLocal, setPreviewLocal] = useState<string | null>(null)
@@ -106,6 +108,7 @@ function MiNegocio({
       user_id: userId,
       nombre_negocio: nombreNegocio,
       logo_url: nuevaLogoUrl,
+      ubicacion: ubicacion,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
 
@@ -122,7 +125,7 @@ function MiNegocio({
     <div style={card}>
       <h2 style={{ color: '#161616', marginTop: 0 }}>Mi Negocio</h2>
       <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>
-        Este nombre y logo van a aparecer en tu agenda pública y en la vista previa cuando compartís el link.
+        Este nombre, logo y ubicación van a aparecer en tu agenda pública y en la vista previa cuando compartís el link.
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
@@ -156,7 +159,14 @@ function MiNegocio({
         style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}
       />
 
-      <div>
+      <input
+        placeholder="Ubicación (Ej: Villa María, Córdoba)"
+        value={ubicacion}
+        onChange={e => setUbicacion(e.target.value)}
+        style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box', marginTop: '4px' }}
+      />
+
+      <div style={{ marginTop: '8px' }}>
         <button onClick={guardarNegocio} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
           {guardando ? 'Guardando...' : 'Guardar'}
         </button>
@@ -463,6 +473,7 @@ export default function TabConfiguracion({
   const [mensajeConfig, setMensajeConfig] = useState('')
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
+  const [ubicacion, setUbicacion] = useState('')
 
 useEffect(() => { cargarConfigNegocio() }, [userId])
 
@@ -476,6 +487,7 @@ async function cargarConfigNegocio() {
     setWhatsappProfesional(data.whatsapp_profesional ?? '')
     setNombreNegocio(data.nombre_negocio ?? '')
     setLogoUrl(data.logo_url ?? '')
+    setUbicacion(data.ubicacion ?? '')
   }
 }
 
@@ -906,15 +918,17 @@ async function guardarEdicionServicio(id: string) {
       {subTab === 'cuenta' && (
         <>
           <MiNegocio
-            userId={userId}
-            nombreNegocio={nombreNegocio}
-            setNombreNegocio={setNombreNegocio}
-            logoUrl={logoUrl}
-            setLogoUrl={setLogoUrl}
-            card={card}
-            input={input}
-            btnPrimary={btnPrimary}
-          />
+  userId={userId}
+  nombreNegocio={nombreNegocio}
+  setNombreNegocio={setNombreNegocio}
+  logoUrl={logoUrl}
+  setLogoUrl={setLogoUrl}
+  ubicacion={ubicacion}
+  setUbicacion={setUbicacion}
+  card={card}
+  input={input}
+  btnPrimary={btnPrimary}
+/>
           <div style={card}>
             <CambiarPassword btnPrimary={btnPrimary} inp={inp} />
           </div>

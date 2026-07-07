@@ -270,33 +270,47 @@ export default function AgendaPublicaCliente() {
     ? new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
     : ''
 
-  const container: React.CSSProperties = { fontFamily: 'Arial, sans-serif', backgroundColor: '#F5F0EB', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 16px' }
+  const container: React.CSSProperties = { fontFamily: 'Arial, sans-serif', backgroundColor: '#F5F0EB', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }
+  const contenido: React.CSSProperties = { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 16px 32px' }
   const card: React.CSSProperties = { backgroundColor: '#fff', borderRadius: '16px', padding: '28px 24px', width: '100%', maxWidth: '480px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: '16px' }
   const inp: React.CSSProperties = { width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e3dfd6', fontSize: '15px', fontFamily: 'Arial', boxSizing: 'border-box' as const, marginBottom: '12px' }
   const btn: React.CSSProperties = { width: '100%', padding: '13px', backgroundColor: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Arial' }
 
+  const tieneImagen = !!configNegocio?.logo_url
+
   return (
     <div style={container}>
-      <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-        {configNegocio?.logo_url && (
-          <img
-            src={configNegocio.logo_url}
-            alt={configNegocio?.nombre_negocio || 'Logo'}
-            style={{
-              width: '76px', height: '76px', borderRadius: '16px',
-              objectFit: 'cover', marginBottom: '12px',
-              border: '1px solid #e3dfd6', backgroundColor: '#fff',
-            }}
-          />
-        )}
-        {configNegocio?.nombre_negocio && (
-          <p style={{ color: '#ba9a7d', fontWeight: 700, fontSize: '14px', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {configNegocio.nombre_negocio}
-          </p>
-        )}
-        <h1 style={{ color: '#161616', margin: '0 0 6px', fontSize: '22px' }}>Reservá tu turno</h1>
-        <p style={{ color: '#6B7280', margin: 0, fontSize: '14px' }}>Elegí el servicio, día y horario que más te convenga</p>
-      </div>
+  
+      {/* Contenido: logo superpuesto, nombre, ubicación, y luego las tarjetas del flujo */}
+      <div style={{ ...contenido, paddingTop: '32px' }}>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
+          {tieneImagen && (
+            <img
+              src={configNegocio.logo_url}
+              alt={configNegocio?.nombre_negocio || 'Logo'}
+              style={{
+                width: '104px', height: '104px', borderRadius: '50%',
+                objectFit: 'cover',
+                border: '4px solid #fff',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                marginBottom: '12px',
+              }}
+            />
+          )}
+          {configNegocio?.nombre_negocio && (
+            <h1 style={{ color: '#161616', margin: '0 0 4px', fontSize: '20px', textAlign: 'center' }}>
+              {configNegocio.nombre_negocio}
+            </h1>
+          )}
+          {configNegocio?.ubicacion && (
+            <p style={{ color: '#8a8378', margin: '0 0 10px', fontSize: '13px', textAlign: 'center' }}>
+              📍 {configNegocio.ubicacion}
+            </p>
+          )}
+          <h2 style={{ color: '#161616', margin: '4px 0 4px', fontSize: '17px' }}>Reservá tu turno</h2>
+          <p style={{ color: '#6B7280', margin: 0, fontSize: '13px', textAlign: 'center' }}>Elegí el servicio, día y horario que más te convenga</p>
+        </div>
 
       {paso === 'whatsapp' && (
         <div style={card}>
@@ -472,6 +486,7 @@ export default function AgendaPublicaCliente() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
