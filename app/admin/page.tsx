@@ -19,6 +19,8 @@ export default function AdminPage() {
   const [cargando, setCargando] = useState(true)
   const [acceso, setAcceso] = useState(false)
   const [actualizando, setActualizando] = useState<string | null>(null)
+  const [editandoEmail, setEditandoEmail] = useState<string | null>(null)
+  const [nuevoEmail, setNuevoEmail] = useState('')
 
   useEffect(() => {
     cargarDatos()
@@ -52,6 +54,33 @@ export default function AdminPage() {
         )
       } else {
         alert('No se pudo actualizar el estado. Intentá de nuevo.')
+      }
+    } catch {
+      alert('Error de conexión. Intentá de nuevo.')
+    }
+    setActualizando(null)
+  }
+
+  async function guardarEmail(userId: string) {
+    if (!nuevoEmail || !nuevoEmail.includes('@')) {
+      alert('Ingresá un email válido.')
+      return
+    }
+    setActualizando(userId)
+    try {
+      const res = await fetch('/api/admin/suscripciones', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, nuevo_email: nuevoEmail })
+      })
+      if (res.ok) {
+        setSuscripciones(prev =>
+          prev.map(s => s.user_id === userId ? { ...s, email: nuevoEmail } : s)
+        )
+        setEditandoEmail(null)
+      } else {
+        const data = await res.json()
+        alert(data.error || 'No se pudo actualizar el email.')
       }
     } catch {
       alert('Error de conexión. Intentá de nuevo.')
@@ -130,7 +159,52 @@ export default function AdminPage() {
                     const dias = diasRestantes(s.fecha_vencimiento)
                     return (
                       <tr key={i} style={{ borderTop: '1px solid #e3dfd6', backgroundColor: i % 2 === 0 ? '#fff' : '#faf9f7' }}>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616' }}>{s.email}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616' }}>
+                          {editandoEmail === s.user_id ? (
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <input
+                                type="email"
+                                defaultValue={s.email}
+                                onChange={(e) => setNuevoEmail(e.target.value)}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #ba9a7d',
+                                  fontSize: '13px',
+                                  fontFamily: 'Arial',
+                                  width: '180px'
+                                }}
+                              />
+                              <button
+                                onClick={() => guardarEmail(s.user_id)}
+                                disabled={actualizando === s.user_id}
+                                style={{
+                                  border: 'none', background: '#27ae60', color: '#fff',
+                                  borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px'
+                                }}
+                              >✓</button>
+                              <button
+                                onClick={() => setEditandoEmail(null)}
+                                style={{
+                                  border: 'none', background: '#9e9e9e', color: '#fff',
+                                  borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px'
+                                }}
+                              >✕</button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <span>{s.email}</span>
+                              <button
+                                onClick={() => { setEditandoEmail(s.user_id); setNuevoEmail(s.email) }}
+                                style={{
+                                  border: 'none', background: 'transparent', cursor: 'pointer',
+                                  color: '#ba9a7d', fontSize: '13px'
+                                }}
+                                title="Editar email"
+                              >✎</button>
+                            </div>
+                          )}
+                        </td>
                         <td style={{ padding: '12px 16px', fontSize: '12px', color: '#9e9e9e' }}>{s.user_id.slice(0, 8)}...</td>
                         <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616', textTransform: 'capitalize' }}>{s.plan}</td>
                         <td style={{ padding: '12px 16px' }}>

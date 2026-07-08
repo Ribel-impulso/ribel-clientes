@@ -44,3 +44,18 @@ export async function PATCH(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
+
+export async function PUT(req: Request) {
+  const { user_id, nuevo_email } = await req.json()
+
+  if (!user_id || !nuevo_email) {
+    return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+  }
+
+  const { error } = await supabase.auth.admin.updateUserById(user_id, {
+    email: nuevo_email
+  })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
