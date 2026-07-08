@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 const ADMIN_EMAIL = 'maribelefontana@gmail.com'
+const ESTADOS = ['activa', 'vencida', 'prueba', 'cancelada']
 
 interface Suscripcion {
   user_id: string
@@ -10,27 +11,53 @@ interface Suscripcion {
   estado: string
   fecha_inicio: string
   fecha_vencimiento: string
+  email: string
 }
 
 export default function AdminPage() {
   const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([])
   const [cargando, setCargando] = useState(true)
   const [acceso, setAcceso] = useState(false)
+  const [actualizando, setActualizando] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user || data.user.email !== ADMIN_EMAIL) {
-        window.location.href = '/'
-        return
-      }
-      setAcceso(true)
-
-      const res = await fetch('/api/admin/suscripciones')
-      const subs = await res.json()
-      setSuscripciones(subs || [])
-      setCargando(false)
-    })
+    cargarDatos()
   }, [])
+
+  async function cargarDatos() {
+    const { data } = await supabase.auth.getUser()
+    if (!data.user || data.user.email !== ADMIN_EMAIL) {
+      window.location.href = '/'
+      return
+    }
+    setAcceso(true)
+
+    const res = await fetch('/api/admin/suscripciones')
+    const subs = await res.json()
+    setSuscripciones(subs || [])
+    setCargando(false)
+  }
+
+  async function cambiarEstado(userId: string, nuevoEstado: string) {
+    setActualizando(userId)
+    try {
+      const res = await fetch('/api/admin/suscripciones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, estado: nuevoEstado })
+      })
+      if (res.ok) {
+        setSuscripciones(prev =>
+          prev.map(s => s.user_id === userId ? { ...s, estado: nuevoEstado } : s)
+        )
+      } else {
+        alert('No se pudo actualizar el estado. Intentá de nuevo.')
+      }
+    } catch {
+      alert('Error de conexión. Intentá de nuevo.')
+    }
+    setActualizando(null)
+  }
 
   function diasRestantes(fechaVencimiento: string) {
     const hoy = new Date()
@@ -50,7 +77,7 @@ export default function AdminPage() {
 
   return (
     <main style={{ padding: '32px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1150px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h1 style={{ color: '#161616', margin: 0 }}>Panel Admin</h1>
           <a href="/" style={{ color: '#ba9a7d', fontSize: '14px' }}>← Volver a la app</a>
@@ -89,6 +116,7 @@ export default function AdminPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#e3dfd6' }}>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', color: '#161616', fontSize: '13px' }}>Email</th>
                     <th style={{ padding: '12px 16px', textAlign: 'left', color: '#161616', fontSize: '13px' }}>User ID</th>
                     <th style={{ padding: '12px 16px', textAlign: 'left', color: '#161616', fontSize: '13px' }}>Plan</th>
                     <th style={{ padding: '12px 16px', textAlign: 'left', color: '#161616', fontSize: '13px' }}>Estado</th>
@@ -102,19 +130,33 @@ export default function AdminPage() {
                     const dias = diasRestantes(s.fecha_vencimiento)
                     return (
                       <tr key={i} style={{ borderTop: '1px solid #e3dfd6', backgroundColor: i % 2 === 0 ? '#fff' : '#faf9f7' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616' }}>{s.email}</td>
                         <td style={{ padding: '12px 16px', fontSize: '12px', color: '#9e9e9e' }}>{s.user_id.slice(0, 8)}...</td>
                         <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616', textTransform: 'capitalize' }}>{s.plan}</td>
                         <td style={{ padding: '12px 16px' }}>
-                          <span style={{
-                            backgroundColor: colorEstado(s.estado, dias) + '20',
-                            color: colorEstado(s.estado, dias),
-                            padding: '3px 10px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: 'bold'
-                          }}>
-                            {dias < 0 ? 'Vencida' : s.estado}
-                          </span>
+                          <select
+                            value={s.estado}
+                            disabled={actualizando === s.user_id}
+                            onChange={(e) => cambiarEstado(s.user_id, e.target.value)}
+                            style={{
+                              backgroundColor: colorEstado(s.estado, dias) + '20',
+                              color: colorEstado(s.estado, dias),
+                              border: `1px solid ${colorEstado(s.estado, dias)}40`,
+                              padding: '4px 8px',
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              fontFamily: 'Arial',
+                              cursor: actualizando === s.user_id ? 'not-allowed' : 'pointer',
+                              textTransform: 'capitalize'
+                            }}
+                          >
+                            {ESTADOS.map(estado => (
+                              <option key={estado} value={estado} style={{ color: '#161616', backgroundColor: '#fff' }}>
+                                {estado}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616' }}>{s.fecha_inicio}</td>
                         <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616' }}>{s.fecha_vencimiento}</td>
