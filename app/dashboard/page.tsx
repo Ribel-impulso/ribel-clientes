@@ -129,20 +129,22 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
         .single()
 
       if (suscripcion) {
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
-        const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
-        const diffMs = vencimiento.getTime() - hoy.getTime()
-        const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
+  const diffMs = vencimiento.getTime() - hoy.getTime()
+  const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
-        if (diffDias < 0) {
-          window.location.href = '/planes'
-          return
-        }
-        if (diffDias <= 5) {
-          setDiasRestantes(diffDias)
-        }
-      }
+  const estadoBloqueado = suscripcion.estado === 'vencida' || suscripcion.estado === 'cancelada'
+
+  if (diffDias < 0 || estadoBloqueado) {
+    window.location.href = '/planes'
+    return
+  }
+  if (diffDias <= 5) {
+    setDiasRestantes(diffDias)
+  }
+}
 
       setUserId(data.user.id)
       cargarClientes(data.user.id)
