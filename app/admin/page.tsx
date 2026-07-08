@@ -21,6 +21,7 @@ export default function AdminPage() {
   const [actualizando, setActualizando] = useState<string | null>(null)
   const [editandoEmail, setEditandoEmail] = useState<string | null>(null)
   const [nuevoEmail, setNuevoEmail] = useState('')
+  const PLANES = ['mensual', 'semestral', 'anual', 'ilimitado', 'prueba']
 
   useEffect(() => {
     cargarDatos()
@@ -60,6 +61,36 @@ export default function AdminPage() {
     }
     setActualizando(null)
   }
+
+  async function cambiarPlan(userId: string, nuevoPlan: string) {
+  setActualizando(userId)
+  try {
+    const res = await fetch('/api/admin/suscripciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, plan: nuevoPlan })
+    })
+    if (res.ok) {
+      const dias = { mensual: 30, semestral: 180, anual: 365, ilimitado: 36500, prueba: 15 }[nuevoPlan] || 30
+      const hoy = new Date()
+      const vencimiento = new Date()
+      vencimiento.setDate(hoy.getDate() + dias)
+      setSuscripciones(prev =>
+        prev.map(s => s.user_id === userId ? {
+          ...s,
+          plan: nuevoPlan,
+          fecha_inicio: hoy.toISOString().split('T')[0],
+          fecha_vencimiento: vencimiento.toISOString().split('T')[0]
+        } : s)
+      )
+    } else {
+      alert('No se pudo actualizar el plan. Intentá de nuevo.')
+    }
+  } catch {
+    alert('Error de conexión. Intentá de nuevo.')
+  }
+  setActualizando(null)
+}
 
   async function guardarEmail(userId: string) {
     if (!nuevoEmail || !nuevoEmail.includes('@')) {
@@ -206,7 +237,30 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '12px', color: '#9e9e9e' }}>{s.user_id.slice(0, 8)}...</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#161616', textTransform: 'capitalize' }}>{s.plan}</td>
+                        <td style={{ padding: '12px 16px' }}>
+  <select
+    value={s.plan}
+    disabled={actualizando === s.user_id}
+    onChange={(e) => cambiarPlan(s.user_id, e.target.value)}
+    style={{
+      backgroundColor: '#e3dfd620',
+      color: '#161616',
+      border: '1px solid #e3dfd6',
+      padding: '4px 8px',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontFamily: 'Arial',
+      cursor: actualizando === s.user_id ? 'not-allowed' : 'pointer',
+      textTransform: 'capitalize'
+    }}
+  >
+    {PLANES.map(plan => (
+      <option key={plan} value={plan} style={{ color: '#161616', backgroundColor: '#fff' }}>
+        {plan}
+      </option>
+    ))}
+  </select>
+</td>
                         <td style={{ padding: '12px 16px' }}>
                           <select
                             value={s.estado}

@@ -59,3 +59,35 @@ export async function PUT(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
+const diasPorPlan: Record<string, number> = {
+  mensual: 30,
+  semestral: 180,
+  anual: 365,
+  ilimitado: 36500,
+  prueba: 15
+}
+
+export async function POST(req: Request) {
+  const { user_id, plan } = await req.json()
+
+  if (!user_id || !plan) {
+    return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+  }
+
+  const dias = diasPorPlan[plan] || 30
+  const hoy = new Date()
+  const vencimiento = new Date()
+  vencimiento.setDate(hoy.getDate() + dias)
+
+  const { error } = await supabase
+    .from('suscripciones')
+    .update({
+      plan,
+      fecha_inicio: hoy.toISOString().split('T')[0],
+      fecha_vencimiento: vencimiento.toISOString().split('T')[0]
+    })
+    .eq('user_id', user_id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
