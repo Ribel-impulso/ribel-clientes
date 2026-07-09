@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactElement } from 'react'
 import { supabase } from '../../lib/supabase'
 import TabConfiguracion from '../components/TabConfiguracion'
 import TabTurnos from '../components/TabTurnos'
@@ -7,6 +7,24 @@ import TabAgenda from '../components/TabAgenda'
 import TabFinanzas from '../components/TabFinanzas'
 import NotificacionesCampana from '../components/NotificacionesCampana'
 import TabAgendaPersonal from '../components/TabAgendaPersonal'
+
+// Paleta y tipografía compartidas con el login.
+// Recomendado: cuando tengas tiempo, mover esto a un archivo único
+// (ej. lib/theme.ts) e importarlo acá y en login/page.tsx, para no
+// tener las mismas constantes copiadas en dos archivos.
+const INK = '#1B2420'
+const PAPER = '#F4EFE4'
+const PAPER_2 = '#FFFDF8'
+const BRASS = '#A87F4C'
+const BRASS_LIGHT = '#C9A876'
+const SAGE = '#5E7A5A'
+const SAGE_BG = '#EAF0E8'
+const CLAY = '#A85A44'
+const CLAY_BG = '#F5E9E5'
+const LINE = '#DDD3BF'
+const MUTED = '#726B5C'
+const FONT_SERIF = "'Source Serif 4', serif"
+const FONT_SANS = "'Public Sans', sans-serif"
 
 export default function Home() {
 const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 'finanzas' | 'agenda' | 'agendaPersonal'>('agenda')
@@ -52,65 +70,116 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
   const [fechaSenia, setFechaSenia] = useState('')
 
   const card: React.CSSProperties = {
-    backgroundColor: '#ffffff',
-    border: '1px solid #e3dfd6',
-    borderRadius: '12px',
+    backgroundColor: PAPER_2,
+    border: `1px solid ${LINE}`,
+    borderRadius: '16px',
     padding: '24px',
     marginBottom: '20px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+    boxShadow: '0 2px 10px rgba(27,36,32,0.05)'
   }
   const input: React.CSSProperties = {
-    padding: '10px',
-    borderRadius: '8px',
-    border: '1px solid #e3dfd6',
+    padding: '11px 13px',
+    borderRadius: '10px',
+    border: `1.5px solid ${LINE}`,
     marginRight: '8px',
     marginBottom: '8px',
-    fontFamily: 'Arial'
+    fontFamily: FONT_SANS,
+    fontSize: '14px',
+    color: INK,
+    backgroundColor: PAPER_2,
+    outline: 'none'
   }
   const btnPrimary: React.CSSProperties = {
-    padding: '10px 20px',
-    backgroundColor: '#ba9a7d',
-    color: '#ffffff',
+    padding: '11px 20px',
+    backgroundColor: INK,
+    color: PAPER_2,
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '10px',
     cursor: 'pointer',
-    fontFamily: 'Arial'
+    fontFamily: FONT_SANS,
+    fontWeight: 600,
+    fontSize: '14px'
   }
   const btnSecondary: React.CSSProperties = {
-    padding: '8px 16px',
-    backgroundColor: '#e3dfd6',
-    color: '#161616',
-    border: 'none',
-    borderRadius: '8px',
+    padding: '9px 16px',
+    backgroundColor: PAPER_2,
+    color: INK,
+    border: `1.5px solid ${LINE}`,
+    borderRadius: '10px',
     cursor: 'pointer',
     marginLeft: '10px',
-    fontFamily: 'Arial'
+    fontFamily: FONT_SANS,
+    fontWeight: 600,
+    fontSize: '13.5px'
   }
   const th: React.CSSProperties = {
-    border: '1px solid #e3dfd6',
+    border: `1px solid ${LINE}`,
     padding: '10px',
     textAlign: 'left',
-    backgroundColor: '#e3dfd6',
-    color: '#161616'
+    backgroundColor: PAPER,
+    color: INK,
+    fontFamily: FONT_SANS,
+    fontWeight: 700,
+    fontSize: '12.5px',
+    letterSpacing: '0.02em'
   }
   const td: React.CSSProperties = {
-    border: '1px solid #e3dfd6',
+    border: `1px solid ${LINE}`,
     padding: '10px',
-    color: '#161616'
+    color: INK,
+    fontFamily: FONT_SANS,
+    fontSize: '13.5px'
+  }
+
+  // Iconos SVG por pestaña (reemplazan los emoji)
+  const tabIcons: Record<string, ReactElement> = {
+    configuracion: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015.4 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.15.63.4 1 .51H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+      </svg>
+    ),
+    turnos: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="4" width="16" height="17" rx="2" />
+        <path d="M9 2v4M15 2v4M4 10h16M9 15l2 2 4-4" />
+      </svg>
+    ),
+    finanzas: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <path d="M2 10h20M6 15h2" />
+      </svg>
+    ),
+    agenda: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="4" width="18" height="17" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>
+    ),
+    agendaPersonal: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="11" width="16" height="9" rx="2" />
+        <path d="M8 11V7a4 4 0 018 0v4" />
+      </svg>
+    )
   }
 
   const tabStyle = (activa: boolean): React.CSSProperties => ({
-    padding: '10px 24px',
-    border: 'none',
-    borderRadius: '8px 8px 0 0',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '7px',
+    padding: '10px 16px',
+    border: `1px solid ${activa ? INK : LINE}`,
+    borderRadius: '100px',
     cursor: 'pointer',
-    fontFamily: 'Arial',
-    fontWeight: activa ? 'bold' : 'normal',
-    backgroundColor: activa ? '#ffffff' : '#d4cfc6',
-    color: activa ? '#ba9a7d' : '#161616',
-    borderBottom: activa ? '3px solid #ba9a7d' : 'none',
-    marginRight: '4px',
-    fontSize: '14px'
+    fontFamily: FONT_SANS,
+    fontWeight: 600,
+    backgroundColor: activa ? INK : PAPER_2,
+    color: activa ? PAPER_2 : MUTED,
+    marginRight: '8px',
+    fontSize: '13.5px',
+    whiteSpace: 'nowrap'
   })
 
   useEffect(() => {
@@ -129,22 +198,22 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
         .single()
 
       if (suscripcion) {
-  const hoy = new Date()
-  hoy.setHours(0, 0, 0, 0)
-  const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
-  const diffMs = vencimiento.getTime() - hoy.getTime()
-  const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        const hoy = new Date()
+        hoy.setHours(0, 0, 0, 0)
+        const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
+        const diffMs = vencimiento.getTime() - hoy.getTime()
+        const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
-  const estadoBloqueado = suscripcion.estado === 'vencida' || suscripcion.estado === 'cancelada'
+        const estadoBloqueado = suscripcion.estado === 'vencida' || suscripcion.estado === 'cancelada'
 
-  if (diffDias < 0 || estadoBloqueado) {
-    window.location.href = '/planes'
-    return
-  }
-  if (diffDias <= 5) {
-    setDiasRestantes(diffDias)
-  }
-}
+        if (diffDias < 0 || estadoBloqueado) {
+          window.location.href = '/planes'
+          return
+        }
+        if (diffDias <= 5) {
+          setDiasRestantes(diffDias)
+        }
+      }
 
       setUserId(data.user.id)
       cargarClientes(data.user.id)
@@ -359,37 +428,57 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
   ) as [string, number][]).sort((a, b) => b[1] - a[1])
 
   return (
-    <main style={{ padding: '24px', fontFamily: 'Arial', backgroundColor: '#e3dfd6', minHeight: '100vh' }}>
+    <main style={{
+      padding: '24px',
+      fontFamily: FONT_SANS,
+      backgroundColor: PAPER,
+      backgroundImage:
+        'repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(27,36,32,0.035) 28px), radial-gradient(rgba(27,36,32,0.05) 1px, transparent 1px)',
+      backgroundSize: 'auto, 14px 14px',
+      minHeight: '100vh'
+    }}>
+
+      <link
+        href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
 
       {diasRestantes !== null && (
         <div style={{
-          backgroundColor: '#fff8e1',
-          border: '1px solid #f9a825',
-          borderRadius: '10px',
+          backgroundColor: CLAY_BG,
+          border: `1px solid ${CLAY}55`,
+          borderRadius: '12px',
           padding: '12px 20px',
           marginBottom: '16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <span style={{ color: '#e65100', fontSize: '14px' }}>
-            ⏳ Tu período de prueba vence en <strong>{diasRestantes} día{diasRestantes !== 1 ? 's' : ''}</strong>
+          <span style={{ color: CLAY, fontSize: '13.5px', fontWeight: 600 }}>
+            Tu período de prueba vence en {diasRestantes} día{diasRestantes !== 1 ? 's' : ''}
           </span>
           <a href="/planes" style={{
-            backgroundColor: '#ba9a7d',
-            color: '#fff',
-            padding: '6px 14px',
-            borderRadius: '6px',
+            backgroundColor: INK,
+            color: PAPER_2,
+            padding: '7px 15px',
+            borderRadius: '8px',
             textDecoration: 'none',
             fontSize: '13px',
-            fontWeight: 'bold'
+            fontWeight: 700
           }}>Ver planes</a>
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ color: '#161616', margin: 0 }}>Mis Registros</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+        <div>
+          <h1 style={{ fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '22px', color: INK, margin: 0 }}>
+            Ribel Gestión
+          </h1>
+          <p style={{ margin: '2px 0 0', fontSize: '11px', color: SAGE, fontWeight: 600, letterSpacing: '0.03em' }}>
+            Panel de negocio
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <NotificacionesCampana
   onVerTurno={(sesionId, fecha) => {
     setTurnoResaltado(null)
@@ -401,29 +490,50 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
     }, 50)
   }}
 />
-          <button onClick={cerrarSesion} style={{ ...btnPrimary, backgroundColor: '#161616' }}>Cerrar Sesión</button>
+          <button
+            onClick={cerrarSesion}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 14px',
+              backgroundColor: PAPER_2,
+              color: INK,
+              border: `1px solid ${LINE}`,
+              borderRadius: '10px',
+              cursor: 'pointer',
+              fontFamily: FONT_SANS,
+              fontWeight: 600,
+              fontSize: '13px'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            Salir
+          </button>
         </div>
       </div>
 
-      <div style={{ marginBottom: '0px' }}>
+      <div style={{ marginBottom: '18px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '2px' }}>
         <button style={tabStyle(pestanaActiva === 'configuracion')} onClick={() => setPestanaActiva('configuracion')}>
-          ⚙️ Configuración
+          {tabIcons.configuracion} Configuración
         </button>
         <button style={tabStyle(pestanaActiva === 'turnos')} onClick={() => setPestanaActiva('turnos')}>
-          📋 Turnos
+          {tabIcons.turnos} Turnos
         </button>
         <button style={tabStyle(pestanaActiva === 'finanzas')} onClick={() => setPestanaActiva('finanzas')}>
-          💰 Finanzas
+          {tabIcons.finanzas} Finanzas
         </button>
         <button style={tabStyle(pestanaActiva === 'agenda')} onClick={() => setPestanaActiva('agenda')}>
-          📅 Agenda
+          {tabIcons.agenda} Agenda
         </button>
         <button style={tabStyle(pestanaActiva === 'agendaPersonal')} onClick={() => setPestanaActiva('agendaPersonal')}>
-  🔒 Agenda Personal
-</button>
+          {tabIcons.agendaPersonal} Agenda Personal
+        </button>
       </div>
 
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '0 12px 12px 12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <div style={{ backgroundColor: 'transparent' }}>
 
         {pestanaActiva === 'configuracion' && (
           <TabConfiguracion
