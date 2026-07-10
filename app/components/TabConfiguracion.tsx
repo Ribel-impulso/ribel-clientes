@@ -1,8 +1,22 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactElement } from 'react'
 import { supabase } from '../../lib/supabase'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
+
+// Misma paleta que el resto de la app.
+const INK = '#1B2420'
+const PAPER = '#F4EFE4'
+const PAPER_2 = '#FFFDF8'
+const BRASS = '#A87F4C'
+const BRASS_BG = 'rgba(168,127,76,0.1)'
+const SAGE = '#5E7A5A'
+const SAGE_BG = '#EAF0E8'
+const CLAY = '#A85A44'
+const LINE = '#DDD3BF'
+const MUTED = '#726B5C'
+const FONT_SERIF = "'Source Serif 4', serif"
+const FONT_SANS = "'Public Sans', sans-serif"
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -44,13 +58,6 @@ interface Props {
   btnPrimary: React.CSSProperties
   btnSecondary: React.CSSProperties
 }
-
-const phoneInputWrapperStyle = (base: React.CSSProperties): React.CSSProperties => ({
-  ...base,
-  display: 'flex',
-  alignItems: 'center',
-  padding: '0 10px',
-})
 
 function MiNegocio({
   userId, nombreNegocio, setNombreNegocio, logoUrl, setLogoUrl,
@@ -123,22 +130,22 @@ function MiNegocio({
 
   return (
     <div style={card}>
-      <h2 style={{ color: '#161616', marginTop: 0 }}>Mi Negocio</h2>
-      <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>
+      <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Mi Negocio</h2>
+      <p style={{ color: MUTED, fontSize: '13px', marginBottom: '16px' }}>
         Este nombre, logo y ubicación van a aparecer en tu agenda pública y en la vista previa cuando compartís el link.
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
         <div style={{
           width: '72px', height: '72px', borderRadius: '12px',
-          border: '1px solid #e3dfd6', backgroundColor: '#f9f7f4',
+          border: `1px solid ${LINE}`, backgroundColor: PAPER,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden', flexShrink: 0,
         }}>
           {imagenAMostrar ? (
             <img src={imagenAMostrar} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <span style={{ fontSize: '11px', color: '#9CA3AF', textAlign: 'center' }}>Sin logo</span>
+            <span style={{ fontSize: '11px', color: MUTED, textAlign: 'center' }}>Sin logo</span>
           )}
         </div>
         <div>
@@ -148,7 +155,7 @@ function MiNegocio({
             onChange={e => seleccionarLogo(e.target.files?.[0] || null)}
             style={{ display: 'block', marginBottom: '4px', fontSize: '13px' }}
           />
-          <span style={{ fontSize: '12px', color: '#9CA3AF' }}>PNG, JPG o WEBP</span>
+          <span style={{ fontSize: '12px', color: MUTED }}>PNG, JPG o WEBP</span>
         </div>
       </div>
 
@@ -170,7 +177,7 @@ function MiNegocio({
         <button onClick={guardarNegocio} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
           {guardando ? 'Guardando...' : 'Guardar'}
         </button>
-        {mensaje && <span style={{ marginLeft: '12px', fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensaje}</span>}
+        {mensaje && <span style={{ marginLeft: '12px', fontSize: '13px', color: SAGE, fontWeight: 600 }}>{mensaje}</span>}
       </div>
     </div>
   )
@@ -202,12 +209,12 @@ function CambiarPassword({ btnPrimary, inp }: { btnPrimary: React.CSSProperties,
 
   return (
     <>
-      <h2 style={{ color: '#161616', marginTop: 0 }}>Cambiar Contraseña</h2>
+      <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Cambiar Contraseña</h2>
       <input type="password" placeholder="Nueva contraseña" value={nuevaPassword} onChange={e => setNuevaPassword(e.target.value)} style={inp} />
       <input type="password" placeholder="Confirmar contraseña" value={confirmar} onChange={e => setConfirmar(e.target.value)} style={inp} />
       <br />
-      {error && <p style={{ color: '#c0392b', fontSize: '14px' }}>{error}</p>}
-      {mensaje && <p style={{ color: '#16a34a', fontSize: '14px' }}>{mensaje}</p>}
+      {error && <p style={{ color: CLAY, fontSize: '14px', fontWeight: 600 }}>{error}</p>}
+      {mensaje && <p style={{ color: SAGE, fontSize: '14px', fontWeight: 600 }}>{mensaje}</p>}
       <button onClick={handleCambiar} disabled={cargando} style={{ ...btnPrimary, opacity: cargando ? 0.7 : 1 }}>
         {cargando ? 'Guardando...' : 'Actualizar contraseña'}
       </button>
@@ -314,10 +321,10 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
   }
 
   const campo: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }
-  const labelCampo: React.CSSProperties = { fontSize: '11px', color: '#6B7280' }
-  const inputHora: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '100%', boxSizing: 'border-box' }
-  const selectDuracion: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '100%', boxSizing: 'border-box' }
-  const btnQuitar: React.CSSProperties = { fontSize: '12px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 4px', whiteSpace: 'nowrap' }
+  const labelCampo: React.CSSProperties = { fontSize: '11px', color: MUTED }
+  const inputHora: React.CSSProperties = { border: `1.5px solid ${LINE}`, borderRadius: '8px', padding: '6px 8px', fontSize: '13px', width: '100%', boxSizing: 'border-box', fontFamily: FONT_SANS, color: INK, backgroundColor: PAPER_2 }
+  const selectDuracion: React.CSSProperties = { border: `1.5px solid ${LINE}`, borderRadius: '8px', padding: '6px 8px', fontSize: '13px', width: '100%', boxSizing: 'border-box', fontFamily: FONT_SANS, color: INK, backgroundColor: PAPER_2 }
+  const btnQuitar: React.CSSProperties = { fontSize: '12px', color: CLAY, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 4px', whiteSpace: 'nowrap', fontFamily: FONT_SANS, fontWeight: 600 }
 
   return (
     <div style={card}>
@@ -336,7 +343,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
               "desde hasta"
               "duracion quitar";
             row-gap: 8px;
-            border-bottom: 1px dashed #e3dfd6;
+            border-bottom: 1px dashed ${LINE};
             padding-bottom: 10px;
           }
           .disp-campo-desde { grid-area: desde; }
@@ -345,25 +352,25 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
           .disp-btn-quitar { grid-area: quitar; justify-self: end; align-self: center; }
         }
       `}</style>
-      <h2 style={{ color: '#161616', marginTop: 0 }}>Días y horarios de atención</h2>
-      <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
+      <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Días y horarios de atención</h2>
+      <p style={{ fontSize: '13px', color: MUTED, marginBottom: '16px' }}>
         Configurá los días y horarios en los que atendés. Podés agregar tantos bloques como necesites por día (por ejemplo, para horario cortado con receso al mediodía).
       </p>
       {disponibilidad.map((d) => (
         <div key={d.dia_semana} style={{
-          border: `1px solid ${d.activo ? '#ba9a7d' : '#e3dfd6'}`,
-          borderRadius: '10px',
+          border: `1px solid ${d.activo ? BRASS : LINE}`,
+          borderRadius: '12px',
           padding: '12px 16px',
           marginBottom: '10px',
-          backgroundColor: d.activo ? '#fdf9f5' : '#f9f9f9',
-          opacity: d.activo ? 1 : 0.6,
+          backgroundColor: d.activo ? BRASS_BG : PAPER,
+          opacity: d.activo ? 1 : 0.7,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: d.activo ? '12px' : '0' }}>
             <div
               onClick={() => actualizarDia(d.dia_semana, 'activo', !d.activo)}
               style={{
                 width: '36px', height: '20px', borderRadius: '10px',
-                backgroundColor: d.activo ? '#ba9a7d' : '#CBD5E0',
+                backgroundColor: d.activo ? BRASS : LINE,
                 cursor: 'pointer', position: 'relative', flexShrink: 0,
                 transition: 'background-color 0.2s'
               }}>
@@ -371,14 +378,14 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
                 position: 'absolute', top: '3px',
                 left: d.activo ? '18px' : '3px',
                 width: '14px', height: '14px', borderRadius: '50%',
-                backgroundColor: '#fff', transition: 'left 0.2s'
+                backgroundColor: PAPER_2, transition: 'left 0.2s'
               }} />
             </div>
-            <span style={{ fontWeight: 600, fontSize: '14px', color: '#161616' }}>
+            <span style={{ fontWeight: 600, fontSize: '14px', color: INK, fontFamily: FONT_SANS }}>
               {DIAS_SEMANA[d.dia_semana]}
             </span>
             {!d.activo && (
-              <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>No atiende</span>
+              <span style={{ fontSize: '13px', color: MUTED, fontStyle: 'italic' }}>No atiende</span>
             )}
           </div>
 
@@ -413,7 +420,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
               ))}
               <button
                 onClick={() => agregarBloque(d.dia_semana)}
-                style={{ fontSize: '12px', color: '#ba9a7d', background: 'none', border: '1px dashed #ba9a7d', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', marginTop: '4px' }}>
+                style={{ fontSize: '12px', color: BRASS, background: 'none', border: `1px dashed ${BRASS}`, borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', marginTop: '4px', fontFamily: FONT_SANS, fontWeight: 600 }}>
                 + Agregar bloque
               </button>
             </div>
@@ -424,7 +431,7 @@ function SeccionDisponibilidad({ userId, card, btnPrimary, btnSecondary }: {
         <button onClick={guardar} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1 }}>
           {guardando ? 'Guardando...' : 'Guardar disponibilidad'}
         </button>
-        {mensaje && <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensaje}</span>}
+        {mensaje && <span style={{ fontSize: '13px', color: SAGE, fontWeight: 600 }}>{mensaje}</span>}
       </div>
     </div>
   )
@@ -462,6 +469,10 @@ export default function TabConfiguracion({
   const [nuevoServicioPorcentajeSenia, setNuevoServicioPorcentajeSenia] = useState('')
   const [editServicioPrecio, setEditServicioPrecio] = useState('')
   const [editServicioPorcentajeSenia, setEditServicioPorcentajeSenia] = useState('')
+  // Categoría de servicio (opcional)
+  const [nuevoServicioCategoria, setNuevoServicioCategoria] = useState('')
+  const [editServicioCategoria, setEditServicioCategoria] = useState('')
+  const [filtroCategoria, setFiltroCategoria] = useState('')
   const [errorTelefono, setErrorTelefono] = useState('')
   const [errorEditTelefono, setErrorEditTelefono] = useState('')
   const [requiereSenia, setRequiereSenia] = useState(false)
@@ -535,6 +546,7 @@ async function guardarConfigNegocio() {
   setEditServicioDuracion(s.duracion ?? 60)
   setEditServicioPrecio(s.precio != null ? String(s.precio) : '')
   setEditServicioPorcentajeSenia(s.porcentaje_senia != null ? String(s.porcentaje_senia) : '')
+  setEditServicioCategoria(s.categoria ?? '')
 }
 
 async function guardarEdicionServicio(id: string) {
@@ -543,6 +555,7 @@ async function guardarEdicionServicio(id: string) {
     duracion: editServicioDuracion,
     precio: editServicioPrecio ? Number(editServicioPrecio) : null,
     porcentaje_senia: editServicioPorcentajeSenia ? Number(editServicioPorcentajeSenia) : null,
+    categoria: editServicioCategoria.trim() || null,
   }).eq('id', id)
   setEditandoServicio(null)
   cargarServicios(userId)
@@ -599,52 +612,95 @@ async function guardarEdicionServicio(id: string) {
     duracion: nuevoServicioDuracion,
     precio: nuevoServicioPrecio ? Number(nuevoServicioPrecio) : null,
     porcentaje_senia: nuevoServicioPorcentajeSenia ? Number(nuevoServicioPorcentajeSenia) : null,
+    categoria: nuevoServicioCategoria.trim() || null,
     user_id: userId
   }])
   setNuevoServicioNombre('')
   setNuevoServicioDuracion(60)
   setNuevoServicioPrecio('')
   setNuevoServicioPorcentajeSenia('')
+  setNuevoServicioCategoria('')
   cargarServicios(userId)
 }
 
   const inp: React.CSSProperties = {
-    padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6',
-    marginRight: '8px', marginBottom: '8px', fontFamily: 'Arial', width: '220px'
+    padding: '10px 13px', borderRadius: '10px', border: `1.5px solid ${LINE}`,
+    marginRight: '8px', marginBottom: '8px', fontFamily: FONT_SANS, width: '220px',
+    color: INK, backgroundColor: PAPER_2, fontSize: '14px'
   }
 
   const phoneWrapper: React.CSSProperties = {
-    border: '1px solid #e3dfd6',
-    borderRadius: '8px',
+    border: `1.5px solid ${LINE}`,
+    borderRadius: '10px',
     padding: '10px',
     marginRight: '8px',
     marginBottom: '8px',
-    fontFamily: 'Arial',
+    fontFamily: FONT_SANS,
     width: '240px',
     display: 'inline-flex',
     boxSizing: 'border-box',
+    backgroundColor: PAPER_2,
   }
 
   const subTabBtn = (activa: boolean): React.CSSProperties => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
     padding: '8px 16px',
-    borderRadius: '20px',
-    border: activa ? '1px solid #ba9a7d' : '1px solid #e3dfd6',
-    backgroundColor: activa ? '#ba9a7d' : '#fff',
-    color: activa ? '#fff' : '#6B7280',
-    fontFamily: 'Arial',
+    borderRadius: '100px',
+    border: activa ? `1px solid ${INK}` : `1px solid ${LINE}`,
+    backgroundColor: activa ? INK : PAPER_2,
+    color: activa ? PAPER_2 : MUTED,
+    fontFamily: FONT_SANS,
     fontSize: '13px',
-    fontWeight: activa ? 600 : 400,
+    fontWeight: 600,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
   })
 
-  const subTabs: { key: SubTab, label: string }[] = [
-    { key: 'clientes', label: '👥 Clientes' },
-    { key: 'servicios', label: '💇 Servicios' },
-    { key: 'reservas', label: '💰 Reservas Online' },
-    { key: 'horarios', label: '🕒 Horarios' },
-    { key: 'cuenta', label: '🔒 Cuenta' },
+  const categoriaPillBtn = (activa: boolean): React.CSSProperties => ({
+    padding: '6px 13px',
+    borderRadius: '100px',
+    border: activa ? `1px solid ${BRASS}` : `1px solid ${LINE}`,
+    backgroundColor: activa ? BRASS_BG : PAPER_2,
+    color: activa ? BRASS : MUTED,
+    fontFamily: FONT_SANS,
+    fontSize: '12.5px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  })
+
+  // Íconos SVG (reemplazan los emoji de las sub-tabs)
+  const IconUsers = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
+  )
+  const IconScissors = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" /></svg>
+  )
+  const IconWallet = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12V7H5a2 2 0 010-4h14v4" /><path d="M3 5v14a2 2 0 002 2h16v-5" /><path d="M18 12a2 2 0 000 4h4v-4z" /></svg>
+  )
+  const IconClock = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+  )
+  const IconLock = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></svg>
+  )
+
+  const subTabs: { key: SubTab, label: string, icon: ReactElement }[] = [
+    { key: 'clientes', label: 'Clientes', icon: <IconUsers /> },
+    { key: 'servicios', label: 'Servicios', icon: <IconScissors /> },
+    { key: 'reservas', label: 'Reservas Online', icon: <IconWallet /> },
+    { key: 'horarios', label: 'Horarios', icon: <IconClock /> },
+    { key: 'cuenta', label: 'Cuenta', icon: <IconLock /> },
   ]
+
+  // Categorías únicas ya usadas, para el filtro y el datalist de sugerencias
+  const categoriasUnicas = Array.from(new Set(servicios.map((s: any) => s.categoria).filter(Boolean))) as string[]
+  const serviciosFiltrados = filtroCategoria
+    ? servicios.filter((s: any) => s.categoria === filtroCategoria)
+    : servicios
 
   return (
     <>
@@ -652,17 +708,18 @@ async function guardarEdicionServicio(id: string) {
         .PhoneInputInput {
           border: none;
           outline: none;
-          font-family: Arial;
+          font-family: ${FONT_SANS};
           font-size: 14px;
           width: 100%;
           background: transparent;
+          color: ${INK};
         }
       `}</style>
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', overflowX: 'auto' }}>
         {subTabs.map(t => (
           <button key={t.key} onClick={() => setSubTab(t.key)} style={subTabBtn(subTab === t.key)}>
-            {t.label}
+            {t.icon} {t.label}
           </button>
         ))}
       </div>
@@ -670,7 +727,7 @@ async function guardarEdicionServicio(id: string) {
       {subTab === 'clientes' && (
         <>
           <div style={card}>
-            <h2 style={{ color: '#161616', marginTop: 0 }}>Agregar Cliente</h2>
+            <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Agregar Cliente</h2>
             <input placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} style={input} />
             <div style={phoneWrapper}>
               <PhoneInput
@@ -681,13 +738,13 @@ async function guardarEdicionServicio(id: string) {
                 onChange={(v: string | undefined) => setTelefono(v || '')}
               />
             </div>
-            {errorTelefono && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{errorTelefono}</p>}
+            {errorTelefono && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 8px', fontWeight: 600 }}>{errorTelefono}</p>}
             <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
           </div>
 
           <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ color: '#161616', margin: 0 }}>Clientes ({clientes.length})</h2>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', gap: '10px' }}>
+              <h2 style={{ color: INK, margin: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Clientes ({clientes.length})</h2>
               <button onClick={() => setMostrarClientes(!mostrarClientes)} style={btnSecondary}>
                 {mostrarClientes ? 'Ocultar' : 'Ver'}
               </button>
@@ -696,16 +753,16 @@ async function guardarEdicionServicio(id: string) {
               <div>
                 <input placeholder="Buscar cliente..." value={busquedaClientes} onChange={e => setBusquedaClientes(e.target.value)} style={input} />
                 {clientes.filter(c => c.nombre.toLowerCase().includes(busquedaClientes.toLowerCase())).map(c => (
-                  <div key={c.id} style={{ borderRadius: '10px', border: '1px solid #e3dfd6', marginBottom: '10px', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', backgroundColor: '#f9f7f4' }}>
-                      <span style={{ fontWeight: 'bold', color: '#161616', fontSize: '15px' }}>{c.nombre}</span>
+                  <div key={c.id} style={{ borderRadius: '12px', border: `1px solid ${LINE}`, marginBottom: '10px', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', backgroundColor: PAPER }}>
+                      <span style={{ fontWeight: 700, color: INK, fontSize: '15px', fontFamily: FONT_SANS }}>{c.nombre}</span>
                       <button onClick={() => toggleCliente(c.id)}
-                        style={{ backgroundColor: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', fontFamily: 'Arial', fontSize: '13px' }}>
+                        style={{ backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600 }}>
                         {clienteAbierto === c.id ? 'Cerrar' : 'Ver'}
                       </button>
                     </div>
                     {clienteAbierto === c.id && (
-                      <div style={{ padding: '16px', backgroundColor: '#ffffff', borderTop: '1px solid #e3dfd6' }}>
+                      <div style={{ padding: '16px', backgroundColor: PAPER_2, borderTop: `1px solid ${LINE}` }}>
                         {editandoCliente === c.id ? (
                           <div style={{ marginBottom: '16px' }}>
                             <input value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre" style={{ ...input, marginBottom: '8px' }} />
@@ -718,44 +775,40 @@ async function guardarEdicionServicio(id: string) {
                                 onChange={(v: string | undefined) => setEditWhatsapp(v || '')}
                               />
                             </div>
-                            {errorEditTelefono && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{errorEditTelefono}</p>}
-                             <input type="number" placeholder="Precio" value={editServicioPrecio} onChange={e => setEditServicioPrecio(e.target.value)}
-  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '110px' }} />
-<input type="number" placeholder="% seña" min={0} max={100} value={editServicioPorcentajeSenia} onChange={e => setEditServicioPorcentajeSenia(e.target.value)}
-  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '90px' }} />
+                            {errorEditTelefono && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 8px', fontWeight: 600 }}>{errorEditTelefono}</p>}
                             <button onClick={() => guardarEdicionCliente(c.id)} style={{ ...btnPrimary, marginRight: '8px', fontSize: '13px', padding: '6px 14px' }}>Guardar</button>
                             <button onClick={() => setEditandoCliente(null)} style={{ ...btnSecondary, fontSize: '13px', padding: '6px 14px' }}>Cancelar</button>
                           </div>
                         ) : (
                           <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <p style={{ margin: '0 0 4px', color: '#161616' }}>💬 {c.whatsapp || 'Sin WhatsApp'}</p>
+                            <p style={{ margin: '0 0 4px', color: INK, fontFamily: FONT_SANS, fontSize: '14px' }}>{c.whatsapp || 'Sin WhatsApp'}</p>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditWhatsapp(c.whatsapp || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
-                              <button onClick={() => eliminarCliente(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                              <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditWhatsapp(c.whatsapp || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Editar</button>
+                              <button onClick={() => eliminarCliente(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
                             </div>
                           </div>
                         )}
                         <div style={{ marginBottom: '16px' }}>
-                          <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📎 Subir PDF</p>
+                          <p style={{ color: INK, fontWeight: 700, margin: '0 0 8px', fontSize: '14px', fontFamily: FONT_SANS }}>Subir PDF</p>
                           <input type="file" accept=".pdf" onChange={e => setArchivoFile(prev => ({ ...prev, [c.id]: e.target.files?.[0] || null }))} style={{ marginBottom: '8px', display: 'block' }} />
                           <button onClick={() => subirArchivo(c.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }} disabled={cargando === c.id}>
                             {cargando === c.id ? 'Subiendo...' : 'Subir PDF'}
                           </button>
                         </div>
                         <div style={{ marginBottom: '16px' }}>
-                          <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>📝 Agregar Nota</p>
+                          <p style={{ color: INK, fontWeight: 700, margin: '0 0 8px', fontSize: '14px', fontFamily: FONT_SANS }}>Agregar Nota</p>
                           <textarea placeholder="Escribí una nota..." value={notaTexto[c.id] || ''} onChange={e => setNotaTexto(prev => ({ ...prev, [c.id]: e.target.value }))}
-                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', height: '70px', resize: 'vertical', boxSizing: 'border-box' }} />
+                            style={{ width: '100%', padding: '10px', borderRadius: '10px', border: `1.5px solid ${LINE}`, fontFamily: FONT_SANS, height: '70px', resize: 'vertical', boxSizing: 'border-box', color: INK, backgroundColor: PAPER_2 }} />
                           <button onClick={() => guardarNota(c.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px', marginTop: '6px' }}>Guardar Nota</button>
                         </div>
                         {(archivos[c.id] || []).length > 0 ? (
                           <div>
-                            <p style={{ color: '#161616', fontWeight: 'bold', margin: '0 0 8px', fontSize: '14px' }}>Guardados:</p>
+                            <p style={{ color: INK, fontWeight: 700, margin: '0 0 8px', fontSize: '14px', fontFamily: FONT_SANS }}>Guardados:</p>
                             {(archivos[c.id] || []).map(a => (
-                              <div key={a.id} style={{ backgroundColor: '#f9f7f4', borderRadius: '8px', padding: '10px 14px', marginBottom: '6px', border: '1px solid #e3dfd6' }}>
+                              <div key={a.id} style={{ backgroundColor: PAPER, borderRadius: '10px', padding: '10px 14px', marginBottom: '6px', border: `1px solid ${LINE}` }}>
                                 {a.tipo === 'pdf' ? (
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '14px' }}>📄 <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#ba9a7d' }} onClick={async (e) => {
+                                    <span style={{ fontSize: '14px', fontFamily: FONT_SANS }}><a href={a.url} target="_blank" rel="noreferrer" style={{ color: BRASS, fontWeight: 600 }} onClick={async (e) => {
                                       e.preventDefault()
                                       const path = a.url.split('/archivos-clientes/')[1]
                                       if (path) {
@@ -763,22 +816,22 @@ async function guardarEdicionServicio(id: string) {
                                         if (data?.signedUrl) window.open(data.signedUrl, '_blank')
                                       }
                                     }}>{a.nombre}</a></span>
-                                    <button onClick={() => eliminarArchivo(c.id, a.id, a.url, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                                    <button onClick={() => eliminarArchivo(c.id, a.id, a.url, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
                                   </div>
                                 ) : (
                                   <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                      <span style={{ fontWeight: 'bold', color: '#161616', fontSize: '13px' }}>📝 Nota</span>
-                                      <button onClick={() => eliminarArchivo(c.id, a.id, undefined, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                                      <span style={{ fontWeight: 700, color: INK, fontSize: '13px', fontFamily: FONT_SANS }}>Nota</span>
+                                      <button onClick={() => eliminarArchivo(c.id, a.id, undefined, a.tipo)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
                                     </div>
-                                    <p style={{ color: '#161616', margin: '4px 0 0', fontSize: '14px' }}>{a.contenido}</p>
+                                    <p style={{ color: INK, margin: '4px 0 0', fontSize: '14px', fontFamily: FONT_SANS }}>{a.contenido}</p>
                                   </div>
                                 )}
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <p style={{ color: '#9e9e9e', fontSize: '13px' }}>No hay archivos ni notas guardadas.</p>
+                          <p style={{ color: MUTED, fontSize: '13px', fontFamily: FONT_SANS }}>No hay archivos ni notas guardadas.</p>
                         )}
                       </div>
                     )}
@@ -792,66 +845,106 @@ async function guardarEdicionServicio(id: string) {
 
       {subTab === 'servicios' && (
         <div style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-            <h2 style={{ color: '#161616', margin: 0 }}>Servicios ({servicios.length})</h2>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '10px' }}>
+            <h2 style={{ color: INK, margin: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Servicios ({servicios.length})</h2>
             <button onClick={() => setMostrarServicios(!mostrarServicios)} style={btnSecondary}>
               {mostrarServicios ? 'Ocultar' : 'Ver'}
             </button>
           </div>
+          <p style={{ color: MUTED, fontSize: '13px', marginTop: 0, marginBottom: '12px' }}>
+            La categoría es opcional — usala si atendés varios rubros (ej: Masajes, Depilación, Peluquería) para ordenar la lista y que tus clientes encuentren más rápido lo que buscan.
+          </p>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-  <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
-  <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
-    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
-    <option value={15}>15 min</option>
-    <option value={30}>30 min</option>
-    <option value={45}>45 min</option>
-    <option value={60}>60 min</option>
-    <option value={75}>75 min</option>
-    <option value={90}>90 min</option>
-    <option value={120}>120 min</option>
-  </select>
-  <input type="number" placeholder="Precio (opcional)" value={nuevoServicioPrecio} onChange={e => setNuevoServicioPrecio(e.target.value)} style={{ ...input, width: '160px' }} />
-  <input type="number" placeholder="% seña (opcional)" min={0} max={100} value={nuevoServicioPorcentajeSenia} onChange={e => setNuevoServicioPorcentajeSenia(e.target.value)} style={{ ...input, width: '160px' }} />
-</div>
+            <input placeholder="Nombre (ej: Masaje relajante)" value={nuevoServicioNombre} onChange={e => setNuevoServicioNombre(e.target.value)} style={input} />
+            <select value={nuevoServicioDuracion} onChange={e => setNuevoServicioDuracion(Number(e.target.value))}
+              style={{ padding: '10px 13px', borderRadius: '10px', border: `1.5px solid ${LINE}`, fontFamily: FONT_SANS, fontSize: '14px', color: INK, backgroundColor: PAPER_2 }}>
+              <option value={15}>15 min</option>
+              <option value={30}>30 min</option>
+              <option value={45}>45 min</option>
+              <option value={60}>60 min</option>
+              <option value={75}>75 min</option>
+              <option value={90}>90 min</option>
+              <option value={120}>120 min</option>
+            </select>
+            <input type="number" placeholder="Precio (opcional)" value={nuevoServicioPrecio} onChange={e => setNuevoServicioPrecio(e.target.value)} style={{ ...input, width: '160px' }} />
+            <input type="number" placeholder="% seña (opcional)" min={0} max={100} value={nuevoServicioPorcentajeSenia} onChange={e => setNuevoServicioPorcentajeSenia(e.target.value)} style={{ ...input, width: '160px' }} />
+            <input
+              placeholder="Categoría (opcional)"
+              list="categorias-sugeridas"
+              value={nuevoServicioCategoria}
+              onChange={e => setNuevoServicioCategoria(e.target.value)}
+              style={{ ...input, width: '180px' }}
+            />
+            <datalist id="categorias-sugeridas">
+              {categoriasUnicas.map(cat => <option key={cat} value={cat} />)}
+            </datalist>
+          </div>
           <button onClick={agregarServicio} style={btnPrimary}>Agregar Servicio</button>
+
           {mostrarServicios && (
-            <ul style={{ marginTop: '16px', paddingLeft: 0, listStyle: 'none' }}>
-              {servicios.map(s => (
-                <li key={s.id} style={{ marginBottom: '10px', padding: '10px 14px', border: '1px solid #e3dfd6', borderRadius: '8px', backgroundColor: '#fdf9f5' }}>
-                  {editandoServicio === s.id ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <input value={editServicioNombre} onChange={e => setEditServicioNombre(e.target.value)}
-                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px', width: '180px' }} />
-                      <select value={editServicioDuracion} onChange={e => setEditServicioDuracion(Number(e.target.value))}
-                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e3dfd6', fontFamily: 'Arial', fontSize: '14px' }}>
-                        <option value={15}>15 min</option>
-                        <option value={30}>30 min</option>
-                        <option value={45}>45 min</option>
-                        <option value={60}>60 min</option>
-                        <option value={75}>75 min</option>
-                        <option value={90}>90 min</option>
-                        <option value={120}>120 min</option>
-                      </select>
-                      <button onClick={() => guardarEdicionServicio(s.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}>Guardar</button>
-                      <button onClick={() => setEditandoServicio(null)} style={{ ...btnSecondary, marginLeft: 0, padding: '6px 14px', fontSize: '13px' }}>Cancelar</button>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#161616', fontSize: '14px' }}>
-  {s.nombre}
-  <span style={{ color: '#6B7280', fontSize: '13px', marginLeft: '8px' }}>· {s.duracion ?? 60} min</span>
-  {s.precio != null && <span style={{ color: '#6B7280', fontSize: '13px', marginLeft: '8px' }}>· ${s.precio}</span>}
-  {s.porcentaje_senia != null && <span style={{ color: '#ba9a7d', fontSize: '13px', marginLeft: '8px' }}>· Seña {s.porcentaje_senia}%</span>}
-</span>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => iniciarEdicionServicio(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
-                        <button onClick={() => eliminarServicio(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+            <>
+              {categoriasUnicas.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '18px' }}>
+                  <button onClick={() => setFiltroCategoria('')} style={categoriaPillBtn(filtroCategoria === '')}>Todas</button>
+                  {categoriasUnicas.map(cat => (
+                    <button key={cat} onClick={() => setFiltroCategoria(cat)} style={categoriaPillBtn(filtroCategoria === cat)}>{cat}</button>
+                  ))}
+                </div>
+              )}
+              <ul style={{ marginTop: '16px', paddingLeft: 0, listStyle: 'none' }}>
+                {serviciosFiltrados.map((s: any) => (
+                  <li key={s.id} style={{ marginBottom: '10px', padding: '10px 14px', border: `1px solid ${LINE}`, borderRadius: '10px', backgroundColor: PAPER }}>
+                    {editandoServicio === s.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <input value={editServicioNombre} onChange={e => setEditServicioNombre(e.target.value)}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: `1.5px solid ${LINE}`, fontFamily: FONT_SANS, fontSize: '14px', width: '180px', color: INK, backgroundColor: PAPER_2 }} />
+                        <select value={editServicioDuracion} onChange={e => setEditServicioDuracion(Number(e.target.value))}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: `1.5px solid ${LINE}`, fontFamily: FONT_SANS, fontSize: '14px', color: INK, backgroundColor: PAPER_2 }}>
+                          <option value={15}>15 min</option>
+                          <option value={30}>30 min</option>
+                          <option value={45}>45 min</option>
+                          <option value={60}>60 min</option>
+                          <option value={75}>75 min</option>
+                          <option value={90}>90 min</option>
+                          <option value={120}>120 min</option>
+                        </select>
+                        <input type="number" placeholder="Precio" value={editServicioPrecio} onChange={e => setEditServicioPrecio(e.target.value)}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: `1.5px solid ${LINE}`, fontFamily: FONT_SANS, fontSize: '14px', width: '110px', color: INK, backgroundColor: PAPER_2 }} />
+                        <input type="number" placeholder="% seña" min={0} max={100} value={editServicioPorcentajeSenia} onChange={e => setEditServicioPorcentajeSenia(e.target.value)}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: `1.5px solid ${LINE}`, fontFamily: FONT_SANS, fontSize: '14px', width: '90px', color: INK, backgroundColor: PAPER_2 }} />
+                        <input
+                          placeholder="Categoría (opcional)"
+                          list="categorias-sugeridas"
+                          value={editServicioCategoria}
+                          onChange={e => setEditServicioCategoria(e.target.value)}
+                          style={{ padding: '6px 10px', borderRadius: '8px', border: `1.5px solid ${LINE}`, fontFamily: FONT_SANS, fontSize: '14px', width: '150px', color: INK, backgroundColor: PAPER_2 }}
+                        />
+                        <button onClick={() => guardarEdicionServicio(s.id)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '13px' }}>Guardar</button>
+                        <button onClick={() => setEditandoServicio(null)} style={{ ...btnSecondary, marginLeft: 0, padding: '6px 14px', fontSize: '13px' }}>Cancelar</button>
                       </div>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ color: INK, fontSize: '14px', fontFamily: FONT_SANS }}>
+                          {s.nombre}
+                          <span style={{ color: MUTED, fontSize: '13px', marginLeft: '8px' }}>· {s.duracion ?? 60} min</span>
+                          {s.precio != null && <span style={{ color: MUTED, fontSize: '13px', marginLeft: '8px' }}>· ${s.precio}</span>}
+                          {s.porcentaje_senia != null && <span style={{ color: BRASS, fontSize: '13px', marginLeft: '8px', fontWeight: 600 }}>· Seña {s.porcentaje_senia}%</span>}
+                          {s.categoria && (
+                            <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 700, color: BRASS, backgroundColor: BRASS_BG, padding: '2px 9px', borderRadius: '100px' }}>
+                              {s.categoria}
+                            </span>
+                          )}
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => iniciarEdicionServicio(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Editar</button>
+                          <button onClick={() => eliminarServicio(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       )}
@@ -859,22 +952,22 @@ async function guardarEdicionServicio(id: string) {
       {subTab === 'reservas' && (
         <>
           <div style={card}>
-  <h2 style={{ color: '#161616', marginTop: 0 }}>💰 Seña para reservas online</h2>
-  <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>
+  <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Seña para reservas online</h2>
+  <p style={{ color: MUTED, fontSize: '13px', marginBottom: '16px' }}>
     Si la activás, tus clientes van a tener que transferir la seña para confirmar el turno desde tu agenda pública.
   </p>
   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: requiereSenia ? '16px' : 0 }}>
     <div onClick={() => setRequiereSenia(!requiereSenia)} style={{
       width: '36px', height: '20px', borderRadius: '10px',
-      backgroundColor: requiereSenia ? '#ba9a7d' : '#CBD5E0',
+      backgroundColor: requiereSenia ? BRASS : LINE,
       cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background-color 0.2s'
     }}>
       <div style={{
         position: 'absolute', top: '3px', left: requiereSenia ? '18px' : '3px',
-        width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s'
+        width: '14px', height: '14px', borderRadius: '50%', backgroundColor: PAPER_2, transition: 'left 0.2s'
       }} />
     </div>
-    <span style={{ fontWeight: 600, fontSize: '14px', color: '#161616' }}>
+    <span style={{ fontWeight: 600, fontSize: '14px', color: INK, fontFamily: FONT_SANS }}>
       {requiereSenia ? 'Seña activada' : 'Seña desactivada'}
     </span>
   </div>
@@ -884,7 +977,7 @@ async function guardarEdicionServicio(id: string) {
       <input placeholder="Titular de la cuenta" value={titularCuenta} onChange={e => setTitularCuenta(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
       <input placeholder="Banco o billetera (ej: Mercado Pago)" value={banco} onChange={e => setBanco(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
       <input placeholder="Tu WhatsApp (para que te lleguen los comprobantes) - ej: 3492123456" value={whatsappProfesional} onChange={e => setWhatsappProfesional(e.target.value)} style={{ ...input, width: '100%', maxWidth: '400px', boxSizing: 'border-box' }} />
-      <p style={{ color: '#6B7280', fontSize: '12px', marginTop: '-4px', marginBottom: '12px' }}>
+      <p style={{ color: MUTED, fontSize: '12px', marginTop: '-4px', marginBottom: '12px' }}>
         Ojo: para que se calcule el monto, cada servicio necesita tener cargado el % de seña arriba, en Servicios.
       </p>
     </div>
@@ -892,20 +985,20 @@ async function guardarEdicionServicio(id: string) {
   <button onClick={guardarConfigNegocio} disabled={guardandoConfig} style={{ ...btnPrimary, opacity: guardandoConfig ? 0.7 : 1 }}>
     {guardandoConfig ? 'Guardando...' : 'Guardar configuración'}
   </button>
-  {mensajeConfig && <span style={{ marginLeft: '12px', fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>{mensajeConfig}</span>}
+  {mensajeConfig && <span style={{ marginLeft: '12px', fontSize: '13px', color: SAGE, fontWeight: 600 }}>{mensajeConfig}</span>}
 </div>
 
           <div style={card}>
-            <h2 style={{ color: '#161616', marginTop: 0 }}>🔗 Mi link de agenda</h2>
-            <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '12px' }}>
+            <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Mi link de agenda</h2>
+            <p style={{ color: MUTED, fontSize: '13px', marginBottom: '12px' }}>
               Compartí este link con tus clientes para que puedan reservar su turno online.
             </p>
-            <div style={{ backgroundColor: '#f9f7f4', border: '1px solid #e3dfd6', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px', wordBreak: 'break-all', fontSize: '13px', color: '#161616' }}>
+            <div style={{ backgroundColor: PAPER, border: `1px solid ${LINE}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', wordBreak: 'break-all', fontSize: '13px', color: INK, fontFamily: FONT_SANS }}>
               {`https://ribelgestion.com/agenda-publica?u=${userId}`}
             </div>
             <button onClick={() => { navigator.clipboard.writeText(`https://ribelgestion.com/agenda-publica?u=${userId}`); alert('¡Link copiado!') }}
               style={{ ...btnPrimary, width: 'auto', padding: '8px 20px', fontSize: '13px' }}>
-              📋 Copiar link
+              Copiar link
             </button>
           </div>
         </>
