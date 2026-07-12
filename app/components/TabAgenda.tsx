@@ -127,12 +127,14 @@ export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurn
   const [mensajeWA, setMensajeWA] = useState('');
   const [numeroWA, setNumeroWA] = useState('');
   const [diasBloqueados, setDiasBloqueados] = useState<string[]>([]);
+  const [servicioMenuAbierto, setServicioMenuAbierto] = useState(false);
+  const [categoriaMenuAbierta, setCategoriaMenuAbierta] = useState<string | null>(null);
 
   useEffect(() => {
     const cargarDatos = async () => {
       const { data: dataClientes } = await supabase.from('clientes').select('id, nombre, whatsapp').eq('user_id', userId).order('nombre');
       if (dataClientes) setClientes(dataClientes);
-      const { data: dataServicios } = await supabase.from('servicios').select('id, nombre, duracion, precio, porcentaje_senia').order('nombre');
+      const { data: dataServicios } = await supabase.from('servicios').select('id, nombre, duracion, precio, porcentaje_senia, categoria').order('nombre');
       if (dataServicios) setServicios(dataServicios);
       if (userId) {
         const { data: dataDisp } = await supabase
@@ -759,25 +761,87 @@ const slotsVisibles = slotsDelDia.filter(slot => {
               </div>
             </div>
 
-            <div style={{ marginBottom: '14px' }}>
+            <div style={{ marginBottom: '14px', position: 'relative' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: MUTED, display: 'block', marginBottom: '4px' }}>Tipo de servicio</label>
-              <select value={sesionEditando.tipo_masaje ?? ''} onChange={(e) => {
-  const servicio = servicios.find((s: any) => s.nombre === e.target.value);
-  const montoCalculado = servicio?.precio ?? sesionEditando.monto ?? null;
-  const seniaCalculada = (servicio?.precio && servicio?.porcentaje_senia)
-    ? Math.round(servicio.precio * (servicio.porcentaje_senia / 100))
-    : sesionEditando.monto_senia ?? null;
-  setSesionEditando({
-    ...sesionEditando,
-    tipo_masaje: e.target.value,
-    duracion: servicio?.duracion ?? sesionEditando.duracion ?? null,
-    monto: montoCalculado,
-    monto_senia: seniaCalculada,
-  });
-}} style={{ width: '100%', border: `1.5px solid ${LINE}`, borderRadius: '10px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const, color: INK, fontFamily: FONT_SANS }}>
-                <option value="">Seleccionar...</option>
-                {servicios.map((s: any) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-              </select>
+              <button
+                type="button"
+                onClick={() => { setServicioMenuAbierto(!servicioMenuAbierto); setCategoriaMenuAbierta(null); }}
+                style={{ width: '100%', textAlign: 'left', border: `1.5px solid ${LINE}`, borderRadius: '10px', padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const, color: sesionEditando.tipo_masaje ? INK : MUTED, fontFamily: FONT_SANS, backgroundColor: PAPER_2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                {sesionEditando.tipo_masaje || 'Seleccionar...'}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
+              </button>
+
+              {servicioMenuAbierto && (
+                <>
+                  <div onClick={() => { setServicioMenuAbierto(false); setCategoriaMenuAbierta(null); }}
+                    style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', backgroundColor: PAPER_2, border: `1px solid ${LINE}`, borderRadius: '10px', boxShadow: '0 8px 20px rgba(27,36,32,0.12)', maxHeight: '260px', overflowY: 'auto', zIndex: 20 }}>
+
+                    {servicios.filter((s: any) => !s.categoria).map((s: any) => (
+                      <div key={s.id}
+                        onClick={() => {
+                          const servicio = servicios.find((sv: any) => sv.id === s.id);
+                          const montoCalculado = servicio?.precio ?? sesionEditando.monto ?? null;
+                          const seniaCalculada = (servicio?.precio && servicio?.porcentaje_senia)
+                            ? Math.round(servicio.precio * (servicio.porcentaje_senia / 100))
+                            : sesionEditando.monto_senia ?? null;
+                          setSesionEditando({
+                            ...sesionEditando,
+                            tipo_masaje: s.nombre,
+                            duracion: servicio?.duracion ?? sesionEditando.duracion ?? null,
+                            monto: montoCalculado,
+                            monto_senia: seniaCalculada,
+                          });
+                          setServicioMenuAbierto(false);
+                          setCategoriaMenuAbierta(null);
+                        }}
+                        style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '14px', color: INK, fontFamily: FONT_SANS, borderBottom: `1px solid ${PAPER}` }}
+                      >
+                        {s.nombre}
+                      </div>
+                    ))}
+
+                    {Array.from(new Set(servicios.filter((s: any) => s.categoria).map((s: any) => s.categoria))).map((cat: any) => (
+                      <div key={cat}>
+                        <div
+                          onClick={() => setCategoriaMenuAbierta(categoriaMenuAbierta === cat ? null : cat)}
+                          style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: BRASS, backgroundColor: BRASS_BG, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${LINE}` }}
+                        >
+                          {cat}
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={BRASS} strokeWidth="2"
+                            style={{ transform: categoriaMenuAbierta === cat ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                            <path d="M6 9l6 6 6-6" />
+                          </svg>
+                        </div>
+                        {categoriaMenuAbierta === cat && servicios.filter((s: any) => s.categoria === cat).map((s: any) => (
+                          <div key={s.id}
+                            onClick={() => {
+                              const servicio = servicios.find((sv: any) => sv.id === s.id);
+                              const montoCalculado = servicio?.precio ?? sesionEditando.monto ?? null;
+                              const seniaCalculada = (servicio?.precio && servicio?.porcentaje_senia)
+                                ? Math.round(servicio.precio * (servicio.porcentaje_senia / 100))
+                                : sesionEditando.monto_senia ?? null;
+                              setSesionEditando({
+                                ...sesionEditando,
+                                tipo_masaje: s.nombre,
+                                duracion: servicio?.duracion ?? sesionEditando.duracion ?? null,
+                                monto: montoCalculado,
+                                monto_senia: seniaCalculada,
+                              });
+                              setServicioMenuAbierto(false);
+                              setCategoriaMenuAbierta(null);
+                            }}
+                            style={{ padding: '10px 14px 10px 26px', cursor: 'pointer', fontSize: '14px', color: INK, fontFamily: FONT_SANS, borderBottom: `1px solid ${PAPER}` }}
+                          >
+                            {s.nombre}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
