@@ -3,6 +3,21 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
+// Misma paleta que el resto de la app.
+const INK = '#1B2420'
+const PAPER = '#F4EFE4'
+const PAPER_2 = '#FFFDF8'
+const BRASS = '#A87F4C'
+const BRASS_BG = 'rgba(168,127,76,0.1)'
+const SAGE = '#5E7A5A'
+const SAGE_BG = '#EAF0E8'
+const CLAY = '#A85A44'
+const CLAY_BG = '#F5E9E5'
+const LINE = '#DDD3BF'
+const MUTED = '#726B5C'
+const FONT_SERIF = "'Source Serif 4', serif"
+const FONT_SANS = "'Public Sans', sans-serif"
+
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS_SEMANA_CORTO = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -69,6 +84,7 @@ export default function AgendaPublicaCliente() {
   const [nombreNuevo, setNombreNuevo] = useState('')
   const [servicios, setServicios] = useState<any[]>([])
   const [servicioSeleccionado, setServicioSeleccionado] = useState<any>(null)
+  const [filtroCategoriaPublico, setFiltroCategoriaPublico] = useState('')
   const [disponibilidad, setDisponibilidad] = useState<any[]>([])
   const [sesionesOcupadas, setSesionesOcupadas] = useState<any[]>([])
   const [bloqueosOcupados, setBloqueosOcupados] = useState<any[]>([])
@@ -132,8 +148,7 @@ export default function AgendaPublicaCliente() {
 
   if (!profesionalId) {
     return (
-      <div style={{ fontFamily: 'Arial', textAlign: 'center', padding: '60px 24px', color: '#6B7280' }}>
-        <p style={{ fontSize: '40px' }}>🔗</p>
+      <div style={{ fontFamily: FONT_SANS, textAlign: 'center', padding: '60px 24px', color: MUTED, backgroundColor: PAPER, minHeight: '100vh' }}>
         <p>El link no es válido. Pedile al profesional que te comparta su link correcto.</p>
       </div>
     )
@@ -270,17 +285,55 @@ export default function AgendaPublicaCliente() {
     ? new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
     : ''
 
-  const container: React.CSSProperties = { fontFamily: 'Arial, sans-serif', backgroundColor: '#F5F0EB', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }
+  // Categorías para el filtro del paso "servicio"
+  const categoriasUnicasPublico = Array.from(new Set(servicios.map((s: any) => s.categoria).filter(Boolean))) as string[]
+  const serviciosFiltradosPublico = filtroCategoriaPublico
+    ? servicios.filter((s: any) => s.categoria === filtroCategoriaPublico)
+    : servicios
+
+  const container: React.CSSProperties = {
+    fontFamily: FONT_SANS,
+    backgroundColor: PAPER,
+    backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(27,36,32,0.035) 28px), radial-gradient(rgba(27,36,32,0.05) 1px, transparent 1px)',
+    backgroundSize: 'auto, 14px 14px',
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  }
   const contenido: React.CSSProperties = { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 16px 32px' }
-  const card: React.CSSProperties = { backgroundColor: '#fff', borderRadius: '16px', padding: '28px 24px', width: '100%', maxWidth: '480px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: '16px' }
-  const inp: React.CSSProperties = { width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e3dfd6', fontSize: '15px', fontFamily: 'Arial', boxSizing: 'border-box' as const, marginBottom: '12px' }
-  const btn: React.CSSProperties = { width: '100%', padding: '13px', backgroundColor: '#ba9a7d', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Arial' }
+  const card: React.CSSProperties = { backgroundColor: PAPER_2, border: `1px solid ${LINE}`, borderRadius: '18px', padding: '28px 24px', width: '100%', maxWidth: '480px', boxShadow: '0 2px 12px rgba(27,36,32,0.06)', marginBottom: '16px' }
+  const inp: React.CSSProperties = { width: '100%', padding: '12px 14px', borderRadius: '10px', border: `1.5px solid ${LINE}`, fontSize: '15px', fontFamily: FONT_SANS, boxSizing: 'border-box' as const, marginBottom: '12px', color: INK, backgroundColor: PAPER_2 }
+  const btn: React.CSSProperties = { width: '100%', padding: '13px', backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT_SANS }
+
+  const categoriaPillBtn = (activa: boolean): React.CSSProperties => ({
+    padding: '6px 13px',
+    borderRadius: '100px',
+    border: activa ? `1px solid ${BRASS}` : `1px solid ${LINE}`,
+    backgroundColor: activa ? BRASS_BG : PAPER_2,
+    color: activa ? BRASS : MUTED,
+    fontFamily: FONT_SANS,
+    fontSize: '12.5px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  })
 
   const tieneImagen = !!configNegocio?.logo_url
 
+  const IconPin = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" style={{ display: 'inline', verticalAlign: '-1px', marginRight: '4px' }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+  )
+  const IconCheck = () => (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={SAGE} strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M8 12l3 3 5-6" /></svg>
+  )
+  const IconClock = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" style={{ display: 'inline', verticalAlign: '-2px', marginRight: '4px' }}><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+  )
+
   return (
     <div style={container}>
-  
+
       {/* Contenido: logo superpuesto, nombre, ubicación, y luego las tarjetas del flujo */}
       <div style={{ ...contenido, paddingTop: '32px' }}>
 
@@ -292,36 +345,36 @@ export default function AgendaPublicaCliente() {
               style={{
                 width: '104px', height: '104px', borderRadius: '50%',
                 objectFit: 'cover',
-                border: '4px solid #fff',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                border: `4px solid ${PAPER_2}`,
+                boxShadow: '0 4px 16px rgba(27,36,32,0.2)',
                 marginBottom: '12px',
               }}
             />
           )}
           {configNegocio?.nombre_negocio && (
-            <h1 style={{ color: '#161616', margin: '0 0 4px', fontSize: '20px', textAlign: 'center' }}>
+            <h1 style={{ color: INK, margin: '0 0 4px', fontSize: '22px', textAlign: 'center', fontFamily: FONT_SERIF, fontWeight: 600 }}>
               {configNegocio.nombre_negocio}
             </h1>
           )}
           {configNegocio?.ubicacion && (
-            <p style={{ color: '#8a8378', margin: '0 0 10px', fontSize: '13px', textAlign: 'center' }}>
-              📍 {configNegocio.ubicacion}
+            <p style={{ color: MUTED, margin: '0 0 10px', fontSize: '13px', textAlign: 'center' }}>
+              <IconPin />{configNegocio.ubicacion}
             </p>
           )}
-          <h2 style={{ color: '#161616', margin: '4px 0 4px', fontSize: '17px' }}>Reservá tu turno</h2>
-          <p style={{ color: '#6B7280', margin: 0, fontSize: '13px', textAlign: 'center' }}>Elegí el servicio, día y horario que más te convenga</p>
+          <h2 style={{ color: INK, margin: '4px 0 4px', fontSize: '16px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Reservá tu turno</h2>
+          <p style={{ color: MUTED, margin: 0, fontSize: '13px', textAlign: 'center' }}>Elegí el servicio, día y horario que más te convenga</p>
         </div>
 
       {paso === 'whatsapp' && (
         <div style={card}>
-          <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px' }}>📱 Ingresá tu número de WhatsApp</h2>
-          <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>Lo usamos para identificarte. Si ya sos cliente, tomamos tus datos automáticamente.</p>
+          <h2 style={{ color: INK, marginTop: 0, fontSize: '17px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Ingresá tu número de WhatsApp</h2>
+          <p style={{ color: MUTED, fontSize: '13px', marginBottom: '16px' }}>Lo usamos para identificarte. Si ya sos cliente, tomamos tus datos automáticamente.</p>
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
             <select
               value={paisDial}
               onChange={e => { setPaisDial(e.target.value); setEsNuevo(false); setError('') }}
-              style={{ padding: '12px 8px', borderRadius: '10px', border: '1px solid #e3dfd6', fontSize: '14px', fontFamily: 'Arial', backgroundColor: '#fff', flex: '0 0 130px' }}
+              style={{ padding: '12px 8px', borderRadius: '10px', border: `1.5px solid ${LINE}`, fontSize: '14px', fontFamily: FONT_SANS, backgroundColor: PAPER_2, color: INK, flex: '0 0 130px' }}
             >
               {PAISES.map(p => (
                 <option key={p.dial} value={p.dial}>{p.flag} +{p.dial}</option>
@@ -335,9 +388,9 @@ export default function AgendaPublicaCliente() {
               style={{ ...inp, marginBottom: 0, flex: 1 }}
             />
           </div>
-          <p style={{ color: '#9CA3AF', fontSize: '12px', margin: '0 0 12px' }}>Elegí tu país si no sos de Argentina, y escribí el número sin el 0 ni el código de país.</p>
+          <p style={{ color: MUTED, fontSize: '12px', margin: '0 0 12px' }}>Elegí tu país si no sos de Argentina, y escribí el número sin el 0 ni el código de país.</p>
 
-          {error && <p style={{ color: '#EF4444', fontSize: '13px', margin: '0 0 12px' }}>{error}</p>}
+          {error && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 12px', fontWeight: 600 }}>{error}</p>}
           {!esNuevo && (
             <button onClick={buscarCliente} disabled={cargando} style={{ ...btn, opacity: cargando ? 0.7 : 1 }}>
               {cargando ? 'Buscando...' : 'Continuar'}
@@ -345,9 +398,9 @@ export default function AgendaPublicaCliente() {
           )}
           {esNuevo && (
             <div style={{ marginTop: '4px' }}>
-              <p style={{ color: '#D97706', fontSize: '13px', marginBottom: '12px' }}>No encontramos tu número. ¿Es tu primera vez? Ingresá tu nombre para registrarte.</p>
+              <p style={{ color: BRASS, fontSize: '13px', marginBottom: '12px', fontWeight: 600 }}>No encontramos tu número. ¿Es tu primera vez? Ingresá tu nombre para registrarte.</p>
               <input type="text" placeholder="Tu nombre completo" value={nombreNuevo} onChange={e => setNombreNuevo(e.target.value)} style={inp} />
-              {error && <p style={{ color: '#EF4444', fontSize: '13px', margin: '0 0 12px' }}>{error}</p>}
+              {error && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 12px', fontWeight: 600 }}>{error}</p>}
               <button onClick={crearClienteYContinuar} disabled={cargando} style={{ ...btn, opacity: cargando ? 0.7 : 1 }}>
                 {cargando ? 'Registrando...' : 'Registrarme y continuar'}
               </button>
@@ -358,21 +411,37 @@ export default function AgendaPublicaCliente() {
 
       {paso === 'servicio' && (
         <div style={card}>
-          <p style={{ color: '#16A34A', fontWeight: 'bold', fontSize: '14px', marginTop: 0 }}>¡Hola, {clienteNombre}! 👋</p>
-          <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px' }}>Elegí el servicio</h2>
+          <p style={{ color: SAGE, fontWeight: 700, fontSize: '14px', marginTop: 0 }}>¡Hola, {clienteNombre}!</p>
+          <h2 style={{ color: INK, marginTop: 0, fontSize: '17px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Elegí el servicio</h2>
+
+          {categoriasUnicasPublico.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              <button onClick={() => setFiltroCategoriaPublico('')} style={categoriaPillBtn(filtroCategoriaPublico === '')}>Todas</button>
+              {categoriasUnicasPublico.map(cat => (
+                <button key={cat} onClick={() => setFiltroCategoriaPublico(cat)} style={categoriaPillBtn(filtroCategoriaPublico === cat)}>{cat}</button>
+              ))}
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {servicios.map(s => {
+            {serviciosFiltradosPublico.map((s: any) => {
               const seniaDeEsteServicio = configNegocio?.requiere_senia && s.precio && s.porcentaje_senia
                 ? Math.round(s.precio * (s.porcentaje_senia / 100)) : null
+              const seleccionado = servicioSeleccionado?.id === s.id
               return (
                 <div key={s.id} onClick={() => { setServicioSeleccionado(s); setPaso('fecha') }}
-                  style={{ border: `2px solid ${servicioSeleccionado?.id === s.id ? '#ba9a7d' : '#e3dfd6'}`, borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', backgroundColor: servicioSeleccionado?.id === s.id ? '#fdf9f5' : '#fff' }}>
+                  style={{ border: `2px solid ${seleccionado ? INK : LINE}`, borderRadius: '12px', padding: '14px 16px', cursor: 'pointer', backgroundColor: seleccionado ? PAPER : PAPER_2 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, color: '#161616', fontSize: '15px' }}>{s.nombre}</span>
-                    <span style={{ fontSize: '13px', color: '#6B7280' }}>{s.duracion ?? 60} min{s.precio ? ` · $${s.precio}` : ''}</span>
+                    <span style={{ fontWeight: 600, color: INK, fontSize: '15px', fontFamily: FONT_SANS }}>{s.nombre}</span>
+                    <span style={{ fontSize: '13px', color: MUTED }}>{s.duracion ?? 60} min{s.precio ? ` · $${s.precio}` : ''}</span>
                   </div>
+                  {s.categoria && (
+                    <span style={{ display: 'inline-block', marginTop: '6px', fontSize: '11px', fontWeight: 700, color: BRASS, backgroundColor: BRASS_BG, padding: '2px 9px', borderRadius: '100px' }}>
+                      {s.categoria}
+                    </span>
+                  )}
                   {seniaDeEsteServicio && (
-                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#D97706' }}>💰 Requiere seña de ${seniaDeEsteServicio} para confirmar</p>
+                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: BRASS, fontWeight: 600 }}>Requiere seña de ${seniaDeEsteServicio} para confirmar</p>
                   )}
                 </div>
               )
@@ -383,15 +452,15 @@ export default function AgendaPublicaCliente() {
 
       {paso === 'fecha' && (
         <div style={card}>
-          <button onClick={() => setPaso('servicio')} style={{ background: 'none', border: 'none', color: '#ba9a7d', cursor: 'pointer', fontSize: '13px', padding: 0, marginBottom: '12px' }}>← Volver</button>
-          <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px' }}>{servicioSeleccionado?.nombre} · Elegí el día</h2>
+          <button onClick={() => setPaso('servicio')} style={{ background: 'none', border: 'none', color: BRASS, cursor: 'pointer', fontSize: '13px', padding: 0, marginBottom: '12px', fontWeight: 600, fontFamily: FONT_SANS }}>← Volver</button>
+          <h2 style={{ color: INK, marginTop: 0, fontSize: '17px', fontFamily: FONT_SERIF, fontWeight: 600 }}>{servicioSeleccionado?.nombre} · Elegí el día</h2>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <button onClick={() => cambiarMes(-1)} disabled={anio === hoy.getFullYear() && mes === hoy.getMonth()} style={{ background: '#f3f4f6', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '16px' }}>‹</button>
-            <span style={{ fontWeight: 600, color: '#161616' }}>{MESES[mes]} {anio}</span>
-            <button onClick={() => cambiarMes(1)} style={{ background: '#f3f4f6', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '16px' }}>›</button>
+            <button onClick={() => cambiarMes(-1)} disabled={anio === hoy.getFullYear() && mes === hoy.getMonth()} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '16px', color: INK }}>‹</button>
+            <span style={{ fontWeight: 600, color: INK, fontFamily: FONT_SERIF }}>{MESES[mes]} {anio}</span>
+            <button onClick={() => cambiarMes(1)} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '16px', color: INK }}>›</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
-            {DIAS_SEMANA_CORTO.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: 600, color: '#9CA3AF', padding: '4px 0' }}>{d}</div>)}
+            {DIAS_SEMANA_CORTO.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: 600, color: MUTED, padding: '4px 0' }}>{d}</div>)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
             {celdas.map((dia, i) => {
@@ -402,21 +471,21 @@ export default function AgendaPublicaCliente() {
               const pasado = f < hoyStr
               return (
                 <div key={i} onClick={() => { if (atendido) { setDiaSeleccionado(f); setPaso('horario') } }}
-                  style={{ textAlign: 'center', padding: '10px 4px', borderRadius: '8px', fontSize: '14px', fontWeight: seleccionado ? 700 : 400, cursor: atendido ? 'pointer' : 'default', backgroundColor: seleccionado ? '#ba9a7d' : atendido ? '#fdf9f5' : 'transparent', color: seleccionado ? '#fff' : pasado ? '#D1D5DB' : atendido ? '#161616' : '#D1D5DB', border: atendido && !seleccionado ? '1px solid #e3dfd6' : seleccionado ? '1px solid #ba9a7d' : '1px solid transparent' }}>
+                  style={{ textAlign: 'center', padding: '10px 4px', borderRadius: '8px', fontSize: '14px', fontWeight: seleccionado ? 700 : 400, cursor: atendido ? 'pointer' : 'default', backgroundColor: seleccionado ? INK : atendido ? PAPER : 'transparent', color: seleccionado ? PAPER_2 : pasado ? '#C7BFA9' : atendido ? INK : '#C7BFA9', border: atendido && !seleccionado ? `1px solid ${LINE}` : seleccionado ? `1px solid ${INK}` : '1px solid transparent' }}>
                   {dia}
                 </div>
               )
             })}
           </div>
-          <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '12px', textAlign: 'center' }}>Solo se muestran los días disponibles para reservar</p>
+          <p style={{ fontSize: '12px', color: MUTED, marginTop: '12px', textAlign: 'center' }}>Solo se muestran los días disponibles para reservar</p>
         </div>
       )}
 
       {paso === 'horario' && diaSeleccionado && (
         <div style={card}>
-          <button onClick={() => { setPaso('fecha'); setHorarioSeleccionado(null) }} style={{ background: 'none', border: 'none', color: '#ba9a7d', cursor: 'pointer', fontSize: '13px', padding: 0, marginBottom: '12px' }}>← Volver</button>
-          <h2 style={{ color: '#161616', marginTop: 0, fontSize: '17px', textTransform: 'capitalize' }}>{labelFecha}</h2>
-          <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '16px' }}>Elegí un horario disponible</p>
+          <button onClick={() => { setPaso('fecha'); setHorarioSeleccionado(null) }} style={{ background: 'none', border: 'none', color: BRASS, cursor: 'pointer', fontSize: '13px', padding: 0, marginBottom: '12px', fontWeight: 600, fontFamily: FONT_SANS }}>← Volver</button>
+          <h2 style={{ color: INK, marginTop: 0, fontSize: '17px', textTransform: 'capitalize', fontFamily: FONT_SERIF, fontWeight: 600 }}>{labelFecha}</h2>
+          <p style={{ color: MUTED, fontSize: '13px', marginBottom: '16px' }}>Elegí un horario disponible</p>
           <div style={{ marginBottom: '20px' }}>
             {bloquesDelDia.map((bloque, idx) => {
               const slots = generarSlots(bloque.inicio, bloque.fin, bloque.duracion, duracionServicio)
@@ -424,9 +493,9 @@ export default function AgendaPublicaCliente() {
               return (
                 <div key={idx} style={{ marginBottom: idx < bloquesDelDia.length - 1 ? '16px' : '0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#ba9a7d', whiteSpace: 'nowrap' }}>{bloque.inicio} a {bloque.fin}</span>
-                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e3dfd6' }} />
+                    <div style={{ flex: 1, height: '1px', backgroundColor: LINE }} />
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: BRASS, whiteSpace: 'nowrap' }}>{bloque.inicio} a {bloque.fin}</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: LINE }} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                     {slots.map(slot => {
@@ -434,7 +503,7 @@ export default function AgendaPublicaCliente() {
                       const selec = slot === horarioSeleccionado
                       return (
                         <div key={slot} onClick={() => { if (libre) setHorarioSeleccionado(slot) }}
-                          style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: selec ? 700 : 500, cursor: libre ? 'pointer' : 'not-allowed', backgroundColor: selec ? '#ba9a7d' : libre ? '#fdf9f5' : '#F3F4F6', color: selec ? '#fff' : libre ? '#161616' : '#9CA3AF', border: selec ? '2px solid #ba9a7d' : libre ? '1px solid #e3dfd6' : '1px solid #E5E7EB', textDecoration: !libre ? 'line-through' : 'none' }}>
+                          style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: selec ? 700 : 500, cursor: libre ? 'pointer' : 'not-allowed', backgroundColor: selec ? INK : libre ? SAGE_BG : PAPER, color: selec ? PAPER_2 : libre ? SAGE : MUTED, border: selec ? `2px solid ${INK}` : libre ? `1px solid ${LINE}` : `1px solid ${LINE}`, textDecoration: !libre ? 'line-through' : 'none' }}>
                           {slot}
                         </div>
                       )
@@ -444,7 +513,7 @@ export default function AgendaPublicaCliente() {
               )
             })}
             {bloquesDelDia.every(b => generarSlots(b.inicio, b.fin, b.duracion, duracionServicio).length === 0) && (
-              <p style={{ color: '#9CA3AF', fontSize: '13px', textAlign: 'center' }}>
+              <p style={{ color: MUTED, fontSize: '13px', textAlign: 'center' }}>
                 No hay horarios disponibles para este servicio en el día elegido (la duración del servicio no entra en los bloques configurados).
               </p>
             )}
@@ -459,27 +528,27 @@ export default function AgendaPublicaCliente() {
 
       {paso === 'confirmado' && (
         <div style={{ ...card, textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-          <h2 style={{ color: '#16A34A', marginTop: 0, fontSize: '20px' }}>¡Turno registrado!</h2>
-          <p style={{ color: '#161616', fontSize: '15px', marginBottom: '8px' }}><strong>{clienteNombre}</strong>, tu turno fue agendado para el</p>
-          <div style={{ backgroundColor: '#F0FDF4', borderRadius: '10px', padding: '14px', marginBottom: '20px' }}>
-            <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#161616', textTransform: 'capitalize', fontSize: '15px' }}>{labelFecha}</p>
-            <p style={{ margin: '0 0 4px', color: '#6B7280', fontSize: '14px' }}>🕐 {horarioSeleccionado} hs</p>
-            <p style={{ margin: 0, color: '#6B7280', fontSize: '14px' }}>💆 {servicioSeleccionado?.nombre}</p>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><IconCheck /></div>
+          <h2 style={{ color: SAGE, marginTop: 0, fontSize: '20px', fontFamily: FONT_SERIF, fontWeight: 600 }}>¡Turno registrado!</h2>
+          <p style={{ color: INK, fontSize: '15px', marginBottom: '8px' }}><strong>{clienteNombre}</strong>, tu turno fue agendado para el</p>
+          <div style={{ backgroundColor: SAGE_BG, borderRadius: '12px', padding: '14px', marginBottom: '20px' }}>
+            <p style={{ margin: '0 0 4px', fontWeight: 700, color: INK, textTransform: 'capitalize', fontSize: '15px' }}>{labelFecha}</p>
+            <p style={{ margin: '0 0 4px', color: MUTED, fontSize: '14px' }}><IconClock />{horarioSeleccionado} hs</p>
+            <p style={{ margin: 0, color: MUTED, fontSize: '14px' }}>{servicioSeleccionado?.nombre}</p>
           </div>
-          <div style={{ backgroundColor: '#FFF8F0', border: '1px solid #FDE68A', borderRadius: '10px', padding: '14px' }}>
-            <p style={{ margin: 0, color: '#92400E', fontSize: '13px', lineHeight: '1.5' }}>
-              📲 Para cancelar o reprogramar tu turno, comunicate por WhatsApp con el profesional.
+          <div style={{ backgroundColor: BRASS_BG, border: `1px solid ${LINE}`, borderRadius: '12px', padding: '14px' }}>
+            <p style={{ margin: 0, color: BRASS, fontSize: '13px', lineHeight: '1.5', fontWeight: 600 }}>
+              Para cancelar o reprogramar tu turno, comunicate por WhatsApp con el profesional.
             </p>
             {requiereSeniaEsteServicio && (
-              <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '16px', marginTop: '16px', textAlign: 'left' }}>
-                <p style={{ margin: '0 0 10px', color: '#92400E', fontWeight: 700, fontSize: '14px' }}>💰 Para confirmar tu turno, transferí la seña</p>
-                <p style={{ margin: '0 0 6px', fontSize: '14px', color: '#161616' }}>Monto: <strong>${montoSenia}</strong></p>
-                {configNegocio?.alias_transferencia && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Alias/CBU: {configNegocio.alias_transferencia}</p>}
-                {configNegocio?.titular_cuenta && <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#161616' }}>Titular: {configNegocio.titular_cuenta}</p>}
-                {configNegocio?.banco && <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#161616' }}>Banco: {configNegocio.banco}</p>}
-                <button onClick={enviarComprobanteWA} style={{ width: '100%', backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
-                  📲 Enviar comprobante por WhatsApp
+              <div style={{ backgroundColor: PAPER_2, border: `1px solid ${LINE}`, borderRadius: '12px', padding: '16px', marginTop: '16px', textAlign: 'left' }}>
+                <p style={{ margin: '0 0 10px', color: BRASS, fontWeight: 700, fontSize: '14px' }}>Para confirmar tu turno, transferí la seña</p>
+                <p style={{ margin: '0 0 6px', fontSize: '14px', color: INK }}>Monto: <strong>${montoSenia}</strong></p>
+                {configNegocio?.alias_transferencia && <p style={{ margin: '0 0 4px', fontSize: '13px', color: INK }}>Alias/CBU: {configNegocio.alias_transferencia}</p>}
+                {configNegocio?.titular_cuenta && <p style={{ margin: '0 0 4px', fontSize: '13px', color: INK }}>Titular: {configNegocio.titular_cuenta}</p>}
+                {configNegocio?.banco && <p style={{ margin: '0 0 12px', fontSize: '13px', color: INK }}>Banco: {configNegocio.banco}</p>}
+                <button onClick={enviarComprobanteWA} style={{ width: '100%', backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT_SANS }}>
+                  Enviar comprobante por WhatsApp
                 </button>
               </div>
             )}

@@ -2,6 +2,17 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 
+// Misma paleta que el resto de la app.
+const INK = '#1B2420'
+const PAPER = '#F4EFE4'
+const PAPER_2 = '#FFFDF8'
+const BRASS = '#A87F4C'
+const CLAY = '#A85A44'
+const LINE = '#DDD3BF'
+const MUTED = '#726B5C'
+const FONT_SERIF = "'Source Serif 4', serif"
+const FONT_SANS = "'Public Sans', sans-serif"
+
 interface BloqueoPersonal {
   id: string
   fecha: string
@@ -117,9 +128,9 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
   }
 
   const campo: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }
-  const labelCampo: React.CSSProperties = { fontSize: '11px', color: '#6B7280' }
-  const inputCampo: React.CSSProperties = { border: '1px solid #e3dfd6', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', fontFamily: 'Arial', width: '100%', boxSizing: 'border-box' }
-  const textareaCampo: React.CSSProperties = { ...inputCampo, minHeight: '70px', resize: 'vertical', fontFamily: 'Arial' }
+  const labelCampo: React.CSSProperties = { fontSize: '11px', color: MUTED }
+  const inputCampo: React.CSSProperties = { border: `1.5px solid ${LINE}`, borderRadius: '8px', padding: '8px 10px', fontSize: '13px', fontFamily: FONT_SANS, width: '100%', boxSizing: 'border-box', color: INK, backgroundColor: PAPER_2 }
+  const textareaCampo: React.CSSProperties = { ...inputCampo, minHeight: '70px', resize: 'vertical', fontFamily: FONT_SANS }
 
   return (
     <>
@@ -147,8 +158,8 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
             .agp-campo-motivo { grid-area: motivo; }
           }
         `}</style>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Bloqueos personales</h2>
-        <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
+        <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Bloqueos personales</h2>
+        <p style={{ fontSize: '13px', color: MUTED, marginBottom: '16px' }}>
           Reservá horarios para trámites, turnos o compromisos personales. Estos bloqueos ocupan el horario en tu agenda, pero nunca se muestran ni se explican en la agenda pública de tus clientes: simplemente aparecen como no disponibles.
         </p>
         <div className="agp-fila">
@@ -169,7 +180,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
             <input type="text" placeholder="Ej: turno médico" value={motivo} onChange={e => setMotivo(e.target.value)} style={inputCampo} />
           </div>
         </div>
-        {error && <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 8px' }}>{error}</p>}
+        {error && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 8px', fontWeight: 600 }}>{error}</p>}
         <button onClick={agregarBloqueo} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1, marginTop: '8px' }}>
           {guardando ? 'Guardando...' : 'Agregar bloqueo'}
         </button>
@@ -177,13 +188,13 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
         {bloqueos.length > 0 && (
           <div style={{ marginTop: '16px' }}>
             {bloqueos.map(b => (
-              <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e3dfd6', borderRadius: '8px', padding: '10px 14px', marginBottom: '8px', backgroundColor: '#fdf9f5' }}>
-                <div style={{ fontSize: '13px', color: '#161616' }}>
+              <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${LINE}`, borderRadius: '10px', padding: '10px 14px', marginBottom: '8px', backgroundColor: PAPER }}>
+                <div style={{ fontSize: '13px', color: INK, fontFamily: FONT_SANS }}>
                   <strong>{new Date(b.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}</strong>
                   {' · '}{b.hora_inicio.substring(0, 5)} a {b.hora_fin.substring(0, 5)}
-                  {b.motivo && <span style={{ color: '#6B7280' }}> · {b.motivo}</span>}
+                  {b.motivo && <span style={{ color: MUTED }}> · {b.motivo}</span>}
                 </div>
-                <button onClick={() => eliminarBloqueo(b.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                <button onClick={() => eliminarBloqueo(b.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
               </div>
             ))}
           </div>
@@ -191,8 +202,8 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
       </div>
 
       <div style={{ ...card, marginTop: '16px' }}>
-        <h2 style={{ color: '#161616', marginTop: 0 }}>Notas</h2>
-        <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
+        <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Notas</h2>
+        <p style={{ fontSize: '13px', color: MUTED, marginBottom: '16px' }}>
           Notas privadas para vos: recordatorios, pendientes o lo que necesites anotar.
         </p>
         <textarea
@@ -201,7 +212,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
           onChange={e => setNuevaNota(e.target.value)}
           style={textareaCampo}
         />
-        {errorNotas && <p style={{ color: '#c0392b', fontSize: '13px', margin: '8px 0 0' }}>{errorNotas}</p>}
+        {errorNotas && <p style={{ color: CLAY, fontSize: '13px', margin: '8px 0 0', fontWeight: 600 }}>{errorNotas}</p>}
         <button onClick={agregarNota} disabled={guardandoNota} style={{ ...btnPrimary, opacity: guardandoNota ? 0.7 : 1, marginTop: '8px' }}>
           {guardandoNota ? 'Guardando...' : 'Agregar nota'}
         </button>
@@ -209,7 +220,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
         {notas.length > 0 && (
           <div style={{ marginTop: '16px' }}>
             {notas.map(n => (
-              <div key={n.id} style={{ border: '1px solid #e3dfd6', borderRadius: '8px', padding: '10px 14px', marginBottom: '8px', backgroundColor: '#fdf9f5' }}>
+              <div key={n.id} style={{ border: `1px solid ${LINE}`, borderRadius: '10px', padding: '10px 14px', marginBottom: '8px', backgroundColor: PAPER }}>
                 {editandoId === n.id ? (
                   <>
                     <textarea
@@ -218,16 +229,16 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
                       style={textareaCampo}
                     />
                     <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                      <button onClick={() => guardarEdicion(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#161616', fontSize: '13px', fontWeight: 600 }}>Guardar</button>
-                      <button onClick={cancelarEdicion} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', fontSize: '13px' }}>Cancelar</button>
+                      <button onClick={() => guardarEdicion(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 700, fontFamily: FONT_SANS }}>Guardar</button>
+                      <button onClick={cancelarEdicion} style={{ background: 'none', border: 'none', cursor: 'pointer', color: MUTED, fontSize: '13px', fontFamily: FONT_SANS }}>Cancelar</button>
                     </div>
                   </>
                 ) : (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ fontSize: '13px', color: '#161616', whiteSpace: 'pre-wrap' }}>{n.contenido}</div>
+                    <div style={{ fontSize: '13px', color: INK, whiteSpace: 'pre-wrap', fontFamily: FONT_SANS }}>{n.contenido}</div>
                     <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
-                      <button onClick={() => iniciarEdicion(n)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Editar</button>
-                      <button onClick={() => eliminarNota(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba9a7d', fontSize: '13px' }}>Eliminar</button>
+                      <button onClick={() => iniciarEdicion(n)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Editar</button>
+                      <button onClick={() => eliminarNota(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
                     </div>
                   </div>
                 )}
