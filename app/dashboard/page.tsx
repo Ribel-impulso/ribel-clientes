@@ -378,6 +378,12 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
     cargarGastos(userId!, mesGastos)
   }
 
+  async function editarGasto(id: string, datos: { fecha: string; descripcion: string; monto: number; tipo: string; categoria: string }) {
+  const { error } = await supabase.from('gastos').update(datos).eq('id', id)
+  if (error) { alert('Error: ' + error.message); return }
+  cargarGastos(userId!, mesGastos)
+}
+
   async function cerrarSesion() {
     await supabase.auth.signOut()
     window.location.href = '/login'
@@ -608,7 +614,7 @@ nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevo
             gastoCategoria={gastoCategoria} setGastoCategoria={setGastoCategoria}
             mesGastos={mesGastos} setMesGastos={setMesGastos}
             totalIngresos={totalIngresos} totalEgresos={totalEgresos} balanceNeto={balanceNeto}
-            agregarGasto={agregarGasto} eliminarGasto={eliminarGasto}
+            agregarGasto={agregarGasto} eliminarGasto={eliminarGasto} editarGasto={editarGasto}
             card={card} input={input} btnPrimary={btnPrimary} th={th} td={td}
           />
         )}
