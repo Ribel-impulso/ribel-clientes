@@ -75,6 +75,26 @@ function formatearFechaLegible(fechaISO: string): string {
   return fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
+function formatearFechaMensaje(fechaISO: string): string {
+  const hoy = new Date();
+  const hoyStr = hoy.toISOString().split('T')[0];
+
+  const mananaDate = new Date();
+  mananaDate.setDate(hoy.getDate() + 1);
+  const mananaStr = mananaDate.toISOString().split('T')[0];
+
+  if (fechaISO === hoyStr) return '*hoy*';
+
+  if (fechaISO === mananaStr) {
+    const fecha = new Date(fechaISO + 'T12:00:00');
+    const diaSemana = fecha.toLocaleDateString('es-AR', { weekday: 'long' });
+    const dia = fecha.getDate();
+    return `*mañana* ${diaSemana} ${dia}`;
+  }
+
+  return `el ${formatearFechaLegible(fechaISO)}`;
+}
+
 function limpiarWhatsapp(numero: string): string {
   const numeroLimpio = numero.trim();
   if (numeroLimpio.startsWith('+')) {
@@ -335,16 +355,16 @@ const slotsVisibles = slotsDelDia.filter(slot => {
   };
 
   const abrirModalWA = (s: Sesion) => {
-    const nombre = nombreCliente(s.cliente_id);
-    const telefono = whatsappCliente(s.cliente_id);
-    const fechaLegible = formatearFechaLegible(s.fecha);
-    const hora = s.horario ? s.horario.substring(0, 5) : '';
-    const servicio = s.tipo_masaje ?? '';
-    const msg = `Hola ${nombre}! 👋 Te recordamos tu turno de ${servicio} el ${fechaLegible}${hora ? ` a las ${hora}hs ` : ''}. ¡Te esperamos! 😊`;
-    setMensajeWA(msg);
-    setNumeroWA(telefono ?? '');
-    setModalWA(true);
-  };
+  const nombre = nombreCliente(s.cliente_id);
+  const telefono = whatsappCliente(s.cliente_id);
+  const fechaMsg = formatearFechaMensaje(s.fecha);
+  const hora = s.horario ? s.horario.substring(0, 5) : '';
+  const servicio = s.tipo_masaje ?? '';
+  const msg = `Hola ${nombre}! 👋 Te recordamos tu turno de ${servicio} ${fechaMsg}${hora ? ` a las ${hora}hs ` : ''}. ¡Te espero! 😊`;
+  setMensajeWA(msg);
+  setNumeroWA(telefono ?? '');
+  setModalWA(true);
+};
 
   const enviarWA = () => {
     if (!numeroWA) { alert('Este cliente no tiene número de WhatsApp registrado.'); return; }
@@ -430,17 +450,17 @@ const slotsVisibles = slotsDelDia.filter(slot => {
     const pendienteSenia = s.estado === 'pendiente_senia'
 
     const confirmarTurnoWA = () => {
-      const nombre = nombreCliente(s.cliente_id)
-      const telefono = whatsappCliente(s.cliente_id)
-      if (!telefono) { alert('Este cliente no tiene número de WhatsApp registrado.'); return }
-      const fechaLegible = formatearFechaLegible(s.fecha)
-      const hora = s.horario ? s.horario.substring(0, 5) : ''
-      const servicio = s.tipo_masaje ?? ''
-      const msg = `Hola ${nombre}! 👋 Tu turno de ${servicio} quedó confirmado para el ${fechaLegible}${hora ? ` a las ${hora}hs` : ''}. ¡Te esperamos! 😊`
-      const numero = limpiarWhatsapp(telefono)
-      window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
-      if (onTurnoResaltadoVisto) onTurnoResaltadoVisto()
-    }
+  const nombre = nombreCliente(s.cliente_id)
+  const telefono = whatsappCliente(s.cliente_id)
+  if (!telefono) { alert('Este cliente no tiene número de WhatsApp registrado.'); return }
+  const fechaMsg = formatearFechaMensaje(s.fecha)
+  const hora = s.horario ? s.horario.substring(0, 5) : ''
+  const servicio = s.tipo_masaje ?? ''
+  const msg = `Hola ${nombre}! 👋 Tu turno de ${servicio} quedó confirmado para ${fechaMsg}${hora ? ` a las ${hora}hs` : ''}. ¡Te espero! 😊`
+  const numero = limpiarWhatsapp(telefono)
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
+  if (onTurnoResaltadoVisto) onTurnoResaltadoVisto()
+}
 
     return (
       <div
