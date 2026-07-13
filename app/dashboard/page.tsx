@@ -49,6 +49,7 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
   const [nuevoServicioNombre, setNuevoServicioNombre] = useState('')
   const [nuevoServicioDuracion, setNuevoServicioDuracion] = useState(60) 
   const [userId, setUserId] = useState<string | null>(null)
+  const [nombreNegocio, setNombreNegocio] = useState('')
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editFecha, setEditFecha] = useState('')
   const [editServicio, setEditServicio] = useState('')
@@ -216,10 +217,18 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
       }
 
       setUserId(data.user.id)
-      cargarClientes(data.user.id)
-      cargarSesiones(data.user.id)
-      cargarServicios(data.user.id)
-      cargarGastos(data.user.id, mesGastos)
+cargarClientes(data.user.id)
+cargarSesiones(data.user.id)
+cargarServicios(data.user.id)
+cargarGastos(data.user.id, mesGastos)
+
+const { data: config } = await supabase
+  .from('configuracion_negocio')
+  .select('nombre_negocio')
+  .eq('user_id', data.user.id)
+  .single()
+
+if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
     })
   }, [mesSeleccionado])
 
@@ -481,8 +490,8 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
             Ribel Gestión
           </h1>
           <p style={{ margin: '2px 0 0', fontSize: '11px', color: SAGE, fontWeight: 600, letterSpacing: '0.03em' }}>
-            Panel de negocio
-          </p>
+  {nombreNegocio ? `Hola, ${nombreNegocio}` : 'Panel de negocio'}
+</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <NotificacionesCampana
