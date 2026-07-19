@@ -126,9 +126,11 @@ interface TabAgendaProps {
   turnoResaltado?: string | null
   fechaInicial?: string | null
   onTurnoResaltadoVisto?: () => void
+  accesoRestringido?: boolean
+  onAccionBloqueada?: () => void
 }
 
-export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurnoResaltadoVisto }: TabAgendaProps) {
+export default function TabAgenda({ userId, turnoResaltado, fechaInicial, onTurnoResaltadoVisto, accesoRestringido, onAccionBloqueada }: TabAgendaProps) {
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [mes, setMes] = useState(hoy.getMonth());
@@ -420,6 +422,16 @@ const slotsVisibles = slotsDelDia.filter(slot => {
   await recargar();
 };
 
+function protegido<T extends (...args: any[]) => any>(fn: T): T {
+  return ((...args: any[]) => {
+    if (accesoRestringido) {
+      if (onAccionBloqueada) onAccionBloqueada();
+      return;
+    }
+    return fn(...args);
+  }) as T;
+}
+
   const cambiarMes = (delta: number) => {
     const nueva = new Date(anio, mes + delta, 1);
     setAnio(nueva.getFullYear());
@@ -499,7 +511,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
               style={{ background: 'none', border: `1px solid ${LINE}`, borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <IconEdit />
             </button>
-            <button onClick={() => eliminar(s.id)}
+            <button onClick={protegido(() => eliminar(s.id))}
               style={{ background: 'none', border: `1px solid ${LINE}`, borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <IconTrash />
             </button>
@@ -535,7 +547,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
         {s.monto_senia && s.monto && s.estado === 'confirmado' && !s.cobrado && (
           <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '12px', color: MUTED }}>Resta cobrar: <strong style={{ color: INK }}>${s.monto - s.monto_senia}</strong></span>
-            <button onClick={() => cobrarDiferencia(s)}
+            <button onClick={protegido(() => cobrarDiferencia(s))}
               style={{ fontSize: '12px', backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600, fontFamily: FONT_SANS }}>
               Cobrar diferencia
             </button>
@@ -546,7 +558,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
             )}
             {pendienteSenia && (
               <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${LINE}` }}>
-                <button onClick={() => confirmarSeniaRecibida(s)}
+                <button onClick={protegido(() => confirmarSeniaRecibida(s))}
                   style={{ width: '100%', fontSize: '12px', backgroundColor: BRASS, color: PAPER_2, border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 600, fontFamily: FONT_SANS }}>
                   Confirmar seña recibida
                 </button>
@@ -627,7 +639,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
   <span style={{ fontSize: '15px', fontWeight: 700, color: INK, textTransform: 'capitalize', fontFamily: FONT_SERIF }}>{labelFecha}</span>
   <div style={{ display: 'flex', gap: '8px' }}>
-    <button onClick={toggleBloqueoDia}
+    <button onClick={protegido(toggleBloqueoDia)}
       style={{
         backgroundColor: diaEstaBloqueado ? CLAY_BG : PAPER,
         color: diaEstaBloqueado ? CLAY : MUTED,
@@ -637,7 +649,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
       {diaEstaBloqueado ? 'Desbloquear día' : 'Bloquear día'}
     </button>
     {!diaEstaBloqueado && (
-      <button onClick={() => abrirNuevo()} style={{ backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: FONT_SANS }}>+ Turno</button>
+      <button onClick={protegido(() => abrirNuevo())} style={{ backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: FONT_SANS }}>+ Turno</button>
     )}
   </div>
 </div>
@@ -928,7 +940,7 @@ const slotsVisibles = slotsDelDia.filter(slot => {
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button onClick={() => setModalAbierto(false)} style={{ border: `1px solid ${LINE}`, background: PAPER_2, color: INK, borderRadius: '8px', padding: '9px 18px', fontSize: '14px', cursor: 'pointer', fontFamily: FONT_SANS, fontWeight: 600 }}>Cancelar</button>
-              <button onClick={guardar} style={{ backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: FONT_SANS }}>
+              <button onClick={protegido(guardar)} style={{ backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: FONT_SANS }}>
                 {modoEdicion ? 'Guardar cambios' : 'Agendar turno'}
               </button>
             </div>

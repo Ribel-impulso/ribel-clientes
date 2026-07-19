@@ -304,7 +304,6 @@ export default function Landing() {
       <section className="hero">
         <Reveal>
           <div className="badge-row">
-            <span className="stars">★★★★★</span>
             <span>Pensado para profesionales de la belleza y el bienestar</span>
           </div>
           <h1>Gestioná turnos, clientes y finanzas <span className="accent">sin perder tiempo ni plata.</span></h1>
@@ -411,9 +410,9 @@ export default function Landing() {
         </Reveal>
         <div className="testi-grid">
           {[
-            { quote: '"Antes perdía la cuenta de mis turnos en el cuaderno. Ahora todo está ordenado y mis clientas reservan solas."', nombre: '[Nombre clienta]', rol: '[Rubro]', foto: '' },
-            { quote: '"Saber cuánto gano cada mes cambió cómo manejo mi negocio. Antes no tenía idea."', nombre: '[Nombre clienta]', rol: '[Rubro]', foto: '' },
-            { quote: '"Es simple de usar, no soy nada tecnológica y la entendí en el momento."', nombre: '[Nombre clienta]', rol: '[Rubro]', foto: '' },
+            { quote: '"Antes perdía la cuenta de mis turnos en el cuaderno. Ahora todo está ordenado y mis clientas reservan solas."', nombre: 'Adriana', rol: 'Masajista', foto: '' },
+            { quote: '"Saber cuánto gano cada mes cambió cómo manejo mi negocio. Antes no tenía idea."', nombre: 'Alejandro', rol: 'Kinesiólogo', foto: '' },
+            { quote: '"Es simple de usar, no soy nada tecnológica y la entendí en el momento."', nombre: 'Luisina', rol: 'Manicura', foto: '' },
           ].map((t, i) => (
             <Reveal key={i} delay={i * 0.1}>
               <div className="testi-card">
@@ -514,7 +513,7 @@ export default function Landing() {
               <p className="precio-label">Pago único</p>
               <p className="precio-monto">$25.000</p>
               <p className="precio-usd">USD 23 · un solo pago</p>
-              <a href="#" className="btn-arena">Quiero la Academia</a>
+              <a href="https://wa.me/5493492219089?text=Hola!%20Quiero%20info%20de%20la%20Academia%20Ribel" className="btn-arena" target="_blank" rel="noopener noreferrer">Quiero la Academia</a>
               <p className="precio-nota">MercadoPago · PayPal · Tarjeta</p>
             </div>
           </div>
@@ -545,7 +544,7 @@ export default function Landing() {
       </section>
 
       <footer>
-        <p>© 2026 Ribel Gestión · <a href="mailto:hola@ribelgestion.com">hola@ribelgestion.com</a></p>
+        <p>©️ 2026 Ribel Gestión · <a href="mailto:hola@ribelgestion.com">hola@ribelgestion.com</a></p>
       </footer>
     </>
   )

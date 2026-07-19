@@ -31,9 +31,11 @@ interface Props {
   userId: string
   card: React.CSSProperties
   btnPrimary: React.CSSProperties
+  accesoRestringido?: boolean
+  onAccionBloqueada?: () => void
 }
 
-export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
+export default function TabAgendaPersonal({ userId, card, btnPrimary, accesoRestringido, onAccionBloqueada }: Props) {
   const [bloqueos, setBloqueos] = useState<BloqueoPersonal[]>([])
   const [fecha, setFecha] = useState('')
   const [horaInicio, setHoraInicio] = useState('')
@@ -48,6 +50,16 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
   const [errorNotas, setErrorNotas] = useState('')
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [textoEdicion, setTextoEdicion] = useState('')
+
+  function protegido<T extends (...args: any[]) => any>(fn: T): T {
+    return ((...args: any[]) => {
+      if (accesoRestringido) {
+        if (onAccionBloqueada) onAccionBloqueada();
+        return;
+      }
+      return fn(...args);
+    }) as T;
+  }
 
   useEffect(() => { cargarBloqueos(); cargarNotas() }, [userId])
 
@@ -181,7 +193,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
           </div>
         </div>
         {error && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 8px', fontWeight: 600 }}>{error}</p>}
-        <button onClick={agregarBloqueo} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1, marginTop: '8px' }}>
+        <button onClick={protegido(agregarBloqueo)} disabled={guardando} style={{ ...btnPrimary, opacity: guardando ? 0.7 : 1, marginTop: '8px' }}>
           {guardando ? 'Guardando...' : 'Agregar bloqueo'}
         </button>
 
@@ -194,7 +206,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
                   {' · '}{b.hora_inicio.substring(0, 5)} a {b.hora_fin.substring(0, 5)}
                   {b.motivo && <span style={{ color: MUTED }}> · {b.motivo}</span>}
                 </div>
-                <button onClick={() => eliminarBloqueo(b.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
+                <button onClick={protegido(() => eliminarBloqueo(b.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
               </div>
             ))}
           </div>
@@ -213,7 +225,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
           style={textareaCampo}
         />
         {errorNotas && <p style={{ color: CLAY, fontSize: '13px', margin: '8px 0 0', fontWeight: 600 }}>{errorNotas}</p>}
-        <button onClick={agregarNota} disabled={guardandoNota} style={{ ...btnPrimary, opacity: guardandoNota ? 0.7 : 1, marginTop: '8px' }}>
+        <button onClick={protegido(agregarNota)} disabled={guardandoNota} style={{ ...btnPrimary, opacity: guardandoNota ? 0.7 : 1, marginTop: '8px' }}>
           {guardandoNota ? 'Guardando...' : 'Agregar nota'}
         </button>
 
@@ -229,7 +241,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
                       style={textareaCampo}
                     />
                     <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                      <button onClick={() => guardarEdicion(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 700, fontFamily: FONT_SANS }}>Guardar</button>
+                      <button onClick={protegido(() => guardarEdicion(n.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 700, fontFamily: FONT_SANS }}>Guardar</button>
                       <button onClick={cancelarEdicion} style={{ background: 'none', border: 'none', cursor: 'pointer', color: MUTED, fontSize: '13px', fontFamily: FONT_SANS }}>Cancelar</button>
                     </div>
                   </>
@@ -238,7 +250,7 @@ export default function TabAgendaPersonal({ userId, card, btnPrimary }: Props) {
                     <div style={{ fontSize: '13px', color: INK, whiteSpace: 'pre-wrap', fontFamily: FONT_SANS }}>{n.contenido}</div>
                     <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
                       <button onClick={() => iniciarEdicion(n)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Editar</button>
-                      <button onClick={() => eliminarNota(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
+                      <button onClick={protegido(() => eliminarNota(n.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
                     </div>
                   </div>
                 )}

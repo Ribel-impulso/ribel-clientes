@@ -67,6 +67,8 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
   const [historial, setHistorial] = useState<any[]>([])
   const [gastoCategoria, setGastoCategoria] = useState('negocio')
   const [diasRestantes, setDiasRestantes] = useState<number | null>(null)
+  const [accesoRestringido, setAccesoRestringido] = useState(false)
+  const [mostrarModalUpgrade, setMostrarModalUpgrade] = useState(false)
   const [montoSenia, setMontoSenia] = useState('')
   const [fechaSenia, setFechaSenia] = useState('')
 
@@ -208,12 +210,10 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
         const estadoBloqueado = suscripcion.estado === 'vencida' || suscripcion.estado === 'cancelada'
 
         if (diffDias < 0 || estadoBloqueado) {
-          window.location.href = '/planes'
-          return
-        }
-        if (diffDias <= 5) {
-          setDiasRestantes(diffDias)
-        }
+  setAccesoRestringido(true)
+} else if (diffDias <= 5) {
+  setDiasRestantes(diffDias)
+}
       }
 
       setUserId(data.user.id)
@@ -397,6 +397,15 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
     await supabase.auth.signOut()
     window.location.href = '/login'
   }
+  function protegido<T extends (...args: any[]) => any>(fn: T): T {
+  return ((...args: any[]) => {
+    if (accesoRestringido) {
+      setMostrarModalUpgrade(true)
+      return
+    }
+    return fn(...args)
+  }) as T
+}
 
   // La seña impacta en el mes de su fecha_senia
   const totalEfectivo = sesiones.reduce((sum, s) => {
@@ -458,6 +467,21 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
         rel="stylesheet"
       />
 
+{accesoRestringido && (
+  <div style={{
+    backgroundColor: CLAY_BG, border: `1px solid ${CLAY}55`, borderRadius: '12px',
+    padding: '12px 20px', marginBottom: '16px', display: 'flex',
+    justifyContent: 'space-between', alignItems: 'center'
+  }}>
+    <span style={{ color: CLAY, fontSize: '13.5px', fontWeight: 600 }}>
+      🔒 Tu período de prueba venció. Podés ver tu info, pero para agendar, cobrar o modificar necesitás activar un plan.
+    </span>
+    <button onClick={() => setMostrarModalUpgrade(true)} style={{
+      backgroundColor: INK, color: PAPER_2, border: 'none', padding: '7px 15px',
+      borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer'
+    }}>Ver planes</button>
+  </div>
+)}
       {diasRestantes !== null && (
         <div style={{
           backgroundColor: CLAY_BG,
@@ -560,7 +584,7 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
             nuevoServicioNombre={nuevoServicioNombre} setNuevoServicioNombre={setNuevoServicioNombre}
 nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevoServicioDuracion}
             userId={userId!} cargarClientes={cargarClientes} cargarServicios={cargarServicios}
-            eliminarCliente={eliminarCliente} eliminarServicio={eliminarServicio}
+            eliminarCliente={protegido(eliminarCliente)} eliminarServicio={protegido(eliminarServicio)}
             card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
           />
         )}
@@ -591,10 +615,10 @@ nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevo
             editFormaPago={editFormaPago} setEditFormaPago={setEditFormaPago}
             clienteHistorial={clienteHistorial} setClienteHistorial={setClienteHistorial}
             historial={historial}
-            agregarSesion={agregarSesion} eliminarSesion={eliminarSesion}
-            toggleFacturado={toggleFacturado} iniciarEdicion={iniciarEdicion}
-            cobrarSesion={cobrarSesion}
-            guardarEdicion={guardarEdicion} cargarHistorial={cargarHistorial}
+            agregarSesion={protegido(agregarSesion)} eliminarSesion={protegido(eliminarSesion)}
+            toggleFacturado={protegido(toggleFacturado)} iniciarEdicion={iniciarEdicion}
+            cobrarSesion={protegido(cobrarSesion)}
+            guardarEdicion={protegido(guardarEdicion)} cargarHistorial={cargarHistorial}
             card={card} input={input} btnPrimary={btnPrimary} btnSecondary={btnSecondary}
             th={th} td={td}
           />
@@ -606,7 +630,9 @@ nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevo
   turnoResaltado={turnoResaltado}
   fechaInicial={fechaInicialAgenda}
   onTurnoResaltadoVisto={() => setTurnoResaltado(null)}
-  />
+  accesoRestringido={accesoRestringido}
+  onAccionBloqueada={() => setMostrarModalUpgrade(true)}
+/>
         )}
 
         {pestanaActiva === 'agendaPersonal' && (
@@ -623,12 +649,38 @@ nuevoServicioDuracion={nuevoServicioDuracion} setNuevoServicioDuracion={setNuevo
             gastoCategoria={gastoCategoria} setGastoCategoria={setGastoCategoria}
             mesGastos={mesGastos} setMesGastos={setMesGastos}
             totalIngresos={totalIngresos} totalEgresos={totalEgresos} balanceNeto={balanceNeto}
-            agregarGasto={agregarGasto} eliminarGasto={eliminarGasto} editarGasto={editarGasto}
+            agregarGasto={protegido(agregarGasto)} eliminarGasto={protegido(eliminarGasto)} editarGasto={protegido(editarGasto)}
             card={card} input={input} btnPrimary={btnPrimary} th={th} td={td}
           />
         )}
 
       </div>
+      {mostrarModalUpgrade && (
+  <div onClick={() => setMostrarModalUpgrade(false)} style={{
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(27,36,32,0.55)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+  }}>
+    <div onClick={e => e.stopPropagation()} style={{
+      backgroundColor: PAPER_2, borderRadius: '16px', padding: '28px',
+      maxWidth: '380px', textAlign: 'center'
+    }}>
+      <h3 style={{ fontFamily: FONT_SERIF, color: INK, marginTop: 0 }}>Tu prueba terminó</h3>
+      <p style={{ color: MUTED, fontSize: '14px' }}>
+        Para seguir agendando, cobrando y gestionando tu negocio, activá un plan.
+      </p>
+      <a href="/planes" style={{
+        display: 'inline-block', backgroundColor: INK, color: PAPER_2,
+        padding: '11px 24px', borderRadius: '10px', textDecoration: 'none',
+        fontWeight: 700, marginTop: '10px'
+      }}>Ver planes</a>
+      <div style={{ marginTop: '12px' }}>
+        <button onClick={() => setMostrarModalUpgrade(false)} style={{
+          background: 'none', border: 'none', color: MUTED, fontSize: '13px', cursor: 'pointer'
+        }}>Cerrar</button>
+      </div>
+    </div>
+  </div>
+)}
     </main>
   )
 }
