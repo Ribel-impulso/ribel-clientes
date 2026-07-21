@@ -63,6 +63,105 @@ function NumeroAnimado({ end, suffix, label, desc, delay }: { end: number; suffi
   )
 }
 
+function FeatureCarousel() {
+  const slides = [
+    { icon: '📅', title: 'Agenda inteligente', desc: 'Configurá turnos de mañana y tarde. Tus clientes reservan solos, sin que vos muevas un dedo.' },
+    { icon: '👥', title: 'Gestión de clientes', desc: 'Historial completo, datos de contacto y seguimiento de cada clienta en un solo lugar.' },
+    { icon: '💰', title: 'Control de finanzas', desc: 'Registrá ingresos y gastos. Sabé exactamente cómo está tu negocio cada mes.' },
+    { icon: '🔔', title: 'Notificaciones al instante', desc: 'Te avisamos apenas alguien reserva, sin que tengas que estar revisando todo el día.' },
+  ]
+  const [index, setIndex] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % slides.length)
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [])
+  return (
+    <div className="carousel-wrap">
+      <div className="carousel-track" style={{ transform: `translateX(-${index * 100}%)` }}>
+        {slides.map((s, i) => (
+          <div className="carousel-slide" key={i}>
+            <div className="carousel-icon">{s.icon}</div>
+            <h4>{s.title}</h4>
+            <p>{s.desc}</p>
+          </div>
+        ))}
+      </div>
+      <div className="carousel-dots">
+        {slides.map((_, i) => (
+          <span
+            key={i}
+            className={`carousel-dot ${i === index ? 'active' : ''}`}
+            onClick={() => setIndex(i)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function FitCarousel() {
+  const slides = [
+    {
+      title: 'Es para vos si...',
+      mark: '✓',
+      markColor: 'var(--verde-ok)',
+      items: [
+        'Atendés clientes por turno (depilación, masajes, manicura, kinesiología, etc.)',
+        'Hoy anotás turnos en un cuaderno, papel o WhatsApp',
+        'Sos profesional independiente que gestiona su propio negocio',
+        'Querés dejar de perder tiempo reorganizando todo a mano',
+      ],
+    },
+    {
+      title: 'No es para vos si...',
+      mark: '✕',
+      markColor: '#c94b4b',
+      items: [
+        'Tenés varias sucursales o un equipo grande de empleados',
+        'Necesitás facturación electrónica integrada (todavía no la tenemos)',
+        'Buscás un sistema con control de stock o venta de productos',
+      ],
+    },
+  ]
+  const [index, setIndex] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % slides.length)
+    }, 4500)
+    return () => clearInterval(timer)
+  }, [])
+  return (
+    <div className="fit-wrap">
+      <div className="fit-track" style={{ transform: `translateX(-${index * 100}%)` }}>
+        {slides.map((s, i) => (
+          <div className="fit-slide" key={i}>
+            <p className="fit-slide-title">{s.title}</p>
+            <ul className="fit-list">
+              {s.items.map((item, j) => (
+                <li key={j}>
+                  <span className="fit-mark" style={{ color: s.markColor, borderColor: s.markColor }}>{s.mark}</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="carousel-dots">
+        {slides.map((_, i) => (
+          <span
+            key={i}
+            className={`carousel-dot ${i === index ? 'active' : ''}`}
+            onClick={() => setIndex(i)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [abierto, setAbierto] = useState(false)
   return (
@@ -82,23 +181,23 @@ export default function Landing() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
           --blanco: #ffffff;
-          --negro: #161616;
-          --crema: #e3dfd6;
-          --arena: #ba9a7d;
-          --arena-oscuro: #9c7d5f;
-          --arena-claro: #f3ece3;
-          --gris: #6b6b6b;
-          --verde-ok: #2d9d6f;
+          --negro: #111827;
+          --crema: #e5e7eb;
+          --arena: #4f46e5;
+          --arena-oscuro: #4338ca;
+          --arena-claro: #eef2ff;
+          --gris: #6b7280;
+          --verde-ok: #059669;
         }
 
         html { scroll-behavior: smooth; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--blanco); color: var(--negro); line-height: 1.5; }
+        body { font-family: 'Inter', sans-serif; background: var(--blanco); color: var(--negro); line-height: 1.5; }
 
         .nav {
           position: sticky; top: 0; z-index: 100;
@@ -127,16 +226,16 @@ export default function Landing() {
         }
         .stars { color: #f5a623; letter-spacing: 1px; }
 
-        .hero { padding: 64px 24px 80px; background: var(--arena-claro); text-align: center; }
+        .hero { padding: 64px 24px 80px; background: var(--blanco); text-align: center; }
         .hero h1 {
           font-size: clamp(34px, 5.5vw, 58px); font-weight: 800; line-height: 1.15;
           letter-spacing: -0.02em; max-width: 780px; margin: 0 auto 20px; color: var(--negro);
         }
-        .hero h1 .accent { color: var(--arena-oscuro); }
+        .hero h1 .hero-accent { color: var(--arena); }
         .hero-sub { font-size: 18px; font-weight: 500; color: var(--gris); max-width: 560px; margin: 0 auto 36px; line-height: 1.6; }
         .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
         .btn-primario {
-          padding: 16px 36px; background: var(--negro); color: var(--blanco);
+          padding: 16px 36px; background: var(--arena); color: var(--blanco);
           font-size: 15px; font-weight: 700; text-decoration: none;
           border-radius: 10px; transition: transform 0.15s, background 0.2s;
           box-shadow: 0 4px 14px rgba(0,0,0,0.15);
@@ -163,14 +262,47 @@ export default function Landing() {
         .mock-detalle { color: var(--gris); font-size: 13px; }
         .mock-tag { background: var(--arena-claro); color: var(--arena-oscuro); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
 
+        .carousel-wrap {
+          max-width: 560px; margin: 56px auto 0; overflow: hidden;
+          border-radius: 14px; border: 1px solid var(--crema); box-shadow: 0 4px 20px rgba(0,0,0,0.04); background: var(--blanco);
+        }
+        .carousel-track { display: flex; transition: transform 0.6s ease; }
+        .carousel-slide { min-width: 100%; padding: 48px 40px; text-align: center; }
+        .carousel-icon {
+          width: 64px; height: 64px; border-radius: 16px; background: var(--arena-claro);
+          display: flex; align-items: center; justify-content: center; font-size: 30px;
+          margin: 0 auto 20px;
+        }
+        .carousel-slide h4 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+        .carousel-slide p { font-size: 14px; color: var(--gris); font-weight: 500; line-height: 1.6; max-width: 380px; margin: 0 auto; }
+        .carousel-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: 24px; }
+        .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--crema); cursor: pointer; transition: background 0.2s, transform 0.2s; border: none; }
+        .carousel-dot.active { background: var(--arena-oscuro); transform: scale(1.3); }
+
+        .fit-section { padding: 80px 24px; background: var(--blanco); text-align: center; }
+        .fit-wrap {
+          max-width: 640px; margin: 48px auto 0; overflow: hidden;
+          border-radius: 14px; border: 1px solid var(--crema); box-shadow: 0 4px 20px rgba(0,0,0,0.04); background: var(--blanco);
+        }
+        .fit-track { display: flex; transition: transform 0.6s ease; }
+        .fit-slide { min-width: 100%; padding: 44px 40px; text-align: left; }
+        .fit-slide-title { font-size: 20px; font-weight: 800; margin-bottom: 22px; text-align: center; }
+        .fit-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+        .fit-list li { font-size: 15px; font-weight: 500; color: var(--negro); display: flex; gap: 12px; align-items: flex-start; line-height: 1.5; }
+        .fit-mark {
+          flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 2px solid;
+          display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;
+          margin-top: 1px;
+        }
+
         .problema { padding: 90px 24px; background: var(--blanco); text-align: center; }
         .section-eyebrow { font-size: 13px; font-weight: 700; color: var(--arena-oscuro); margin-bottom: 14px; letter-spacing: 0.02em; }
         .section-title { font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.01em; }
         .section-sub { font-size: 16px; color: var(--gris); max-width: 520px; margin: 0 auto 56px; font-weight: 500; }
 
         .problema-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto; }
-        .problema-card { background: var(--arena-claro); border-radius: 14px; padding: 32px 24px; text-align: left; transition: transform 0.25s; }
-        .problema-card:hover { transform: translateY(-6px); }
+        .problema-card { background: var(--blanco); border: 1px solid var(--crema); border-radius: 12px; padding: 32px 24px; text-align: left; transition: box-shadow 0.2s, border-color 0.2s; }
+        .problema-card:hover { border-color: var(--arena); box-shadow: 0 4px 16px rgba(79,70,229,0.08); }
         .problema-icon { font-size: 28px; margin-bottom: 16px; display: block; }
         .problema-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
         .problema-card p { font-size: 14px; color: var(--gris); font-weight: 500; line-height: 1.55; }
@@ -184,19 +316,19 @@ export default function Landing() {
         .app-section { padding: 90px 24px; background: var(--blanco); }
         .section-inner { max-width: 1100px; margin: 0 auto; }
         .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 56px; }
-        .feature-card { background: var(--arena-claro); border-radius: 14px; padding: 28px; display: flex; gap: 18px; align-items: flex-start; transition: transform 0.25s; }
-        .feature-card:hover { transform: translateY(-6px); }
+        .feature-card { background: var(--blanco); border: 1px solid var(--crema); border-radius: 12px; padding: 28px; display: flex; gap: 18px; align-items: flex-start; transition: box-shadow 0.2s, border-color 0.2s; }
+        .feature-card:hover { border-color: var(--arena); box-shadow: 0 4px 16px rgba(79,70,229,0.08); }
         .feature-icon {
-          width: 46px; height: 46px; min-width: 46px; border-radius: 12px;
-          background: var(--negro); color: var(--blanco); display: flex; align-items: center; justify-content: center; font-size: 20px;
+          width: 46px; height: 46px; min-width: 46px; border-radius: 10px;
+          background: var(--arena-claro); color: var(--arena); display: flex; align-items: center; justify-content: center; font-size: 20px;
         }
         .feature-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
         .feature-card p { font-size: 14px; color: var(--gris); font-weight: 500; line-height: 1.55; }
 
         .testimonios { padding: 90px 24px; background: var(--arena-claro); text-align: center; }
         .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 56px auto 0; text-align: left; }
-        .testi-card { background: var(--blanco); border-radius: 14px; padding: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); transition: transform 0.25s; }
-        .testi-card:hover { transform: translateY(-6px); }
+        .testi-card { background: var(--blanco); border: 1px solid var(--crema); border-radius: 12px; padding: 28px; box-shadow: none; transition: box-shadow 0.2s, border-color 0.2s; }
+        .testi-card:hover { border-color: var(--arena); box-shadow: 0 4px 16px rgba(79,70,229,0.08); }
         .testi-stars { color: #f5a623; font-size: 13px; margin-bottom: 14px; }
         .testi-quote { font-size: 14px; font-weight: 500; color: var(--negro); margin-bottom: 20px; line-height: 1.6; }
         .testi-person { display: flex; align-items: center; gap: 10px; }
@@ -213,10 +345,10 @@ export default function Landing() {
         .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 0 auto; }
         .plan-card { border: 2px solid var(--crema); border-radius: 16px; padding: 32px 28px; position: relative; transition: transform 0.25s; }
         .plan-card:hover { transform: translateY(-6px); }
-        .plan-card.destacado { border-color: var(--negro); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
+        .plan-card.destacado { border-color: var(--arena); box-shadow: 0 4px 20px rgba(79,70,229,0.12); }
         .plan-tag {
           position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
-          background: var(--negro); color: var(--blanco); font-size: 11px; font-weight: 700;
+          background: var(--arena); color: var(--blanco); font-size: 11px; font-weight: 700;
           padding: 5px 16px; border-radius: 20px; white-space: nowrap;
         }
         .plan-nombre { font-size: 14px; font-weight: 700; color: var(--gris); margin-bottom: 8px; }
@@ -227,7 +359,7 @@ export default function Landing() {
         .plan-feats li { font-size: 14px; font-weight: 500; padding: 8px 0; display: flex; gap: 10px; align-items: center; }
         .plan-feats li::before { content: '✓'; color: var(--verde-ok); font-weight: 800; }
         .plan-btn { display: block; text-align: center; padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 700; text-decoration: none; transition: all 0.2s; }
-        .plan-btn.fill { background: var(--negro); color: var(--blanco); }
+        .plan-btn.fill { background: var(--arena); color: var(--blanco); }
         .plan-btn.fill:hover { background: var(--arena-oscuro); }
         .plan-btn.line { background: transparent; color: var(--negro); border: 2px solid var(--negro); }
         .plan-btn.line:hover { background: var(--negro); color: var(--blanco); }
@@ -306,7 +438,7 @@ export default function Landing() {
           <div className="badge-row">
             <span>Pensado para profesionales de la belleza y el bienestar</span>
           </div>
-          <h1>Gestioná turnos, clientes y finanzas <span className="accent">sin perder tiempo ni plata.</span></h1>
+          <h1>Gestioná turnos, clientes y finanzas <span className="hero-accent">sin perder tiempo ni plata.</span></h1>
           <p className="hero-sub">Ribel es la app que organiza tu negocio para que vos te enfoques en lo que sabés hacer: atender bien a tus clientes.</p>
           <div className="hero-ctas">
             <a href="/login" className="btn-primario">Probar 15 días gratis</a>
@@ -316,24 +448,7 @@ export default function Landing() {
         </Reveal>
 
         <Reveal delay={0.15}>
-          <div className="hero-mock">
-            <div className="mock-top">
-              <span className="mock-titulo">📅 Agenda de hoy</span>
-              <span className="mock-tag">3 turnos confirmados</span>
-            </div>
-            <div className="mock-row">
-              <div><span className="mock-dot"></span><span className="mock-cliente">María G.</span> <span className="mock-detalle">— Masaje relajante</span></div>
-              <span className="mock-detalle">10:00 hs</span>
-            </div>
-            <div className="mock-row">
-              <div><span className="mock-dot"></span><span className="mock-cliente">Lucía P.</span> <span className="mock-detalle">— Manicura</span></div>
-              <span className="mock-detalle">14:30 hs</span>
-            </div>
-            <div className="mock-row">
-              <div><span className="mock-dot"></span><span className="mock-cliente">Sofía R.</span> <span className="mock-detalle">— Sesión nutricional</span></div>
-              <span className="mock-detalle">17:00 hs</span>
-            </div>
-          </div>
+          <FitCarousel />
         </Reveal>
       </section>
 
