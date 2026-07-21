@@ -410,9 +410,9 @@ export default function Landing() {
         </Reveal>
         <div className="testi-grid">
           {[
-            { quote: '"Antes perdía la cuenta de mis turnos en el cuaderno. Ahora todo está ordenado y mis clientas reservan solas."', nombre: 'Adriana', rol: 'Masajista', foto: '' },
-            { quote: '"Saber cuánto gano cada mes cambió cómo manejo mi negocio. Antes no tenía idea."', nombre: 'Alejandro', rol: 'Kinesiólogo', foto: '' },
-            { quote: '"Es simple de usar, no soy nada tecnológica y la entendí en el momento."', nombre: 'Luisina', rol: 'Manicura', foto: '' },
+            { quote: '"Antes perdía la cuenta de mis turnos en el cuaderno. Ahora todo está ordenado y mis clientas reservan solas."', nombre: 'Adriana', rol: 'Masajista', foto: '/testimonios/adriana.jpg' },
+            { quote: '"Saber cuánto gano cada mes cambió cómo manejo mi negocio. Antes no tenía idea."', nombre: 'Alejandro', rol: 'Kinesiólogo', foto: '/testimonios/alejandro.jpg' },
+            { quote: '"Es simple de usar, no soy nada tecnológica y la entendí en el momento."', nombre: 'Pablo', rol: 'Reiki', foto: '/testimonios/pablo.jpg' },
           ].map((t, i) => (
             <Reveal key={i} delay={i * 0.1}>
               <div className="testi-card">
