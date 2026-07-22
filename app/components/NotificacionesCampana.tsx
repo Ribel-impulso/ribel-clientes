@@ -53,11 +53,14 @@ export default function NotificacionesCampana({ onVerTurno }: Props) {
   }, [])
 
   const playNotificationSound = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0
-      audioRef.current.play().catch(() => {})
-    }
+  console.log('Intentando reproducir. audioRef:', audioRef.current)
+  if (audioRef.current) {
+    audioRef.current.currentTime = 0
+    audioRef.current.play()
+      .then(() => console.log('Sonó OK'))
+      .catch((err) => console.log('ERROR AUDIO:', err.name, err.message))
   }
+}
 
   useEffect(() => {
     const cargar = async () => {
@@ -77,12 +80,12 @@ export default function NotificacionesCampana({ onVerTurno }: Props) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notificaciones' },
-        async (payload: RealtimePayload) => {
-          const { data } = await supabase
-            .from('notificaciones')
-            .select('*')
-            .eq('id', payload.new.id)
-            .single()
+        (payload: RealtimePayload) => {
+          // Usamos directamente lo que trae el evento (payload.new),
+          // sin volver a consultar la base de datos. Esto evita el error
+          // 406 que aparecía por el .single() y hacía que el sonido
+          // nunca se disparara.
+          const data = payload.new
           if (data) {
             setNotificaciones(prev => [data, ...prev])
             playNotificationSound()
