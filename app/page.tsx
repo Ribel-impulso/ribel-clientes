@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import WhatsAppFloatingButton from './components/WhatsAppFloatingButton'
 
 function useCountUp(end: number, duration = 1500, startWhenVisible: boolean) {
   const [value, setValue] = useState(0)
@@ -661,6 +662,8 @@ export default function Landing() {
       <footer>
         <p>©️ 2026 Ribel Gestión · <a href="mailto:hola@ribelgestion.com">hola@ribelgestion.com</a></p>
       </footer>
+
+      <WhatsAppFloatingButton />
     </>
   )
 }

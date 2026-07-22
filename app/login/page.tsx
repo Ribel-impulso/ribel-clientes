@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import WhatsAppFloatingButton from '../components/WhatsAppFloatingButton'
 
 type Vista = 'login' | 'registro' | 'recuperar'
 
@@ -463,6 +464,8 @@ export default function Login() {
           </div>
         </div>
       </main>
+
+      <WhatsAppFloatingButton />
     </>
   )
 }
