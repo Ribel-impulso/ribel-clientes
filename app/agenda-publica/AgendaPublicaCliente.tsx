@@ -97,19 +97,36 @@ export default function AgendaPublicaCliente() {
   const [configNegocio, setConfigNegocio] = useState<any>(null)
   const [diasBloqueados, setDiasBloqueados] = useState<string[]>([])
 
+  // Trial vencido: mismo criterio que en el panel interno (tabla suscripciones,
+  // último registro por user_id, estado vencida/cancelada o fecha_vencimiento pasada).
+  const [agendaBloqueada, setAgendaBloqueada] = useState(false)
+
   const [datosListos, setDatosListos] = useState(false)
 
   useEffect(() => {
     if (!profesionalId) return
     async function cargar() {
-      const [{ data: srv }, { data: disp }, { data: config }] = await Promise.all([
+      const [{ data: srv }, { data: disp }, { data: config }, { data: suscripcion }] = await Promise.all([
         supabase.from('servicios').select('*').eq('user_id', profesionalId).order('nombre'),
         supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana'),
-        supabase.from('configuracion_negocio_publica').select('*').eq('user_id', profesionalId).maybeSingle()
+        supabase.from('configuracion_negocio_publica').select('*').eq('user_id', profesionalId).maybeSingle(),
+        supabase.from('suscripciones').select('*').eq('user_id', profesionalId).order('created_at', { ascending: false }).limit(1).single()
       ])
       if (srv) setServicios(srv)
       if (disp) setDisponibilidad(disp)
       if (config) setConfigNegocio(config)
+
+      // Si no hay registro de suscripción (ej: los usuarios con acceso manual/canje),
+      // no se bloquea: se comporta igual que en el panel interno.
+      if (suscripcion) {
+        const hoy = new Date()
+        hoy.setHours(0, 0, 0, 0)
+        const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
+        const vencida = vencimiento.getTime() < hoy.getTime()
+        const estadoBloqueado = suscripcion.estado === 'vencida' || suscripcion.estado === 'cancelada'
+        if (vencida || estadoBloqueado) setAgendaBloqueada(true)
+      }
+
       setDatosListos(true)
     }
     cargar()
@@ -330,6 +347,9 @@ export default function AgendaPublicaCliente() {
   const IconClock = () => (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" style={{ display: 'inline', verticalAlign: '-2px', marginRight: '4px' }}><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
   )
+  const IconClosed = () => (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+  )
 
   return (
     <div style={container}>
@@ -361,10 +381,24 @@ export default function AgendaPublicaCliente() {
               <IconPin />{configNegocio.ubicacion}
             </p>
           )}
-          <h2 style={{ color: INK, margin: '4px 0 4px', fontSize: '16px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Reservá tu turno</h2>
-          <p style={{ color: MUTED, margin: 0, fontSize: '13px', textAlign: 'center' }}>Elegí el servicio, día y horario que más te convenga</p>
+          {!agendaBloqueada && (
+            <>
+              <h2 style={{ color: INK, margin: '4px 0 4px', fontSize: '16px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Reservá tu turno</h2>
+              <p style={{ color: MUTED, margin: 0, fontSize: '13px', textAlign: 'center' }}>Elegí el servicio, día y horario que más te convenga</p>
+            </>
+          )}
         </div>
 
+      {agendaBloqueada ? (
+        <div style={{ ...card, textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}><IconClosed /></div>
+          <h2 style={{ color: INK, marginTop: 0, fontSize: '17px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Agenda no disponible temporalmente</h2>
+          <p style={{ color: MUTED, fontSize: '14px', margin: 0 }}>
+            Por el momento no se pueden reservar turnos por acá. Volvé a intentarlo más tarde.
+          </p>
+        </div>
+      ) : (
+      <>
       {paso === 'whatsapp' && (
         <div style={card}>
           <h2 style={{ color: INK, marginTop: 0, fontSize: '17px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Ingresá tu número de WhatsApp</h2>
@@ -554,6 +588,8 @@ export default function AgendaPublicaCliente() {
             )}
           </div>
         </div>
+      )}
+      </>
       )}
       </div>
     </div>
