@@ -10,21 +10,26 @@ const supabase = createClient(
 export async function generateMetadata({ searchParams }: { searchParams: { u?: string } }) {
   const userId = searchParams.u
   let nombre = 'tu profesional'
+  let ubicacion: string | null = null
   let logoUrl: string | null = null
 
   if (userId) {
     const { data } = await supabase
       .from('configuracion_negocio')
-      .select('nombre_negocio, logo_url')
+      .select('nombre_negocio, ubicacion, logo_url')
       .eq('user_id', userId)
       .maybeSingle()
     if (data?.nombre_negocio) nombre = data.nombre_negocio
+    if (data?.ubicacion) ubicacion = data.ubicacion
     if (data?.logo_url) logoUrl = data.logo_url
   }
 
-  // Si el profesional ya subió su logo, lo usamos directo como imagen del preview.
-  // Si no, caemos al generador automático con el nombre (/api/og).
-  const ogImageUrl = logoUrl || `https://ribelgestion.com/api/og?nombre=${encodeURIComponent(nombre)}`
+  // Siempre se arma la tarjeta vía /api/og (con logo si hay, sin logo si no),
+  // para que el preview se vea consistente en todos los casos.
+  const ogParams = new URLSearchParams({ nombre })
+  if (ubicacion) ogParams.set('ubicacion', ubicacion)
+  if (logoUrl) ogParams.set('logo', logoUrl)
+  const ogImageUrl = `https://ribelgestion.com/api/og?${ogParams.toString()}`
 
   return {
     title: `Reservá tu turno con ${nombre}`,
