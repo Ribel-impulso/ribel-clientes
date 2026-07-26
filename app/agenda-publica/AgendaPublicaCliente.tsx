@@ -106,26 +106,21 @@ export default function AgendaPublicaCliente() {
   useEffect(() => {
     if (!profesionalId) return
     async function cargar() {
-      const [{ data: srv }, { data: disp }, { data: config }, { data: suscripcion }] = await Promise.all([
+      const [{ data: srv }, { data: disp }, { data: config }, { data: disponible, error: errDisponible }] = await Promise.all([
         supabase.from('servicios').select('*').eq('user_id', profesionalId).order('nombre'),
         supabase.from('disponibilidad').select('*').eq('user_id', profesionalId).order('dia_semana'),
         supabase.from('configuracion_negocio_publica').select('*').eq('user_id', profesionalId).maybeSingle(),
-        supabase.from('suscripciones').select('*').eq('user_id', profesionalId).order('created_at', { ascending: false }).limit(1).single()
+        // RPC a una función segura (SECURITY DEFINER) que solo devuelve true/false,
+        // sin exponer la tabla 'suscripciones' a visitantes no autenticados.
+        supabase.rpc('esta_agenda_disponible', { profesional_id: profesionalId })
       ])
       if (srv) setServicios(srv)
       if (disp) setDisponibilidad(disp)
       if (config) setConfigNegocio(config)
 
-      // Si no hay registro de suscripción (ej: los usuarios con acceso manual/canje),
-      // no se bloquea: se comporta igual que en el panel interno.
-      if (suscripcion) {
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
-        const vencimiento = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
-        const vencida = vencimiento.getTime() < hoy.getTime()
-        const estadoBloqueado = suscripcion.estado === 'vencida' || suscripcion.estado === 'cancelada'
-        if (vencida || estadoBloqueado) setAgendaBloqueada(true)
-      }
+      // Si la llamada falla por algún motivo, no bloqueamos por las dudas
+      // (mejor mostrar la agenda de más que bloquearla de más por un error técnico).
+      if (!errDisponible && disponible === false) setAgendaBloqueada(true)
 
       setDatosListos(true)
     }
