@@ -11,8 +11,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function generateMetadata({ searchParams }: { searchParams: { u?: string } }) {
-  const userId = searchParams.u
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ u?: string }> }) {
+  const { u: userId } = await searchParams
   let nombre = 'tu profesional'
   let ubicacion: string | null = null
   let logoUrl: string | null = null
