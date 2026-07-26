@@ -71,9 +71,9 @@ function limpiarWA(numero: string): string {
 
 type Paso = 'whatsapp' | 'servicio' | 'fecha' | 'horario' | 'confirmado'
 
-export default function AgendaPublicaCliente() {
+export default function AgendaPublicaCliente({ profesionalIdProp }: { profesionalIdProp?: string } = {}) {
   const searchParams = useSearchParams()
-  const profesionalId = searchParams.get('u')
+  const profesionalId = profesionalIdProp || searchParams.get('u')
 
   const [paso, setPaso] = useState<Paso>('whatsapp')
   const [whatsapp, setWhatsapp] = useState('')

@@ -57,6 +57,8 @@ interface Props {
   input: React.CSSProperties
   btnPrimary: React.CSSProperties
   btnSecondary: React.CSSProperties
+  accesoRestringido?: boolean
+  onAccionBloqueada?: () => void
 }
 
 function MiNegocio({
@@ -994,7 +996,7 @@ async function guardarEdicionServicio(id: string) {
               Compartí este link con tus clientes para que puedan reservar su turno online.
             </p>
             <div style={{ backgroundColor: PAPER, border: `1px solid ${LINE}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', wordBreak: 'break-all', fontSize: '13px', color: INK, fontFamily: FONT_SANS }}>
-              {`https://ribelgestion.com/agenda-publica?u=${userId}`}
+              {`https://ribelgestion.com/agenda-publica/${userId}`}
             </div>
             <button onClick={() => { navigator.clipboard.writeText(`https://ribelgestion.com/agenda-publica?u=${userId}`); alert('¡Link copiado!') }}
               style={{ ...btnPrimary, width: 'auto', padding: '8px 20px', fontSize: '13px' }}>
