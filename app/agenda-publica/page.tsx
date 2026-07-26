@@ -2,6 +2,10 @@ import { Suspense } from 'react'
 import AgendaPublicaCliente from './AgendaPublicaCliente'
 import { createClient } from '@supabase/supabase-js'
 
+// Sin esto, Next.js pre-renderiza generateMetadata una sola vez en el build,
+// sin el "u" real de la URL — por eso siempre caía al nombre genérico.
+export const dynamic = 'force-dynamic'
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
