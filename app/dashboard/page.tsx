@@ -71,6 +71,7 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
   const [mostrarModalUpgrade, setMostrarModalUpgrade] = useState(false)
   const [montoSenia, setMontoSenia] = useState('')
   const [fechaSenia, setFechaSenia] = useState('')
+  const [planActual, setPlanActual] = useState<string | null>(null)
 
   const card: React.CSSProperties = {
     backgroundColor: PAPER_2,
@@ -210,11 +211,13 @@ const [pestanaActiva, setPestanaActiva] = useState<'configuracion' | 'turnos' | 
         const estadoBloqueado = suscripcion.estado === 'vencida' || suscripcion.estado === 'cancelada'
 
         if (diffDias < 0 || estadoBloqueado) {
-  setAccesoRestringido(true)
-} else if (diffDias <= 5) {
-  setDiasRestantes(diffDias)
-}
+          setAccesoRestringido(true)
+        } else {
+          setDiasRestantes(diffDias)
+          setPlanActual(suscripcion.plan)
+        }
       }
+      
 
       setUserId(data.user.id)
 cargarClientes(data.user.id)
@@ -482,7 +485,7 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
     }}>Ver planes</button>
   </div>
 )}
-      {diasRestantes !== null && (
+      {diasRestantes !== null && planActual && (
         <div style={{
           backgroundColor: CLAY_BG,
           border: `1px solid ${CLAY}55`,
@@ -494,7 +497,11 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
           alignItems: 'center'
         }}>
           <span style={{ color: CLAY, fontSize: '13.5px', fontWeight: 600 }}>
-            Tu período de prueba vence en {diasRestantes} día{diasRestantes !== 1 ? 's' : ''}
+            {planActual === 'ilimitado'
+              ? 'Tenés un plan Ilimitado activo'
+              : planActual === 'prueba'
+              ? `Te quedan ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''} de prueba gratis`
+              : `Tu plan ${planActual.charAt(0).toUpperCase() + planActual.slice(1)} vence en ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}`}
           </span>
           <a href="/planes" style={{
             backgroundColor: INK,
