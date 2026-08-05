@@ -580,6 +580,7 @@ export default function TabConfiguracion({
   const [errorTelefono, setErrorTelefono] = useState('')
   const [errorEditTelefono, setErrorEditTelefono] = useState('')
   const [requiereSenia, setRequiereSenia] = useState(false)
+  const [agendaPausada, setAgendaPausada] = useState(false)
   const [aliasTransferencia, setAliasTransferencia] = useState('')
   const [titularCuenta, setTitularCuenta] = useState('')
   const [banco, setBanco] = useState('')
@@ -603,6 +604,7 @@ async function cargarConfigNegocio() {
     setNombreNegocio(data.nombre_negocio ?? '')
     setLogoUrl(data.logo_url ?? '')
     setUbicacion(data.ubicacion ?? '')
+    setAgendaPausada(data.agenda_pausada ?? false)
   }
 }
 
@@ -616,6 +618,7 @@ async function guardarConfigNegocio() {
   titular_cuenta: titularCuenta,
   banco: banco,
   whatsapp_profesional: whatsappProfesional,
+  agenda_pausada: agendaPausada,
   updated_at: new Date().toISOString(),
 }, { onConflict: 'user_id' })
   setGuardandoConfig(false)
@@ -1083,6 +1086,34 @@ async function guardarEdicionServicio(id: string) {
 
       {subTab === 'reservas' && (
         <>
+          <div style={card}>
+            <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Pausar agenda pública</h2>
+            <p style={{ color: MUTED, fontSize: '13px', marginBottom: '16px' }}>
+              Si la pausás, tus clientes van a ver un aviso de que no hay turnos disponibles por el momento, sin poder reservar. Podés reactivarla cuando quieras.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div onClick={() => setAgendaPausada(!agendaPausada)} style={{
+                width: '36px', height: '20px', borderRadius: '10px',
+                backgroundColor: agendaPausada ? CLAY : LINE,
+                cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background-color 0.2s'
+              }}>
+                <div style={{
+                  position: 'absolute', top: '3px', left: agendaPausada ? '18px' : '3px',
+                  width: '14px', height: '14px', borderRadius: '50%', backgroundColor: PAPER_2, transition: 'left 0.2s'
+                }} />
+              </div>
+              <span style={{ fontWeight: 600, fontSize: '14px', color: agendaPausada ? CLAY : INK, fontFamily: FONT_SANS }}>
+                {agendaPausada ? 'Agenda pausada' : 'Agenda activa'}
+              </span>
+            </div>
+            <div style={{ marginTop: '14px' }}>
+              <button onClick={guardarConfigNegocio} disabled={guardandoConfig} style={{ ...btnPrimary, opacity: guardandoConfig ? 0.7 : 1 }}>
+                {guardandoConfig ? 'Guardando...' : 'Guardar'}
+              </button>
+              {mensajeConfig && <span style={{ marginLeft: '12px', fontSize: '13px', color: SAGE, fontWeight: 600 }}>{mensajeConfig}</span>}
+            </div>
+          </div>
+
           <div style={card}>
   <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Seña para reservas online</h2>
   <p style={{ color: MUTED, fontSize: '13px', marginBottom: '16px' }}>

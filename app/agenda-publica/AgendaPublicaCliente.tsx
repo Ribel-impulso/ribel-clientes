@@ -332,6 +332,7 @@ export default function AgendaPublicaCliente({ profesionalIdProp }: { profesiona
   })
 
   const tieneImagen = !!configNegocio?.logo_url
+  const agendaPausadaManual = !!configNegocio?.agenda_pausada
 
   const IconPin = () => (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" style={{ display: 'inline', verticalAlign: '-1px', marginRight: '4px' }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
@@ -384,12 +385,14 @@ export default function AgendaPublicaCliente({ profesionalIdProp }: { profesiona
           )}
         </div>
 
-      {agendaBloqueada ? (
+      {(agendaBloqueada || agendaPausadaManual) ? (
         <div style={{ ...card, textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}><IconClosed /></div>
           <h2 style={{ color: INK, marginTop: 0, fontSize: '17px', fontFamily: FONT_SERIF, fontWeight: 600 }}>Agenda no disponible temporalmente</h2>
           <p style={{ color: MUTED, fontSize: '14px', margin: 0 }}>
-            Por el momento no se pueden reservar turnos por acá. Volvé a intentarlo más tarde.
+            {agendaPausadaManual
+              ? 'Por el momento no hay turnos disponibles. Volvé a intentarlo más tarde.'
+              : 'Por el momento no se pueden reservar turnos por acá. Volvé a intentarlo más tarde.'}
           </p>
         </div>
       ) : (
