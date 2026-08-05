@@ -19,14 +19,16 @@ interface RealtimePayload {
 
 interface Props {
   onVerTurno?: (sesionId: string, fecha: string) => void
+  userId: string
 }
 
-export default function NotificacionesCampana({ onVerTurno }: Props) {
+export default function NotificacionesCampana({ onVerTurno, userId }: Props) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [abierto, setAbierto] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [cumpleanosHoy, setCumpleanosHoy] = useState<{ id: string; nombre: string; whatsapp: string | null }[]>([])
 
-  const noLeidas = notificaciones.filter(n => !n.leida).length
+  const noLeidas = notificaciones.filter(n => !n.leida).length + cumpleanosHoy.length
 
   // Precargar y desbloquear el audio con el primer toque
   useEffect(() => {
@@ -96,6 +98,27 @@ export default function NotificacionesCampana({ onVerTurno }: Props) {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
+  useEffect(() => {
+    if (!userId) return
+    const cargarCumpleanos = async () => {
+      const { data } = await supabase
+        .from('clientes')
+        .select('id, nombre, whatsapp, fecha_nacimiento')
+        .eq('user_id', userId)
+        .not('fecha_nacimiento', 'is', null)
+      if (!data) return
+      const hoy = new Date()
+      const mesHoy = hoy.getMonth() + 1
+      const diaHoy = hoy.getDate()
+      const deHoy = data.filter((c: any) => {
+        const [, mes, dia] = c.fecha_nacimiento.split('-').map(Number)
+        return mes === mesHoy && dia === diaHoy
+      })
+      setCumpleanosHoy(deHoy)
+    }
+    cargarCumpleanos()
+  }, [userId])
+
   const abrirPanel = async () => {
     setAbierto(!abierto)
     if (!abierto && noLeidas > 0) {
@@ -109,6 +132,17 @@ export default function NotificacionesCampana({ onVerTurno }: Props) {
       onVerTurno(n.sesion_id, n.fecha_sesion)
       setAbierto(false)
     }
+  }
+
+  function limpiarWA(numero: string) {
+    return numero.replace(/\D/g, '')
+  }
+
+  function saludarCumpleanos(c: { nombre: string; whatsapp: string | null }) {
+    if (!c.whatsapp) { alert('Este cliente no tiene WhatsApp cargado.'); return }
+    const numero = limpiarWA(c.whatsapp)
+    const msg = `¡Feliz cumpleaños, ${c.nombre}! 🎉 Te deseamos un muy lindo día.`
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   return (
@@ -130,7 +164,18 @@ export default function NotificacionesCampana({ onVerTurno }: Props) {
             <h3 className="font-semibold text-gray-800">Notificaciones</h3>
           </div>
           <div className="max-h-80 overflow-y-auto">
-            {notificaciones.length === 0 ? (
+            {cumpleanosHoy.map(c => (
+              <div key={`cumple-${c.id}`} className="p-4 border-b border-gray-50" style={{ backgroundColor: '#FDF3E7' }}>
+                <p className="text-sm font-medium" style={{ color: '#A87F4C' }}>🎂 ¡Hoy es el cumpleaños de {c.nombre}!</p>
+                <button
+                  onClick={() => saludarCumpleanos(c)}
+                  style={{ marginTop: '8px', backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Enviar saludo por WhatsApp
+                </button>
+              </div>
+            ))}
+            {notificaciones.length === 0 && cumpleanosHoy.length === 0 ? (
               <p className="text-sm text-gray-400 p-4 text-center">Sin notificaciones</p>
             ) : (
               notificaciones.map(n => {

@@ -526,6 +526,7 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <NotificacionesCampana
+          userId={userId!}
   onVerTurno={(sesionId, fecha) => {
     setTurnoResaltado(null)
     setFechaInicialAgenda(null)

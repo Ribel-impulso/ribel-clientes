@@ -224,6 +224,106 @@ function CambiarPassword({ btnPrimary, inp }: { btnPrimary: React.CSSProperties,
   )
 }
 
+function CalendarioCumpleanos({ clientes, nombreNegocio, card }: { clientes: any[]; nombreNegocio: string; card: React.CSSProperties }) {
+  const [mes, setMes] = useState(new Date().getMonth())
+  const [anio, setAnio] = useState(new Date().getFullYear())
+  const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null)
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+  const DIAS_SEMANA_CORTO = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+
+  const clientesConCumple = clientes.filter(c => c.fecha_nacimiento)
+
+  const cumplesPorDia: Record<number, any[]> = {}
+  clientesConCumple.forEach(c => {
+    const [, m, d] = c.fecha_nacimiento.split('-').map(Number)
+    if (m === mes + 1) {
+      if (!cumplesPorDia[d]) cumplesPorDia[d] = []
+      cumplesPorDia[d].push(c)
+    }
+  })
+
+  const primerDiaMes = new Date(anio, mes, 1).getDay()
+  const diasEnMes = new Date(anio, mes + 1, 0).getDate()
+  const celdas: (number | null)[] = [...Array(primerDiaMes).fill(null), ...Array.from({ length: diasEnMes }, (_, i) => i + 1)]
+  while (celdas.length % 7 !== 0) celdas.push(null)
+
+  const cambiarMes = (delta: number) => {
+    const nueva = new Date(anio, mes + delta, 1)
+    setAnio(nueva.getFullYear()); setMes(nueva.getMonth()); setDiaSeleccionado(null)
+  }
+
+  function limpiarWA(numero: string) {
+    return numero.replace(/\D/g, '')
+  }
+
+  function abrirWhatsapp(c: any) {
+    if (!c.whatsapp) { alert('Este cliente no tiene WhatsApp cargado.'); return }
+    const numero = limpiarWA(c.whatsapp)
+    const msg = `¡Feliz cumpleaños, ${c.nombre}! 🎉 Te deseamos un muy lindo día${nombreNegocio ? ` de parte de ${nombreNegocio}` : ''}.`
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  return (
+    <div style={card}>
+      <h2 style={{ color: INK, marginTop: 0, fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '19px' }}>Cumpleaños de clientes</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <button onClick={() => cambiarMes(-1)} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '16px', color: INK }}>‹</button>
+        <span style={{ fontWeight: 600, color: INK, fontFamily: FONT_SERIF }}>{MESES[mes]} {anio}</span>
+        <button onClick={() => cambiarMes(1)} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '16px', color: INK }}>›</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
+        {DIAS_SEMANA_CORTO.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: 600, color: MUTED, padding: '4px 0' }}>{d}</div>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+        {celdas.map((dia, i) => {
+          if (!dia) return <div key={i} />
+          const tieneCumple = !!cumplesPorDia[dia]
+          const seleccionado = dia === diaSeleccionado
+          return (
+            <div key={i} onClick={() => tieneCumple && setDiaSeleccionado(dia)}
+              style={{
+                textAlign: 'center', padding: '10px 4px', borderRadius: '8px', fontSize: '14px',
+                fontWeight: seleccionado ? 700 : tieneCumple ? 600 : 400,
+                cursor: tieneCumple ? 'pointer' : 'default',
+                backgroundColor: seleccionado ? INK : tieneCumple ? BRASS_BG : 'transparent',
+                color: seleccionado ? PAPER_2 : tieneCumple ? BRASS : INK,
+                border: tieneCumple ? `1px solid ${BRASS}` : '1px solid transparent',
+                position: 'relative'
+              }}>
+              {dia}
+              {tieneCumple && !seleccionado && <span style={{ position: 'absolute', bottom: '2px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px' }}>🎂</span>}
+            </div>
+          )
+        })}
+      </div>
+
+      {diaSeleccionado && cumplesPorDia[diaSeleccionado] && (
+        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${LINE}` }}>
+          <p style={{ color: INK, fontWeight: 700, margin: '0 0 10px', fontSize: '14px', fontFamily: FONT_SANS }}>
+            Cumpleaños el {diaSeleccionado} de {MESES[mes]}:
+          </p>
+          {cumplesPorDia[diaSeleccionado].map((c: any) => (
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+              <span style={{ color: INK, fontSize: '14px', fontFamily: FONT_SANS }}>🎂 {c.nombre}</span>
+              <button onClick={() => abrirWhatsapp(c)} style={{
+                backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '8px',
+                padding: '6px 14px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT_SANS
+              }}>
+                Enviar saludo
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {clientesConCumple.length === 0 && (
+        <p style={{ color: MUTED, fontSize: '13px', marginTop: '12px' }}>Todavía no cargaste fechas de cumpleaños de tus clientes.</p>
+      )}
+    </div>
+  )
+}
+
 const DURACIONES = [15, 20, 30, 45, 60, 90, 120]
 
 function bloqueVacio(): Bloque {
@@ -464,6 +564,8 @@ export default function TabConfiguracion({
   const [editNombre, setEditNombre] = useState('')
   const [editWhatsapp, setEditWhatsapp] = useState('')
   const [busquedaClientes, setBusquedaClientes] = useState('')
+  const [fechaNacimiento, setFechaNacimiento] = useState('')
+  const [editFechaNacimiento, setEditFechaNacimiento] = useState('')
   const [editandoServicio, setEditandoServicio] = useState<string | null>(null)
   const [editServicioNombre, setEditServicioNombre] = useState('')
   const [editServicioDuracion, setEditServicioDuracion] = useState(60)
@@ -537,7 +639,7 @@ async function guardarConfigNegocio() {
     return
   }
   setErrorEditTelefono('')
-  await supabase.from('clientes').update({ nombre: editNombre, whatsapp: editWhatsapp || null }).eq('id', id)
+  await supabase.from('clientes').update({ nombre: editNombre, whatsapp: editWhatsapp || null, fecha_nacimiento: editFechaNacimiento || null }).eq('id', id)
   setEditandoCliente(null)
   cargarClientes(userId)
 }
@@ -602,9 +704,10 @@ async function guardarEdicionServicio(id: string) {
     return
   }
   setErrorTelefono('')
-  await supabase.from('clientes').insert([{ nombre, whatsapp: telefono || null, user_id: userId }])
+  await supabase.from('clientes').insert([{ nombre, whatsapp: telefono || null, fecha_nacimiento: fechaNacimiento || null, user_id: userId }])
   setNombre('')
   setTelefono('')
+  setFechaNacimiento('')
   cargarClientes(userId)
 }
 
@@ -740,9 +843,15 @@ async function guardarEdicionServicio(id: string) {
                 onChange={(v: string | undefined) => setTelefono(v || '')}
               />
             </div>
+            <div style={{ marginBottom: '8px' }}>
+              <label style={{ fontSize: '12px', color: MUTED, display: 'block', marginBottom: '4px' }}>Fecha de cumpleaños (opcional)</label>
+              <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} style={{ ...input, width: '220px' }} />
+            </div>
             {errorTelefono && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 8px', fontWeight: 600 }}>{errorTelefono}</p>}
             <button onClick={agregarCliente} style={btnPrimary}>Agregar Cliente</button>
           </div>
+
+          <CalendarioCumpleanos clientes={clientes} nombreNegocio={nombreNegocio} card={card} />
 
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', gap: '10px' }}>
@@ -777,15 +886,26 @@ async function guardarEdicionServicio(id: string) {
                                 onChange={(v: string | undefined) => setEditWhatsapp(v || '')}
                               />
                             </div>
+                            <div style={{ marginBottom: '8px' }}>
+                              <label style={{ fontSize: '12px', color: MUTED, display: 'block', marginBottom: '4px' }}>Fecha de cumpleaños</label>
+                              <input type="date" value={editFechaNacimiento} onChange={e => setEditFechaNacimiento(e.target.value)} style={{ ...input, width: '220px' }} />
+                            </div>
                             {errorEditTelefono && <p style={{ color: CLAY, fontSize: '13px', margin: '0 0 8px', fontWeight: 600 }}>{errorEditTelefono}</p>}
                             <button onClick={() => guardarEdicionCliente(c.id)} style={{ ...btnPrimary, marginRight: '8px', fontSize: '13px', padding: '6px 14px' }}>Guardar</button>
                             <button onClick={() => setEditandoCliente(null)} style={{ ...btnSecondary, fontSize: '13px', padding: '6px 14px' }}>Cancelar</button>
                           </div>
                         ) : (
                           <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <p style={{ margin: '0 0 4px', color: INK, fontFamily: FONT_SANS, fontSize: '14px' }}>{c.whatsapp || 'Sin WhatsApp'}</p>
+                            <div>
+                              <p style={{ margin: '0 0 4px', color: INK, fontFamily: FONT_SANS, fontSize: '14px' }}>{c.whatsapp || 'Sin WhatsApp'}</p>
+                              {c.fecha_nacimiento && (
+                                <p style={{ margin: '4px 0 0', color: MUTED, fontFamily: FONT_SANS, fontSize: '13px' }}>
+                                  🎂 {new Date(c.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })}
+                                </p>
+                              )}
+                            </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditWhatsapp(c.whatsapp || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Editar</button>
+                              <button onClick={() => { setEditandoCliente(c.id); setEditNombre(c.nombre); setEditWhatsapp(c.whatsapp || ''); setEditFechaNacimiento(c.fecha_nacimiento || '') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: INK, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Editar</button>
                               <button onClick={() => eliminarCliente(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: CLAY, fontSize: '13px', fontWeight: 600, fontFamily: FONT_SANS }}>Eliminar</button>
                             </div>
                           </div>
