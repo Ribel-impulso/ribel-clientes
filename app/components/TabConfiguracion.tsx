@@ -704,6 +704,16 @@ async function guardarEdicionServicio(id: string) {
     return
   }
   setErrorTelefono('')
+
+  const duplicadoPorTelefono = telefono && clientes.some(c => c.whatsapp === telefono)
+  const duplicadoPorNombre = clientes.some(c => c.nombre.trim().toLowerCase() === nombre.trim().toLowerCase())
+
+  if (duplicadoPorTelefono || duplicadoPorNombre) {
+    const motivo = duplicadoPorTelefono ? 'ese teléfono' : 'ese nombre'
+    const continuar = confirm(`Ya existe un cliente con ${motivo}. ¿Querés agregarlo igual?`)
+    if (!continuar) return
+  }
+
   await supabase.from('clientes').insert([{ nombre, whatsapp: telefono || null, fecha_nacimiento: fechaNacimiento || null, user_id: userId }])
   setNombre('')
   setTelefono('')
