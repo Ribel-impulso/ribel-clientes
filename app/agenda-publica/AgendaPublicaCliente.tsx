@@ -169,7 +169,7 @@ export default function AgendaPublicaCliente({ profesionalIdProp }: { profesiona
   // Arma el número completo con código de país, siempre sin "+" y solo dígitos.
   // Ej: paisDial "598" + whatsapp "99209088" => "59899209088"
   function numeroCompleto(): string {
-    return `${paisDial}${limpiarWA(whatsapp)}`
+    return `+${paisDial}${limpiarWA(whatsapp)}`
   }
 
   async function buscarCliente() {
