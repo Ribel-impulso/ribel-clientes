@@ -6,9 +6,6 @@ import WhatsAppFloatingButton from '../components/WhatsAppFloatingButton'
 type Vista = 'login' | 'registro' | 'recuperar'
 
 // Paleta y tipografía compartidas con el resto de la app.
-// Recomendado: mover estas fuentes a next/font en el layout raíz para
-// evitar el parpadeo de carga y mejorar performance (te lo dejo así por
-// ahora para que puedas ver el resultado sin tocar el layout todavía).
 const INK = '#1B2420'
 const PAPER = '#F4EFE4'
 const PAPER_2 = '#FFFDF8'
@@ -26,6 +23,14 @@ export default function Login() {
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [cargando, setCargando] = useState(false)
+
+  // Flujo de recuperación con código
+  const [otpEnviado, setOtpEnviado] = useState(false)
+  const [codigo, setCodigo] = useState('')
+  const [nuevaPassword, setNuevaPassword] = useState('')
+  const [confirmarPassword, setConfirmarPassword] = useState('')
+  const [mostrarPassword, setMostrarPassword] = useState(false)
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false)
 
   const inputStyle = {
     width: '100%',
@@ -109,20 +114,98 @@ export default function Login() {
     setCargando(false)
   }
 
-  async function handleRecuperar() {
+  // Paso 1 de recuperar: pide el email y envía el código
+  async function handleEnviarCodigo() {
     setCargando(true)
     setError('')
-    // Antes apuntaba a https://ribel-clientes.vercel.app/reset-password
-    // (dominio viejo de Vercel). Ahora usa tu dominio propio.
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://www.ribelgestion.com/reset-password'
-    })
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
     if (error) {
-      setError('Error al enviar el email')
+      setError('Error al enviar el código')
     } else {
-      setMensaje('Te enviamos un email para resetear tu contraseña.')
+      setOtpEnviado(true)
     }
     setCargando(false)
+  }
+
+  // Paso 2 de recuperar: valida el código e ingresa la nueva clave
+  async function handleConfirmarCodigo() {
+    setCargando(true)
+    setError('')
+
+    if (!codigo) {
+      setError('Ingresá el código que te enviamos por email')
+      setCargando(false)
+      return
+    }
+    if (nuevaPassword.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      setCargando(false)
+      return
+    }
+    if (nuevaPassword !== confirmarPassword) {
+      setError('Las contraseñas no coinciden')
+      setCargando(false)
+      return
+    }
+
+    const { error: errorVerify } = await supabase.auth.verifyOtp({
+      email,
+      token: codigo,
+      type: 'recovery'
+    })
+
+    if (errorVerify) {
+      setError('Código incorrecto o vencido. Pedí uno nuevo.')
+      setCargando(false)
+      return
+    }
+
+    const { error: errorUpdate } = await supabase.auth.updateUser({ password: nuevaPassword })
+
+    if (errorUpdate) {
+      setError('Error al actualizar la contraseña: ' + errorUpdate.message)
+      setCargando(false)
+      return
+    }
+
+    setMensaje('¡Contraseña actualizada! Ya podés ingresar.')
+    setCargando(false)
+    setTimeout(() => { window.location.href = '/login' }, 1500)
+  }
+
+  function volverALogin() {
+    setVista('login')
+    setError('')
+    setMensaje('')
+    setOtpEnviado(false)
+    setCodigo('')
+    setNuevaPassword('')
+    setConfirmarPassword('')
+  }
+
+  function OjitoToggle({ mostrar, onClick }: { mostrar: boolean; onClick: () => void }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          position: 'absolute',
+          right: '12px',
+          top: '13px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '16px',
+          color: MUTED,
+          padding: 0,
+          lineHeight: 1
+        }}
+        tabIndex={-1}
+        aria-label={mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      >
+        {mostrar ? '🙈' : '👁️'}
+      </button>
+    )
   }
 
   return (
@@ -213,7 +296,7 @@ export default function Login() {
               alignItems: 'center',
               gap: '8px',
               background: PAPER_2,
-              border: `1px solid ${LINE}`,
+              border: `b1px solid ${LINE}`,
               padding: '9px 16px 9px 12px',
               borderRadius: '100px',
               fontSize: '13px',
@@ -342,13 +425,15 @@ export default function Login() {
               >
                 {vista === 'login' && 'Ingresá a tu cuenta'}
                 {vista === 'registro' && 'Creá tu cuenta'}
-                {vista === 'recuperar' && 'Recuperá tu contraseña'}
+                {vista === 'recuperar' && !otpEnviado && 'Recuperá tu contraseña'}
+                {vista === 'recuperar' && otpEnviado && 'Ingresá el código'}
               </h2>
 
               <p style={{ color: MUTED, margin: '0 0 24px', fontSize: '13.5px', lineHeight: 1.5 }}>
                 {vista === 'login' && 'Gestioná tus ingresos, turnos y agenda desde un solo lugar.'}
                 {vista === 'registro' && '15 días gratis, sin tarjeta.'}
-                {vista === 'recuperar' && 'Te enviamos un email para restablecerla.'}
+                {vista === 'recuperar' && !otpEnviado && 'Te enviamos un código de 6 dígitos a tu email.'}
+                {vista === 'recuperar' && otpEnviado && `Revisá el email que enviamos a ${email} y completá los datos.`}
               </p>
 
               {mensaje ? (
@@ -378,16 +463,71 @@ export default function Login() {
                     </div>
                   )}
 
-                  <div>
-                    <label style={labelStyle}>Email</label>
-                    <input
-                      type="email"
-                      placeholder="tu@email.com"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      style={inputStyle}
-                    />
-                  </div>
+                  {vista !== 'recuperar' && (
+                    <div>
+                      <label style={labelStyle}>Email</label>
+                      <input
+                        type="email"
+                        placeholder="tu@email.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        style={inputStyle}
+                      />
+                    </div>
+                  )}
+
+                  {vista === 'recuperar' && !otpEnviado && (
+                    <div>
+                      <label style={labelStyle}>Email</label>
+                      <input
+                        type="email"
+                        placeholder="tu@email.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleEnviarCodigo()}
+                        style={inputStyle}
+                      />
+                    </div>
+                  )}
+
+                  {vista === 'recuperar' && otpEnviado && (
+                    <>
+                      <div>
+                        <label style={labelStyle}>Código recibido por email</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="123456"
+                          value={codigo}
+                          onChange={e => setCodigo(e.target.value)}
+                          style={{ ...inputStyle, letterSpacing: '4px', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div style={{ position: 'relative' }}>
+                        <label style={labelStyle}>Nueva contraseña</label>
+                        <input
+                          type={mostrarPassword ? 'text' : 'password'}
+                          placeholder="Tu nueva contraseña"
+                          value={nuevaPassword}
+                          onChange={e => setNuevaPassword(e.target.value)}
+                          style={{ ...inputStyle, paddingRight: '40px' }}
+                        />
+                        <OjitoToggle mostrar={mostrarPassword} onClick={() => setMostrarPassword(!mostrarPassword)} />
+                      </div>
+                      <div style={{ position: 'relative' }}>
+                        <label style={labelStyle}>Confirmar contraseña</label>
+                        <input
+                          type={mostrarConfirmar ? 'text' : 'password'}
+                          placeholder="Repetí la contraseña"
+                          value={confirmarPassword}
+                          onChange={e => setConfirmarPassword(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleConfirmarCodigo()}
+                          style={{ ...inputStyle, paddingRight: '40px' }}
+                        />
+                        <OjitoToggle mostrar={mostrarConfirmar} onClick={() => setMostrarConfirmar(!mostrarConfirmar)} />
+                      </div>
+                    </>
+                  )}
 
                   {vista !== 'recuperar' && (
                     <div>
@@ -418,7 +558,12 @@ export default function Login() {
                   )}
 
                   <button
-                    onClick={vista === 'login' ? handleLogin : vista === 'registro' ? handleRegistro : handleRecuperar}
+                    onClick={
+                      vista === 'login' ? handleLogin :
+                      vista === 'registro' ? handleRegistro :
+                      !otpEnviado ? handleEnviarCodigo :
+                      handleConfirmarCodigo
+                    }
                     disabled={cargando}
                     style={{
                       width: '100%',
@@ -434,8 +579,32 @@ export default function Login() {
                       marginBottom: '18px'
                     }}
                   >
-                    {cargando ? 'Espera...' : vista === 'login' ? 'Entrar a mi cuenta' : vista === 'registro' ? 'Comenzar prueba gratis' : 'Enviar email'}
+                    {cargando ? 'Espera...' :
+                      vista === 'login' ? 'Entrar a mi cuenta' :
+                      vista === 'registro' ? 'Comenzar prueba gratis' :
+                      !otpEnviado ? 'Enviar código' : 'Guardar contraseña'}
                   </button>
+
+                  {vista === 'recuperar' && otpEnviado && (
+                    <button
+                      onClick={handleEnviarCodigo}
+                      disabled={cargando}
+                      style={{
+                        width: '100%',
+                        background: 'none',
+                        border: 'none',
+                        color: BRASS,
+                        cursor: cargando ? 'not-allowed' : 'pointer',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        padding: 0,
+                        marginTop: '-10px',
+                        marginBottom: '18px'
+                      }}
+                    >
+                      ¿No te llegó? Reenviar código
+                    </button>
+                  )}
                 </>
               )}
 
@@ -453,7 +622,7 @@ export default function Login() {
                 )}
                 {vista !== 'login' && (
                   <button
-                    onClick={() => { setVista('login'); setError(''); setMensaje('') }}
+                    onClick={volverALogin}
                     style={{ background: 'none', border: 'none', color: BRASS, cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
                   >
                     ← Volver al login
