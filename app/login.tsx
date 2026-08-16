@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-type Vista = 'login' | 'registro' | 'recuperar'
+type Vista = 'login' | 'registro' | 'recuperar' | 'nuevaClave'
 
 export default function Login() {
   const [vista, setVista] = useState<Vista>('login')
@@ -12,6 +12,26 @@ export default function Login() {
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [cargando, setCargando] = useState(false)
+
+  // Estados para el flujo de nueva contraseña
+  const [nuevaPassword, setNuevaPassword] = useState('')
+  const [confirmarPassword, setConfirmarPassword] = useState('')
+  const [mostrarPassword, setMostrarPassword] = useState(false)
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false)
+
+  // Detecta si el usuario llegó desde el link de recuperación de contraseña
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setVista('nuevaClave')
+        setMensaje('')
+        setError('')
+      }
+    })
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [])
 
   const inputStyle = {
     width: '100%',
@@ -75,7 +95,7 @@ export default function Login() {
     setCargando(true)
     setError('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://ribel-clientes.vercel.app/login'
+      redirectTo: 'https://ribelgestion.com/login'
     })
     if (error) {
       setError('Error al enviar el email')
@@ -83,6 +103,62 @@ export default function Login() {
       setMensaje('Te enviamos un email para resetear tu contraseña.')
     }
     setCargando(false)
+  }
+
+  async function handleNuevaClave() {
+    setCargando(true)
+    setError('')
+
+    if (nuevaPassword.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      setCargando(false)
+      return
+    }
+    if (nuevaPassword !== confirmarPassword) {
+      setError('Las contraseñas no coinciden')
+      setCargando(false)
+      return
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: nuevaPassword })
+
+    if (error) {
+      setError('Error al actualizar la contraseña: ' + error.message)
+      setCargando(false)
+      return
+    }
+
+    setMensaje('¡Contraseña actualizada! Ya podés ingresar.')
+    setCargando(false)
+    setTimeout(() => {
+      window.location.href = '/'
+    }, 1500)
+  }
+
+  // Ícono de ojito para mostrar/ocultar contraseña
+  function OjitoToggle({ mostrar, onClick }: { mostrar: boolean; onClick: () => void }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          position: 'absolute',
+          right: '12px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '16px',
+          color: '#9e9e9e',
+          padding: 0
+        }}
+        tabIndex={-1}
+        aria-label={mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      >
+        {mostrar ? '🙈' : '👁️'}
+      </button>
+    )
   }
 
   return (
@@ -117,6 +193,7 @@ export default function Login() {
           {vista === 'login' && 'Ingresá a tu cuenta'}
           {vista === 'registro' && '15 días gratis, sin tarjeta'}
           {vista === 'recuperar' && 'Recuperá tu contraseña'}
+          {vista === 'nuevaClave' && 'Elegí tu nueva contraseña'}
         </p>
 
         {mensaje ? (
@@ -135,15 +212,17 @@ export default function Login() {
               />
             )}
 
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              style={inputStyle}
-            />
+            {vista !== 'nuevaClave' && (
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                style={inputStyle}
+              />
+            )}
 
-            {vista !== 'recuperar' && (
+            {(vista === 'login' || vista === 'registro') && (
               <input
                 type="password"
                 placeholder="Contraseña"
@@ -154,12 +233,43 @@ export default function Login() {
               />
             )}
 
+            {vista === 'nuevaClave' && (
+              <>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={mostrarPassword ? 'text' : 'password'}
+                    placeholder="Nueva contraseña"
+                    value={nuevaPassword}
+                    onChange={e => setNuevaPassword(e.target.value)}
+                    style={{ ...inputStyle, paddingRight: '40px' }}
+                  />
+                  <OjitoToggle mostrar={mostrarPassword} onClick={() => setMostrarPassword(!mostrarPassword)} />
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={mostrarConfirmar ? 'text' : 'password'}
+                    placeholder="Confirmar contraseña"
+                    value={confirmarPassword}
+                    onChange={e => setConfirmarPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleNuevaClave()}
+                    style={{ ...inputStyle, paddingRight: '40px' }}
+                  />
+                  <OjitoToggle mostrar={mostrarConfirmar} onClick={() => setMostrarConfirmar(!mostrarConfirmar)} />
+                </div>
+              </>
+            )}
+
             {error && (
               <p style={{ color: '#c0392b', fontSize: '14px', marginBottom: '16px' }}>{error}</p>
             )}
 
             <button
-              onClick={vista === 'login' ? handleLogin : vista === 'registro' ? handleRegistro : handleRecuperar}
+              onClick={
+                vista === 'login' ? handleLogin :
+                vista === 'registro' ? handleRegistro :
+                vista === 'recuperar' ? handleRecuperar :
+                handleNuevaClave
+              }
               disabled={cargando}
               style={{
                 width: '100%', padding: '13px',
@@ -170,31 +280,37 @@ export default function Login() {
                 marginBottom: '16px'
               }}
             >
-              {cargando ? 'Espera...' : vista === 'login' ? 'Entrar' : vista === 'registro' ? 'Comenzar prueba gratis' : 'Enviar email'}
+              {cargando ? 'Espera...' :
+                vista === 'login' ? 'Entrar' :
+                vista === 'registro' ? 'Comenzar prueba gratis' :
+                vista === 'recuperar' ? 'Enviar email' :
+                'Guardar contraseña'}
             </button>
           </>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {vista === 'login' && (
-            <>
-              <button onClick={() => { setVista('registro'); setError(''); setMensaje('') }}
+        {vista !== 'nuevaClave' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {vista === 'login' && (
+              <>
+                <button onClick={() => { setVista('registro'); setError(''); setMensaje('') }}
+                  style={{ background: 'none', border: 'none', color: '#ba9a7d', cursor: 'pointer', fontSize: '14px' }}>
+                  ¿No tenés cuenta? Registrate gratis
+                </button>
+                <button onClick={() => { setVista('recuperar'); setError(''); setMensaje('') }}
+                  style={{ background: 'none', border: 'none', color: '#9e9e9e', cursor: 'pointer', fontSize: '13px' }}>
+                  Olvidé mi contraseña
+                </button>
+              </>
+            )}
+            {vista !== 'login' && (
+              <button onClick={() => { setVista('login'); setError(''); setMensaje('') }}
                 style={{ background: 'none', border: 'none', color: '#ba9a7d', cursor: 'pointer', fontSize: '14px' }}>
-                ¿No tenés cuenta? Registrate gratis
+                ← Volver al login
               </button>
-              <button onClick={() => { setVista('recuperar'); setError(''); setMensaje('') }}
-                style={{ background: 'none', border: 'none', color: '#9e9e9e', cursor: 'pointer', fontSize: '13px' }}>
-                Olvidé mi contraseña
-              </button>
-            </>
-          )}
-          {vista !== 'login' && (
-            <button onClick={() => { setVista('login'); setError(''); setMensaje('') }}
-              style={{ background: 'none', border: 'none', color: '#ba9a7d', cursor: 'pointer', fontSize: '14px' }}>
-              ← Volver al login
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </main>
   )
