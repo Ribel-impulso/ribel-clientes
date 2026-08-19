@@ -23,6 +23,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [mostrarPasswordPrincipal, setMostrarPasswordPrincipal] = useState(false)
 
   // Flujo de recuperación con código
   const [otpEnviado, setOtpEnviado] = useState(false)
@@ -183,6 +184,25 @@ export default function Login() {
     setConfirmarPassword('')
   }
 
+  // Íconos de ojo en SVG (prolijos, no emojis)
+  function IconoOjo() {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    )
+  }
+
+  function IconoOjoTachado() {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.52 13.52 0 0 0 1 12s4 8 11 8a9.26 9.26 0 0 0 5.39-1.61M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+        <path d="M1 1l22 22" />
+      </svg>
+    )
+  }
+
   function OjitoToggle({ mostrar, onClick }: { mostrar: boolean; onClick: () => void }) {
     return (
       <button
@@ -195,15 +215,15 @@ export default function Login() {
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          fontSize: '16px',
           color: MUTED,
           padding: 0,
-          lineHeight: 1
+          lineHeight: 0,
+          display: 'flex'
         }}
         tabIndex={-1}
         aria-label={mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña'}
       >
-        {mostrar ? '🙈' : '👁️'}
+        {mostrar ? <IconoOjoTachado /> : <IconoOjo />}
       </button>
     )
   }
@@ -296,7 +316,7 @@ export default function Login() {
               alignItems: 'center',
               gap: '8px',
               background: PAPER_2,
-              border: `b1px solid ${LINE}`,
+              border: `1px solid ${LINE}`,
               padding: '9px 16px 9px 12px',
               borderRadius: '100px',
               fontSize: '13px',
@@ -530,7 +550,7 @@ export default function Login() {
                   )}
 
                   {vista !== 'recuperar' && (
-                    <div>
+                    <div style={{ position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                         <label style={{ ...labelStyle, marginBottom: '6px' }}>Contraseña</label>
                         {vista === 'login' && (
@@ -543,13 +563,16 @@ export default function Login() {
                         )}
                       </div>
                       <input
-                        type="password"
+                        type={mostrarPasswordPrincipal ? 'text' : 'password'}
                         placeholder="Tu contraseña"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && vista === 'login' && handleLogin()}
-                        style={inputStyle}
+                        style={{ ...inputStyle, paddingRight: '40px' }}
                       />
+                      <span style={{ position: 'absolute', right: '12px', top: '35px' }}>
+                        <OjitoToggle mostrar={mostrarPasswordPrincipal} onClick={() => setMostrarPasswordPrincipal(!mostrarPasswordPrincipal)} />
+                      </span>
                     </div>
                   )}
 
