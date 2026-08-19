@@ -83,7 +83,7 @@ function formatearFechaMensaje(fechaISO: string): string {
   mananaDate.setDate(hoy.getDate() + 1);
   const mananaStr = mananaDate.toISOString().split('T')[0];
 
-  if (fechaISO === hoyStr) return '*hoy*';
+  if (fechaISO === hoyStr) return 'hoy';
 
   if (fechaISO === mananaStr) {
     const fecha = new Date(fechaISO + 'T12:00:00');
@@ -422,6 +422,31 @@ const slotsVisibles = slotsDelDia.filter(slot => {
   await recargar();
 };
 
+  // Bloquea un slot puntual (ej: el profesional llega tarde ese día, o
+  // tiene un imprevisto en un horario específico) sin tener que bloquear
+  // todo el día. Usa la misma tabla que ya filtra la agenda pública.
+  const bloquearSlot = async (slot: string) => {
+    if (!diaSeleccionado || !userId) return;
+    const bloque = bloqueDeSlot(slot);
+    const duracion = bloque?.duracion ?? 30;
+    const [h, m] = slot.split(':').map(Number);
+    const finMin = h * 60 + m + duracion;
+    const horaFin = `${String(Math.floor(finMin / 60)).padStart(2, '0')}:${String(finMin % 60).padStart(2, '0')}`;
+    const { data, error } = await supabase
+      .from('bloqueos_personales')
+      .insert({ user_id: userId, fecha: diaSeleccionado, hora_inicio: slot, hora_fin: horaFin, motivo: null })
+      .select('id, fecha, hora_inicio, hora_fin, motivo')
+      .single();
+    if (!error && data) {
+      setBloqueosPersonales(prev => [...prev, data as BloqueoPersonal]);
+    }
+  };
+
+  const desbloquearSlot = async (id: string) => {
+    await supabase.from('bloqueos_personales').delete().eq('id', id);
+    setBloqueosPersonales(prev => prev.filter(b => b.id !== id));
+  };
+
 function protegido<T extends (...args: any[]) => any>(fn: T): T {
   return ((...args: any[]) => {
     if (accesoRestringido) {
@@ -497,9 +522,9 @@ function protegido<T extends (...args: any[]) => any>(fn: T): T {
             )}
             <div style={{ fontSize: '14px', fontWeight: 600, color: INK, margin: '2px 0' }}>{nombreCliente(s.cliente_id)}</div>
             <div style={{ fontSize: '12px', color: MUTED }}>
-              {s.tipo_masaje}{s.monto ? ` · $${s.monto}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
-              {s.monto2 ? ` + $${s.monto2}` : ''}{s.forma_pago2 ? ` · ${s.forma_pago2}` : ''}
-              {s.monto_senia ? ` · Seña: $${s.monto_senia}` : ''}
+              {s.tipo_masaje}{s.monto ? ` · $${s.monto.toLocaleString('es-AR')}` : ''}{s.forma_pago ? ` · ${s.forma_pago}` : ''}
+              {s.monto2 ? ` + $${s.monto2.toLocaleString('es-AR')}` : ''}{s.forma_pago2 ? ` · ${s.forma_pago2}` : ''}
+              {s.monto_senia ? ` · Seña: $${s.monto_senia.toLocaleString('es-AR')}` : ''}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
@@ -546,7 +571,7 @@ function protegido<T extends (...args: any[]) => any>(fn: T): T {
 
         {s.monto_senia && s.monto && s.estado === 'confirmado' && !s.cobrado && (
           <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '12px', color: MUTED }}>Resta cobrar: <strong style={{ color: INK }}>${s.monto - s.monto_senia}</strong></span>
+            <span style={{ fontSize: '12px', color: MUTED }}>Resta cobrar: <strong style={{ color: INK }}>${(s.monto - s.monto_senia).toLocaleString('es-AR')}</strong></span>
             <button onClick={protegido(() => cobrarDiferencia(s))}
               style={{ fontSize: '12px', backgroundColor: INK, color: PAPER_2, border: 'none', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600, fontFamily: FONT_SANS }}>
               Cobrar diferencia
@@ -574,14 +599,23 @@ function protegido<T extends (...args: any[]) => any>(fn: T): T {
       borderRadius: '12px',
       padding: '12px 14px',
       backgroundColor: PAPER,
-      fontFamily: FONT_SANS
+      fontFamily: FONT_SANS,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
     }}>
-      <div style={{ fontSize: '13px', fontWeight: 700, color: MUTED }}>
-        {b.hora_inicio.substring(0, 5)} – {b.hora_fin.substring(0, 5)}
+      <div>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: MUTED }}>
+          {b.hora_inicio.substring(0, 5)} – {b.hora_fin.substring(0, 5)}
+        </div>
+        <div style={{ fontSize: '13px', color: MUTED, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <IconLock /> No disponible
+        </div>
       </div>
-      <div style={{ fontSize: '13px', color: MUTED, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-        <IconLock /> No disponible
-      </div>
+      <button onClick={protegido(() => desbloquearSlot(b.id))} title="Desbloquear este horario"
+        style={{ background: 'none', border: `1px solid ${LINE}`, borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+        <IconTrash />
+      </button>
     </div>
   )
 
@@ -691,9 +725,15 @@ function protegido<T extends (...args: any[]) => any>(fn: T): T {
                             </div>
                           )
                         ) : (
-                          <div onClick={() => abrirNuevo(slot)}
-                            style={{ border: `1px dashed ${SAGE}66`, borderRadius: '10px', padding: '10px 14px', backgroundColor: SAGE_BG, cursor: 'pointer', fontSize: '13px', color: SAGE, fontWeight: 600 }}>
-                            + Agendar turno
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <div onClick={() => abrirNuevo(slot)}
+                              style={{ flex: 1, border: `1px dashed ${SAGE}66`, borderRadius: '10px', padding: '10px 14px', backgroundColor: SAGE_BG, cursor: 'pointer', fontSize: '13px', color: SAGE, fontWeight: 600 }}>
+                              + Agendar turno
+                            </div>
+                            <button onClick={protegido(() => bloquearSlot(slot))} title="Bloquear este horario"
+                              style={{ background: 'none', border: `1px solid ${LINE}`, borderRadius: '10px', padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: MUTED, flexShrink: 0 }}>
+                              <IconLock />
+                            </button>
                           </div>
                         )}
                       </div>
