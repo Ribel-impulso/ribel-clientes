@@ -31,6 +31,28 @@ const CLAVES_GENERALES = ['alergias', 'condiciones', 'medicacion', 'domicilio', 
 
 const procVacio = (): Procedimiento => ({ servicio: '', zona: '' })
 
+// Palabras que ayudan a reconocer a qué rubro pertenece una categoría de servicios
+const PALABRAS_POR_RUBRO: Record<RubroId, string[]> = {
+  masajes: ['masaje'],
+  depilacion: ['depila'],
+  unas: ['unas', 'manicur', 'pedicur'],
+  peluqueria: ['peluquer', 'cabello', 'corte', 'color'],
+  cosmetologia: ['cosmet', 'facial', 'estetic', 'piel'],
+}
+
+function sinAcentos(t: string): string {
+  return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+function categoriaEsDelRubro(
+  categoria: string | null | undefined,
+  rubro: RubroId
+): boolean {
+  if (!categoria) return false
+  const c = sinAcentos(categoria)
+  return PALABRAS_POR_RUBRO[rubro].some(p => c.includes(p))
+}
+
 const estiloInput: React.CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
@@ -213,8 +235,17 @@ export default function FichaTecnicaCliente({
     setTimeout(() => setMensaje(''), 3000)
   }
 
+  // Solo los servicios del rubro de esta ficha (más los que no tienen categoría).
+  // Si ninguna categoría coincide con el rubro, se muestran todos.
+  const serviciosDelRubro = rubroActivo
+    ? servicios.filter((s: any) => categoriaEsDelRubro(s.categoria, rubroActivo))
+    : []
+  const serviciosParaLista =
+    serviciosDelRubro.length > 0
+      ? [...serviciosDelRubro, ...servicios.filter((s: any) => !s.categoria)]
+      : servicios
   const nombresServicios = Array.from(
-    new Set(servicios.map((s: any) => s.nombre).filter(Boolean))
+    new Set(serviciosParaLista.map((s: any) => s.nombre).filter(Boolean))
   ) as string[]
 
   function renderCampo(c: CampoFicha, i: number, d: Datos) {
