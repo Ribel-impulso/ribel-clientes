@@ -3,6 +3,8 @@ import { useState, useEffect, ReactElement } from 'react'
 import { supabase } from '../../lib/supabase'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
+import SelectorRubros from './SelectorRubros'
+import FichaTecnicaCliente from './FichaTecnicaCliente'
 
 // Misma paleta que el resto de la app.
 const INK = '#1B2420'
@@ -923,6 +925,7 @@ async function guardarEdicionServicio(id: string) {
                             </div>
                           </div>
                         )}
+                        <FichaTecnicaCliente userId={userId} cliente={c} servicios={servicios} btnPrimary={btnPrimary} btnSecondary={btnSecondary} />
                         <div style={{ marginBottom: '16px' }}>
                           <p style={{ color: INK, fontWeight: 700, margin: '0 0 8px', fontSize: '14px', fontFamily: FONT_SANS }}>Subir PDF</p>
                           <input type="file" accept=".pdf" onChange={e => setArchivoFile(prev => ({ ...prev, [c.id]: e.target.files?.[0] || null }))} style={{ marginBottom: '8px', display: 'block' }} />
@@ -1185,6 +1188,7 @@ async function guardarEdicionServicio(id: string) {
   input={input}
   btnPrimary={btnPrimary}
 />
+<SelectorRubros userId={userId} card={card} btnPrimary={btnPrimary} />
           <div style={card}>
             <CambiarPassword btnPrimary={btnPrimary} inp={inp} />
           </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import FichaModalHost, { FichaChip } from './FichaTurno';
 
 // Misma paleta que el resto de la app (ver page.tsx / login / TabTurnos).
 const INK = '#1B2420';
@@ -543,6 +544,12 @@ function protegido<T extends (...args: any[]) => any>(fn: T): T {
           </div>
         </div>
 
+        {userId && (
+          <div style={{ marginTop: '8px' }}>
+            <FichaChip userId={userId} clienteId={s.cliente_id} origen="agenda" />
+          </div>
+        )}
+
         {esResaltado && (
           <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${LINE}` }}>
             <button
@@ -775,6 +782,8 @@ function protegido<T extends (...args: any[]) => any>(fn: T): T {
         </div>
       )}
 
+      {userId && <FichaModalHost userId={userId} servicios={servicios} origen="agenda" />}
+      
       {/* MODAL WHATSAPP */}
       {modalWA && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27,36,32,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '16px' }}>
