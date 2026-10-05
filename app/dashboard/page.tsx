@@ -517,9 +517,7 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
         <div>
-          <h1 style={{ fontFamily: FONT_SERIF, fontWeight: 600, fontSize: '22px', color: INK, margin: 0 }}>
-            Ribel Gestión
-          </h1>
+          <img src="/logo.png" alt="Ribel Gestión" style={{ height: '34px', width: 'auto', display: 'block' }} />
           <p style={{ margin: '2px 0 0', fontSize: '11px', color: SAGE, fontWeight: 600, letterSpacing: '0.03em' }}>
   {nombreNegocio ? `Hola, ${nombreNegocio}` : 'Panel de negocio'}
 </p>
