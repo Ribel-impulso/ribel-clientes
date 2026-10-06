@@ -425,7 +425,7 @@ export default function Landing() {
       `}</style>
 
       <nav className="nav">
-        <a href="/" className="nav-logo">ribel<span>.</span></a>
+                <a href="/" className="nav-logo"><img src="/logo.png" alt="Ribel" style={{ height: '34px', width: 'auto', display: 'block' }} /></a>
         <ul className="nav-links">
           <li><a href="#app">La App</a></li>
           <li><a href="#academia">Academia</a></li>
