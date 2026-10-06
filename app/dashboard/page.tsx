@@ -560,7 +560,43 @@ if (config?.nombre_negocio) setNombreNegocio(config.nombre_negocio)
         </div>
       </div>
 
-      <div style={{ marginBottom: '18px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '2px' }}>
+            <style>{`
+        @media (max-width: 768px) {
+                  main { padding-bottom: 96px !important; }
+          .barra-pestanas {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 900;
+            display: grid !important;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            margin: 0 !important;
+            padding: 6px 6px calc(6px + env(safe-area-inset-bottom)) !important;
+            background: #FFFDF8;
+            border-top: 1px solid #DDD3BF;
+            overflow: visible !important;
+          }
+          .barra-pestanas button {
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px !important;
+            margin: 0 !important;
+            padding: 7px 2px !important;
+            border-radius: 12px !important;
+            font-size: 10.5px !important;
+            line-height: 1.15;
+            text-align: center;
+            white-space: normal !important;
+          }
+          .barra-pestanas svg {
+            width: 20px;
+            height: 20px;
+          }
+        }
+      `}</style>
+      <div className="barra-pestanas" style={{ marginBottom: '18px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '2px' }}>
         <button style={tabStyle(pestanaActiva === 'configuracion')} onClick={() => setPestanaActiva('configuracion')}>
           {tabIcons.configuracion} Configuración
         </button>
