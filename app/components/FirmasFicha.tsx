@@ -1,6 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import { generarPdfFicha } from './fichaPdf'
+import { nombreDelRubro } from './fichasConfig'
+import type { RubroId } from './fichasConfig'
 
 // Misma paleta que el resto de la app.
 const INK = '#1B2420'
@@ -63,6 +66,57 @@ function formatearFecha(iso: string | null | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function blobADataUrl(blob: Blob): Promise<string | null> {
+  return new Promise(resolve => {
+    const r = new FileReader()
+    r.onload = () => resolve(typeof r.result === 'string' ? r.result : null)
+    r.onerror = () => resolve(null)
+    r.readAsDataURL(blob)
+  })
+}
+
+// Baja una firma guardada y la convierte en imagen para el PDF
+async function firmaADataUrl(path: string): Promise<string | null> {
+  const { data } = await supabase.storage.from('firmas').download(path)
+  return data ? blobADataUrl(data) : null
+}
+
+// El logo es público: se intenta bajar, y si falla el PDF sale sin logo
+async function urlADataUrl(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url)
+    if (!resp.ok) return null
+    return await blobADataUrl(await resp.blob())
+  } catch {
+    return null
+  }
+}
+
+type PdfListo = {
+  blob: Blob
+  nombre: string
+  whatsapp: string | null
+  negocio: string
+  nombreCliente: string
+}
+
+// Deja el número listo para el link de WhatsApp (solo dígitos, con código de país)
+function limpiarWhatsapp(numero: string): string {
+  const n = numero.trim()
+  if (n.startsWith('+')) return n.replace(/\D/g, '')
+  const digitos = n.replace(/\D/g, '')
+  if (digitos.startsWith('54')) return digitos
+  return '54' + (digitos.startsWith('0') ? digitos.slice(1) : digitos)
+}
+
+function nombreSeguro(t: string): string {
+  return t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 // ---------- Recuadro para firmar con el dedo o el mouse ----------
@@ -170,6 +224,12 @@ export default function FirmasFicha({
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
+  const [pdf, setPdf] = useState<PdfListo | null>(null)
+  const [preparando, setPreparando] = useState(false)
+  const [guardandoCopia, setGuardandoCopia] = useState(false)
+  const [copiaGuardada, setCopiaGuardada] = useState(false)
+  const [avisoPdf, setAvisoPdf] = useState('')
+  const [errorPdf, setErrorPdf] = useState('')
 
   const canvasCliente = useRef<HTMLCanvasElement>(null)
   const canvasProfesional = useRef<HTMLCanvasElement>(null)
@@ -313,6 +373,190 @@ export default function FirmasFicha({
     await cargar()
     setMensaje('¡Firmas guardadas!')
     setTimeout(() => setMensaje(''), 3000)
+  }
+
+  // Arma el PDF con lo que está guardado en la ficha
+  async function armarPdf(): Promise<PdfListo | null> {
+    if (!fila?.firma_cliente_path || !fila?.firma_profesional_path) return null
+
+    const [cli, neg] = await Promise.all([
+      supabase
+        .from('clientes')
+        .select('nombre, whatsapp, fecha_nacimiento')
+        .eq('id', clienteId)
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabase
+        .from('configuracion_negocio')
+        .select('nombre_negocio, logo_url')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ])
+
+    const firmaC = await firmaADataUrl(fila.firma_cliente_path)
+    const firmaP = await firmaADataUrl(fila.firma_profesional_path)
+    if (!firmaC || !firmaP) return null
+    const logo = neg.data?.logo_url ? await urlADataUrl(neg.data.logo_url) : null
+    const nombreDelCliente: string = cli.data?.nombre || nombreCliente
+
+    const blob = await generarPdfFicha({
+      negocio: neg.data?.nombre_negocio || '',
+      logoDataUrl: logo,
+      cliente: {
+        nombre: nombreDelCliente,
+        whatsapp: cli.data?.whatsapp ?? null,
+        fecha_nacimiento: cli.data?.fecha_nacimiento ?? null,
+      },
+      rubro: rubro as RubroId,
+      datos: fila.datos || {},
+      firmaCliente: { dataUrl: firmaC, fecha: fila.firma_cliente_at },
+      firmaProfesional: { dataUrl: firmaP, fecha: fila.firma_profesional_at },
+      hash: fila.datos_hash ?? null,
+      consentimiento: TEXTO_CONSENTIMIENTO,
+    })
+
+    return {
+      blob,
+      nombre: `Ficha-${nombreSeguro(nombreDelRubro(rubro))}-${nombreSeguro(
+        nombreDelCliente || 'cliente'
+      )}.pdf`,
+      whatsapp: cli.data?.whatsapp ?? null,
+      negocio: neg.data?.nombre_negocio || '',
+      nombreCliente: nombreDelCliente,
+    }
+  }
+
+  // El PDF se prepara de antemano, así los botones responden al instante
+  useEffect(() => {
+    let activo = true
+    setPdf(null)
+    setErrorPdf('')
+    setAvisoPdf('')
+    setCopiaGuardada(false)
+    if (
+      !cargando &&
+      !modificada &&
+      fila?.firma_cliente_path &&
+      fila?.firma_profesional_path
+    ) {
+      setPreparando(true)
+      armarPdf()
+        .then(r => {
+          if (activo) setPdf(r)
+        })
+        .catch((e: any) => {
+          if (activo)
+            setErrorPdf('No se pudo armar el PDF: ' + (e?.message || 'error desconocido'))
+        })
+        .finally(() => {
+          if (activo) setPreparando(false)
+        })
+    }
+    return () => {
+      activo = false
+    }
+  }, [fila, modificada, cargando])
+
+  function descargarArchivo(p: PdfListo) {
+    const url = URL.createObjectURL(p.blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = p.nombre
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+  }
+
+  function descargarPdf() {
+    if (!pdf) return
+    setAvisoPdf('')
+    descargarArchivo(pdf)
+  }
+
+  async function compartirPdf() {
+    if (!pdf) return
+    setErrorPdf('')
+    setAvisoPdf('')
+    const texto = `Hola ${pdf.nombreCliente}! Te enviamos tu ficha técnica${
+      pdf.negocio ? ' de ' + pdf.negocio : ''
+    } con las firmas, para que tengas tu registro. ¡Gracias!`
+
+    try {
+      const archivo = new File([pdf.blob], pdf.nombre, { type: 'application/pdf' })
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: pdf.nombre, text: texto })
+        return
+      }
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return // cerró el menú de compartir
+    }
+
+    // Si el dispositivo no permite compartir archivos (por ejemplo, la compu):
+    // se descarga el PDF y se abre el chat de WhatsApp para adjuntarlo.
+    descargarArchivo(pdf)
+    if (pdf.whatsapp) {
+      window.open(
+        `https://wa.me/${limpiarWhatsapp(pdf.whatsapp)}?text=${encodeURIComponent(texto)}`,
+        '_blank'
+      )
+      setAvisoPdf('Se descargó el PDF y se abrió WhatsApp. Adjuntalo en el chat del cliente.')
+    } else {
+      setAvisoPdf(
+        'Se descargó el PDF. Este cliente no tiene WhatsApp cargado, así que tenés que enviarlo por otro medio.'
+      )
+    }
+  }
+
+  async function guardarCopia() {
+    if (!pdf) return
+    setErrorPdf('')
+    setAvisoPdf('')
+    setGuardandoCopia(true)
+    try {
+      const ruta = `${userId}/${clienteId}/${Date.now()}_${pdf.nombre}`
+      const { error: errSubida } = await supabase.storage
+        .from('archivos-clientes')
+        .upload(ruta, pdf.blob, { contentType: 'application/pdf' })
+      if (errSubida) {
+        setErrorPdf('No se pudo guardar la copia: ' + errSubida.message)
+        return
+      }
+      const { data: urlData } = supabase.storage
+        .from('archivos-clientes')
+        .getPublicUrl(ruta)
+      const { error: errFila } = await supabase.from('archivos_clientes').insert([
+        {
+          cliente_id: clienteId,
+          nombre: pdf.nombre,
+          url: urlData.publicUrl,
+          tipo: 'pdf',
+          user_id: userId,
+        },
+      ])
+      if (errFila) {
+        setErrorPdf('No se pudo registrar la copia: ' + errFila.message)
+        return
+      }
+      setCopiaGuardada(true)
+      setAvisoPdf('Copia guardada en los archivos del cliente.')
+    } catch (e: any) {
+      setErrorPdf('No se pudo guardar la copia: ' + (e?.message || 'error desconocido'))
+    } finally {
+      setGuardandoCopia(false)
+    }
+  }
+
+  const btnSecundario: React.CSSProperties = {
+    border: `1px solid ${LINE}`,
+    background: PAPER_2,
+    color: INK,
+    borderRadius: '8px',
+    padding: '9px 16px',
+    fontSize: '14px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: FONT_SANS,
   }
 
   function bloqueFirma(q: Quien) {
@@ -487,6 +731,81 @@ export default function FirmasFicha({
             >
               {mensaje}
             </span>
+          )}
+
+          {fila.firma_cliente_path && fila.firma_profesional_path && (
+            <div
+              style={{
+                marginTop: '18px',
+                paddingTop: '14px',
+                borderTop: `1px solid ${LINE}`,
+              }}
+            >
+              <p
+                style={{
+                  margin: '0 0 4px',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  color: INK,
+                  fontFamily: FONT_SANS,
+                }}
+              >
+                Registro en PDF
+              </p>
+              {modificada ? (
+                <p style={{ margin: 0, fontSize: '13px', color: MUTED }}>
+                  La ficha cambió después de la firma. Volvé a firmar para poder
+                  generar el PDF.
+                </p>
+              ) : (
+                <>
+                  <p style={{ margin: '0 0 10px', fontSize: '12px', color: MUTED }}>
+                    Incluye los datos de la ficha y las dos firmas con fecha y hora.
+                  </p>
+                  {pdf ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      <button type="button" onClick={compartirPdf} style={btnPrimary}>
+                        Compartir por WhatsApp
+                      </button>
+                      <button type="button" onClick={descargarPdf} style={btnSecundario}>
+                        Descargar PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={guardarCopia}
+                        disabled={guardandoCopia || copiaGuardada}
+                        style={{
+                          ...btnSecundario,
+                          opacity: guardandoCopia || copiaGuardada ? 0.7 : 1,
+                        }}
+                      >
+                        {copiaGuardada
+                          ? 'Copia guardada'
+                          : guardandoCopia
+                          ? 'Guardando...'
+                          : 'Guardar copia en el cliente'}
+                      </button>
+                    </div>
+                  ) : (
+                    !errorPdf && (
+                      <p style={{ margin: 0, fontSize: '13px', color: MUTED }}>
+                        {preparando ? 'Preparando el PDF...' : ''}
+                      </p>
+                    )
+                  )}
+                </>
+              )}
+              {avisoPdf && (
+                <p style={{ color: SAGE, fontSize: '13px', fontWeight: 600 }}>
+                  {avisoPdf}
+                </p>
+              )}
+              {errorPdf && (
+                <p style={{ color: CLAY, fontSize: '13px', fontWeight: 600 }}>
+                  {errorPdf}
+                </p>
+              )}
+            </div>
           )}
         </>
       )}
