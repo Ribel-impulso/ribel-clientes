@@ -2,24 +2,6 @@
 import { useEffect, useRef, useState } from 'react'
 import WhatsAppFloatingButton from './components/WhatsAppFloatingButton'
 
-function useCountUp(end: number, duration = 1500, startWhenVisible: boolean) {
-  const [value, setValue] = useState(0)
-  useEffect(() => {
-    if (!startWhenVisible) return
-    let startTime: number | null = null
-    let raf: number
-    const step = (timestamp: number) => {
-      if (startTime === null) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / duration, 1)
-      setValue(Math.floor(progress * end))
-      if (progress < 1) raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [startWhenVisible, end, duration])
-  return value
-}
-
 function useInView() {
   const ref = useRef<HTMLDivElement>(null)
   const [inView, setInView] = useState(false)
@@ -28,7 +10,7 @@ function useInView() {
     if (!el) return
     const obs = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.disconnect() } },
-      { threshold: 0.3 }
+      { threshold: 0.1 }
     )
     obs.observe(el)
     return () => obs.disconnect()
@@ -52,129 +34,68 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   )
 }
 
-function NumeroAnimado({ end, suffix, label, desc, delay }: { end: number; suffix: string; label: string; desc: string; delay: number }) {
-  const { ref, inView } = useInView()
-  const valor = useCountUp(end, 1400, inView)
+const ICONOS: Record<string, React.ReactNode> = {
+  video: (<><rect x="2" y="6" width="14" height="12" rx="2" /><path d="m22 8-6 4 6 4V8Z" /></>),
+  play: (<><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" /></>),
+  file: (<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /></>),
+  award: (<><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></>),
+  layers: (<><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>),
+  infinity: (<><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z" /></>),
+  calendar: (<><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></>),
+  users: (<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>),
+  dollar: (<><line x1="12" x2="12" y1="2" y2="22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></>),
+  bell: (<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></>),
+}
+
+function Icono({ nombre }: { nombre: string }) {
   return (
-    <div ref={ref}>
-      <p className="numero-grande">{valor}{suffix}</p>
-      <p className="numero-label">{label}</p>
-      <p className="numero-desc">{desc}</p>
-    </div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {ICONOS[nombre]}
+    </svg>
   )
 }
 
-function FeatureCarousel() {
-  const slides = [
-    { icon: '📅', title: 'Agenda inteligente', desc: 'Configurá turnos de mañana y tarde. Tus clientes reservan solos, sin que vos muevas un dedo.' },
-    { icon: '👥', title: 'Gestión de clientes', desc: 'Historial completo, datos de contacto y seguimiento de cada clienta en un solo lugar.' },
-    { icon: '💰', title: 'Control de finanzas', desc: 'Registrá ingresos y gastos. Sabé exactamente cómo está tu negocio cada mes.' },
-    { icon: '🔔', title: 'Notificaciones al instante', desc: 'Te avisamos apenas alguien reserva, sin que tengas que estar revisando todo el día.' },
-  ]
-  const [index, setIndex] = useState(0)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % slides.length)
-    }, 3500)
-    return () => clearInterval(timer)
-  }, [])
-  return (
-    <div className="carousel-wrap">
-      <div className="carousel-track" style={{ transform: `translateX(-${index * 100}%)` }}>
-        {slides.map((s, i) => (
-          <div className="carousel-slide" key={i}>
-            <div className="carousel-icon">{s.icon}</div>
-            <h4>{s.title}</h4>
-            <p>{s.desc}</p>
-          </div>
-        ))}
-      </div>
-      <div className="carousel-dots">
-        {slides.map((_, i) => (
-          <span
-            key={i}
-            className={`carousel-dot ${i === index ? 'active' : ''}`}
-            onClick={() => setIndex(i)}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
+type Item = { icono: string; titulo: string; texto: string }
 
-function FitCarousel() {
-  const slides = [
-    {
-      title: 'Es para vos si...',
-      mark: '✓',
-      markColor: 'var(--verde-ok)',
-      items: [
-        'Atendés clientes por turno (depilación, masajes, manicura, kinesiología, etc.)',
-        'Hoy anotás turnos en un cuaderno, papel o WhatsApp',
-        'Sos profesional independiente que gestiona su propio negocio',
-        'Querés dejar de perder tiempo reorganizando todo a mano',
-      ],
-    },
-    {
-      title: 'No es para vos si...',
-      mark: '✕',
-      markColor: '#c94b4b',
-      items: [
-        'Tenés varias sucursales o un equipo grande de empleados',
-        'Necesitás facturación electrónica integrada (todavía no la tenemos)',
-        'Buscás un sistema con control de stock o venta de productos',
-      ],
-    },
-  ]
-  const [index, setIndex] = useState(0)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % slides.length)
-    }, 4500)
-    return () => clearInterval(timer)
-  }, [])
+function Bloque({
+  id, eyebrow, titulo, desc, items, boxLabel, boxMonto, boxSub, boton, href, nota, externo,
+}: {
+  id: string; eyebrow: string; titulo: string; desc: string; items: Item[]
+  boxLabel: string; boxMonto: string; boxSub: string; boton: string; href: string; nota: string; externo?: boolean
+}) {
   return (
-    <div className="fit-wrap">
-      <div className="fit-track" style={{ transform: `translateX(-${index * 100}%)` }}>
-        {slides.map((s, i) => (
-          <div className="fit-slide" key={i}>
-            <p className="fit-slide-title">{s.title}</p>
-            <ul className="fit-list">
-              {s.items.map((item, j) => (
-                <li key={j}>
-                  <span className="fit-mark" style={{ color: s.markColor, borderColor: s.markColor }}>{s.mark}</span>
-                  {item}
+    <section className="bloque-section" id={id}>
+      <Reveal>
+        <div className="bloque-card">
+          <div className="bloque-info">
+            <p className="bloque-eyebrow">{eyebrow}</p>
+            <h2>{titulo}</h2>
+            <p className="bloque-desc">{desc}</p>
+            <ul className="bloque-list">
+              {items.map((it) => (
+                <li key={it.titulo}>
+                  <div className="bloque-icon"><Icono nombre={it.icono} /></div>
+                  <div><h4>{it.titulo}</h4><p>{it.texto}</p></div>
                 </li>
               ))}
             </ul>
           </div>
-        ))}
-      </div>
-      <div className="carousel-dots">
-        {slides.map((_, i) => (
-          <span
-            key={i}
-            className={`carousel-dot ${i === index ? 'active' : ''}`}
-            onClick={() => setIndex(i)}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function FaqItem({ q, a }: { q: string; a: string }) {
-  const [abierto, setAbierto] = useState(false)
-  return (
-    <div className="faq-item" onClick={() => setAbierto(!abierto)}>
-      <div className="faq-q-row">
-        <p className="faq-q">{q}</p>
-        <span className={`faq-icon ${abierto ? 'open' : ''}`}>+</span>
-      </div>
-      <div className="faq-a-wrap" style={{ maxHeight: abierto ? '200px' : '0px' }}>
-        <p className="faq-a">{a}</p>
-      </div>
-    </div>
+          <div className="bloque-box">
+            <p className="box-label">{boxLabel}</p>
+            <p className="box-monto">{boxMonto}</p>
+            <p className="box-sub">{boxSub}</p>
+            <a
+              href={href}
+              className="btn-ver"
+              {...(externo ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            >
+              {boton}
+            </a>
+            <p className="box-nota">{nota}</p>
+          </div>
+        </div>
+      </Reveal>
+    </section>
   )
 }
 
@@ -194,7 +115,6 @@ export default function Landing() {
           --arena-oscuro: #4338ca;
           --arena-claro: #eef2ff;
           --gris: #6b7280;
-          --verde-ok: #059669;
         }
 
         html { scroll-behavior: smooth; }
@@ -208,456 +128,139 @@ export default function Landing() {
           backdrop-filter: blur(10px);
           border-bottom: 1px solid #ececec;
         }
-        .nav-logo { font-size: 22px; font-weight: 800; color: var(--negro); text-decoration: none; letter-spacing: -0.02em; }
-        .nav-logo span { color: var(--arena); }
+        .nav-logo { text-decoration: none; }
         .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
         .nav-links a { font-size: 14px; font-weight: 600; color: var(--negro); text-decoration: none; opacity: 0.65; transition: opacity 0.2s; }
         .nav-links a:hover { opacity: 1; }
-        .nav-cta {
-          opacity: 1 !important; padding: 11px 24px !important; border-radius: 8px;
-          background: var(--negro); color: var(--blanco) !important;
-          transition: background 0.2s !important;
-        }
-        .nav-cta:hover { background: var(--arena-oscuro) !important; }
 
-        .badge-row {
-          display: flex; align-items: center; justify-content: center;
-          gap: 8px; margin-bottom: 28px;
-          font-size: 13px; font-weight: 600; color: var(--gris);
-        }
-        .stars { color: #f5a623; letter-spacing: 1px; }
-
-        .hero { padding: 64px 24px 80px; background: var(--blanco); text-align: center; }
+        .hero { padding: 72px 24px 24px; background: var(--blanco); text-align: center; }
+        .hero-eyebrow { font-size: 13px; font-weight: 700; color: var(--arena-oscuro); margin-bottom: 14px; letter-spacing: 0.02em; }
         .hero h1 {
-          font-size: clamp(34px, 5.5vw, 58px); font-weight: 800; line-height: 1.15;
-          letter-spacing: -0.02em; max-width: 780px; margin: 0 auto 20px; color: var(--negro);
+          font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.15;
+          letter-spacing: -0.02em; max-width: 760px; margin: 0 auto 16px; color: var(--negro);
         }
-        .hero h1 .hero-accent { color: var(--arena); }
-        .hero-sub { font-size: 18px; font-weight: 500; color: var(--gris); max-width: 560px; margin: 0 auto 36px; line-height: 1.6; }
-        .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
-        .btn-primario {
-          padding: 16px 36px; background: var(--arena); color: var(--blanco);
-          font-size: 15px; font-weight: 700; text-decoration: none;
-          border-radius: 10px; transition: transform 0.15s, background 0.2s;
-          box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        .hero h1 span { color: var(--arena); }
+        .hero-sub { font-size: 17px; font-weight: 500; color: var(--gris); max-width: 540px; margin: 0 auto; line-height: 1.6; }
+
+        .bloque-section { padding: 40px 24px; background: var(--blanco); }
+        .bloque-card {
+          max-width: 1100px; margin: 0 auto; background: var(--negro); color: var(--blanco);
+          border-radius: 24px; padding: 56px;
+          display: grid; grid-template-columns: 1.3fr 1fr; gap: 56px; align-items: center;
         }
-        .btn-primario:hover { background: var(--arena-oscuro); transform: translateY(-2px); }
-        .btn-secundario {
-          padding: 16px 36px; background: var(--blanco); color: var(--negro);
-          font-size: 15px; font-weight: 700; text-decoration: none;
-          border-radius: 10px; border: 2px solid var(--negro); transition: all 0.2s;
+        .bloque-eyebrow { font-size: 13px; font-weight: 700; color: #a5b4fc; letter-spacing: 0.02em; margin-bottom: 14px; }
+        .bloque-info h2 { font-size: clamp(28px, 3.6vw, 40px); font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 16px; }
+        .bloque-desc { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.7; margin-bottom: 32px; font-weight: 500; }
+        .bloque-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+        .bloque-list li { display: flex; gap: 12px; align-items: flex-start; }
+        .bloque-icon {
+          width: 40px; height: 40px; min-width: 40px; border-radius: 10px;
+          background: rgba(165,180,252,0.12); color: #a5b4fc;
+          display: flex; align-items: center; justify-content: center;
         }
-        .btn-secundario:hover { background: var(--negro); color: var(--blanco); }
-        .hero-nota { font-size: 13px; color: var(--gris); font-weight: 500; }
+        .bloque-icon svg { width: 20px; height: 20px; }
+        .bloque-list h4 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+        .bloque-list p { font-size: 13px; color: rgba(255,255,255,0.55); font-weight: 500; line-height: 1.5; }
 
-        .hero-mock {
-          max-width: 900px; margin: 56px auto 0; background: var(--blanco);
-          border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.12); padding: 28px; text-align: left;
+        .bloque-box { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 40px 32px; text-align: center; }
+        .box-label { font-size: 12px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+        .box-monto { font-size: 44px; font-weight: 800; margin-bottom: 4px; line-height: 1.1; }
+        .box-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 28px; font-weight: 500; }
+        .btn-ver {
+          display: block; padding: 15px; background: var(--arena); color: var(--blanco);
+          font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px;
+          margin-bottom: 12px; transition: background 0.2s;
         }
-        .mock-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--crema); }
-        .mock-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--arena); margin-right: 6px; }
-        .mock-titulo { font-size: 13px; font-weight: 700; color: var(--gris); }
-        .mock-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f0ec; font-size: 14px; }
-        .mock-row:last-child { border-bottom: none; }
-        .mock-cliente { font-weight: 700; }
-        .mock-detalle { color: var(--gris); font-size: 13px; }
-        .mock-tag { background: var(--arena-claro); color: var(--arena-oscuro); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+        .btn-ver:hover { background: var(--arena-oscuro); }
+        .box-nota { font-size: 12px; color: rgba(255,255,255,0.35); font-weight: 500; }
 
-        .carousel-wrap {
-          max-width: 560px; margin: 56px auto 0; overflow: hidden;
-          border-radius: 14px; border: 1px solid var(--crema); box-shadow: 0 4px 20px rgba(0,0,0,0.04); background: var(--blanco);
-        }
-        .carousel-track { display: flex; transition: transform 0.6s ease; }
-        .carousel-slide { min-width: 100%; padding: 48px 40px; text-align: center; }
-        .carousel-icon {
-          width: 64px; height: 64px; border-radius: 16px; background: var(--arena-claro);
-          display: flex; align-items: center; justify-content: center; font-size: 30px;
-          margin: 0 auto 20px;
-        }
-        .carousel-slide h4 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
-        .carousel-slide p { font-size: 14px; color: var(--gris); font-weight: 500; line-height: 1.6; max-width: 380px; margin: 0 auto; }
-        .carousel-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: 24px; }
-        .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--crema); cursor: pointer; transition: background 0.2s, transform 0.2s; border: none; }
-        .carousel-dot.active { background: var(--arena-oscuro); transform: scale(1.3); }
-
-        .fit-section { padding: 80px 24px; background: var(--blanco); text-align: center; }
-        .fit-wrap {
-          max-width: 640px; margin: 48px auto 0; overflow: hidden;
-          border-radius: 14px; border: 1px solid var(--crema); box-shadow: 0 4px 20px rgba(0,0,0,0.04); background: var(--blanco);
-        }
-        .fit-track { display: flex; transition: transform 0.6s ease; }
-        .fit-slide { min-width: 100%; padding: 44px 40px; text-align: left; }
-        .fit-slide-title { font-size: 20px; font-weight: 800; margin-bottom: 22px; text-align: center; }
-        .fit-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
-        .fit-list li { font-size: 15px; font-weight: 500; color: var(--negro); display: flex; gap: 12px; align-items: flex-start; line-height: 1.5; }
-        .fit-mark {
-          flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 2px solid;
-          display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;
-          margin-top: 1px;
-        }
-
-        .problema { padding: 90px 24px; background: var(--blanco); text-align: center; }
-        .section-eyebrow { font-size: 13px; font-weight: 700; color: var(--arena-oscuro); margin-bottom: 14px; letter-spacing: 0.02em; }
-        .section-title { font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.01em; }
-        .section-sub { font-size: 16px; color: var(--gris); max-width: 520px; margin: 0 auto 56px; font-weight: 500; }
-
-        .problema-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto; }
-        .problema-card { background: var(--blanco); border: 1px solid var(--crema); border-radius: 12px; padding: 32px 24px; text-align: left; transition: box-shadow 0.2s, border-color 0.2s; }
-        .problema-card:hover { border-color: var(--arena); box-shadow: 0 4px 16px rgba(79,70,229,0.08); }
-        .problema-icon { font-size: 28px; margin-bottom: 16px; display: block; }
-        .problema-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-        .problema-card p { font-size: 14px; color: var(--gris); font-weight: 500; line-height: 1.55; }
-
-        .numeros { padding: 80px 24px; background: var(--negro); color: var(--blanco); }
-        .numeros-inner { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; text-align: center; }
-        .numero-grande { font-size: clamp(40px, 6vw, 64px); font-weight: 800; color: var(--arena); line-height: 1; margin-bottom: 12px; }
-        .numero-label { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.85); }
-        .numero-desc { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 6px; font-weight: 500; }
-
-        .app-section { padding: 90px 24px; background: var(--blanco); }
-        .section-inner { max-width: 1100px; margin: 0 auto; }
-        .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 56px; }
-        .feature-card { background: var(--blanco); border: 1px solid var(--crema); border-radius: 12px; padding: 28px; display: flex; gap: 18px; align-items: flex-start; transition: box-shadow 0.2s, border-color 0.2s; }
-        .feature-card:hover { border-color: var(--arena); box-shadow: 0 4px 16px rgba(79,70,229,0.08); }
-        .feature-icon {
-          width: 46px; height: 46px; min-width: 46px; border-radius: 10px;
-          background: var(--arena-claro); color: var(--arena); display: flex; align-items: center; justify-content: center; font-size: 20px;
-        }
-        .feature-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-        .feature-card p { font-size: 14px; color: var(--gris); font-weight: 500; line-height: 1.55; }
-
-        .testimonios { padding: 90px 24px; background: var(--arena-claro); text-align: center; }
-        .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 56px auto 0; text-align: left; }
-        .testi-card { background: var(--blanco); border: 1px solid var(--crema); border-radius: 12px; padding: 28px; box-shadow: none; transition: box-shadow 0.2s, border-color 0.2s; }
-        .testi-card:hover { border-color: var(--arena); box-shadow: 0 4px 16px rgba(79,70,229,0.08); }
-        .testi-stars { color: #f5a623; font-size: 13px; margin-bottom: 14px; }
-        .testi-quote { font-size: 14px; font-weight: 500; color: var(--negro); margin-bottom: 20px; line-height: 1.6; }
-        .testi-person { display: flex; align-items: center; gap: 10px; }
-        .testi-avatar {
-          width: 42px; height: 42px; border-radius: 50%; background: var(--crema);
-          display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: var(--arena-oscuro);
-          overflow: hidden; flex-shrink: 0;
-        }
-        .testi-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .testi-name { font-size: 13px; font-weight: 700; }
-        .testi-role { font-size: 12px; color: var(--gris); font-weight: 500; }
-
-        .pricing-section { padding: 90px 24px; background: var(--blanco); }
-        .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 0 auto; }
-        .plan-card { border: 2px solid var(--crema); border-radius: 16px; padding: 32px 28px; position: relative; transition: transform 0.25s; }
-        .plan-card:hover { transform: translateY(-6px); }
-        .plan-card.destacado { border-color: var(--arena); box-shadow: 0 4px 20px rgba(79,70,229,0.12); }
-        .plan-tag {
-          position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
-          background: var(--arena); color: var(--blanco); font-size: 11px; font-weight: 700;
-          padding: 5px 16px; border-radius: 20px; white-space: nowrap;
-        }
-        .plan-nombre { font-size: 14px; font-weight: 700; color: var(--gris); margin-bottom: 8px; }
-        .plan-precio { font-size: 36px; font-weight: 800; color: var(--negro); margin-bottom: 2px; }
-        .plan-precio span { font-size: 14px; font-weight: 600; color: var(--gris); }
-        .plan-usd { font-size: 13px; color: var(--gris); font-weight: 500; margin-bottom: 24px; }
-        .plan-feats { list-style: none; margin-bottom: 28px; }
-        .plan-feats li { font-size: 14px; font-weight: 500; padding: 8px 0; display: flex; gap: 10px; align-items: center; }
-        .plan-feats li::before { content: '✓'; color: var(--verde-ok); font-weight: 800; }
-        .plan-btn { display: block; text-align: center; padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 700; text-decoration: none; transition: all 0.2s; }
-        .plan-btn.fill { background: var(--arena); color: var(--blanco); }
-        .plan-btn.fill:hover { background: var(--arena-oscuro); }
-        .plan-btn.line { background: transparent; color: var(--negro); border: 2px solid var(--negro); }
-        .plan-btn.line:hover { background: var(--negro); color: var(--blanco); }
-
-        .prueba-aviso {
-          text-align: center; max-width: 600px; margin: 40px auto 0;
-          font-size: 14px; font-weight: 600; color: var(--arena-oscuro);
-          background: var(--arena-claro); padding: 14px; border-radius: 10px;
-        }
-
-        .academia-section { padding: 90px 24px; background: var(--negro); color: var(--blanco); }
-        .academia-section .section-eyebrow { color: var(--arena); }
-        .academia-section .section-title { color: var(--blanco); text-align: center; }
-        .academia-section .section-sub { color: rgba(255,255,255,0.55); text-align: center; }
-        .academia-card {
-          max-width: 1000px; margin: 56px auto 0; background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 56px;
-          display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center;
-        }
-        .academia-info h3 { font-size: 30px; font-weight: 800; margin-bottom: 16px; }
-        .academia-info p { font-size: 15px; color: rgba(255,255,255,0.6); line-height: 1.7; margin-bottom: 28px; font-weight: 500; }
-        .academia-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-        .academia-list li { font-size: 14px; color: rgba(255,255,255,0.8); font-weight: 600; display: flex; gap: 10px; align-items: center; }
-        .academia-list li::before { content: '✓'; color: var(--arena); font-weight: 800; }
-
-        .precio-box { background: rgba(186,154,125,0.12); border: 1px solid rgba(186,154,125,0.3); border-radius: 16px; padding: 40px; text-align: center; }
-        .precio-label { font-size: 12px; font-weight: 700; color: var(--arena); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
-        .precio-monto { font-size: 48px; font-weight: 800; margin-bottom: 4px; }
-        .precio-usd { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 28px; font-weight: 500; }
-        .btn-arena { display: block; padding: 15px; background: var(--arena); color: var(--blanco); font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px; margin-bottom: 12px; transition: background 0.2s; }
-        .btn-arena:hover { background: var(--arena-oscuro); }
-        .precio-nota { font-size: 12px; color: rgba(255,255,255,0.3); font-weight: 500; }
-
-        .faq-section { padding: 90px 24px; background: var(--blanco); }
-        .faq-list { max-width: 700px; margin: 48px auto 0; }
-        .faq-item { border-bottom: 1px solid var(--crema); padding: 22px 0; cursor: pointer; }
-        .faq-q-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-        .faq-q { font-size: 16px; font-weight: 700; }
-        .faq-icon {
-          font-size: 22px; font-weight: 400; color: var(--arena-oscuro);
-          transition: transform 0.25s; flex-shrink: 0; line-height: 1;
-        }
-        .faq-icon.open { transform: rotate(45deg); }
-        .faq-a-wrap { overflow: hidden; transition: max-height 0.3s ease; }
-        .faq-a { font-size: 14px; color: var(--gris); font-weight: 500; line-height: 1.6; padding-top: 12px; }
-
-        .cta-final { padding: 80px 24px; background: var(--arena-claro); text-align: center; }
-        .cta-final h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; margin-bottom: 16px; }
-        .cta-final p { font-size: 16px; color: var(--gris); margin-bottom: 32px; font-weight: 500; }
-
-        footer { background: var(--negro); color: rgba(255,255,255,0.4); text-align: center; padding: 36px 24px; font-size: 13px; font-weight: 500; }
-        footer a { color: var(--arena); text-decoration: none; }
+        footer { background: var(--negro); color: rgba(255,255,255,0.4); text-align: center; padding: 36px 24px; font-size: 13px; font-weight: 500; margin-top: 56px; }
+        footer a { color: #a5b4fc; text-decoration: none; }
 
         @media (max-width: 860px) {
           .nav { padding: 14px 20px; }
-          .nav-links { gap: 16px; }
-          .nav-links a:not(.nav-cta) { display: none; }
-          .problema-grid, .features-grid, .testi-grid, .planes-grid { grid-template-columns: 1fr; }
-          .numeros-inner { grid-template-columns: 1fr; gap: 32px; }
-          .academia-card { grid-template-columns: 1fr; padding: 32px 24px; gap: 32px; }
+          .nav-links { gap: 14px; }
+          .nav-links a { font-size: 13px; }
+          .hero { padding-top: 48px; }
+          .bloque-card { grid-template-columns: 1fr; padding: 32px 24px; gap: 32px; }
+          .bloque-list { grid-template-columns: 1fr; }
         }
       `}</style>
 
       <nav className="nav">
-                <a href="/" className="nav-logo"><img src="/logo.png" alt="Ribel" style={{ height: '34px', width: 'auto', display: 'block' }} /></a>
+        <a href="/" className="nav-logo"><img src="/logo.png" alt="Ribel" style={{ height: '34px', width: 'auto', display: 'block' }} /></a>
         <ul className="nav-links">
-          <li><a href="#app">La App</a></li>
+          <li><a href="#talleres">Talleres</a></li>
           <li><a href="#academia">Academia</a></li>
-          <li><a href="#precios">Precios</a></li>
-          <li><a href="/login" className="nav-cta">Ingresar</a></li>
+          <li><a href="#app-de-turnos">App de turnos</a></li>
         </ul>
       </nav>
 
       <section className="hero">
         <Reveal>
-          <div className="badge-row">
-            <span>Pensado para profesionales de la belleza y el bienestar</span>
-          </div>
-          <h1>Gestioná turnos, clientes y finanzas <span className="hero-accent">sin perder tiempo ni plata.</span></h1>
-          <p className="hero-sub">Ribel es la app que organiza tu negocio para que vos te enfoques en lo que sabés hacer: atender bien a tus clientes.</p>
-          <div className="hero-ctas">
-            <a href="/login" className="btn-primario">Probar 15 días gratis</a>
-            <a href="#app" className="btn-secundario">Ver cómo funciona</a>
-          </div>
-          <p className="hero-nota">Sin tarjeta de crédito · Cancelás cuando quieras</p>
-        </Reveal>
-
-        <Reveal delay={0.15}>
-          <FitCarousel />
+          <p className="hero-eyebrow">Para profesionales de la belleza y el bienestar</p>
+          <h1>Elegí por dónde <span>querés empezar</span></h1>
+          <p className="hero-sub">Talleres, academia y la app para gestionar tu negocio, todo en un solo lugar.</p>
         </Reveal>
       </section>
 
-      <section className="problema">
-        <Reveal>
-          <p className="section-eyebrow">La realidad sin un sistema</p>
-          <h2 className="section-title">Esto te quita tiempo y plata</h2>
-          <p className="section-sub">Gestionar un negocio de servicios a mano consume tiempo que podrías usar en atender clientes.</p>
-        </Reveal>
-        <div className="problema-grid">
-          <Reveal delay={0}>
-            <div className="problema-card">
-              <span className="problema-icon">📋</span>
-              <h4>Turnos en papel o WhatsApp</h4>
-              <p>Perdés tiempo confirmando y reorganizando manualmente cada cambio.</p>
-            </div>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <div className="problema-card">
-              <span className="problema-icon">💸</span>
-              <h4>No sabés cuánto ganás</h4>
-              <p>Los ingresos y gastos están dispersos y nunca tenés el número real a mano.</p>
-            </div>
-          </Reveal>
-          <Reveal delay={0.2}>
-            <div className="problema-card">
-              <span className="problema-icon">😮‍💨</span>
-              <h4>Información de clientes perdida</h4>
-              <p>Historial, preferencias y contacto de cada clienta en mil lugares distintos.</p>
-            </div>
-          </Reveal>
-        </div>
-      </section>
+      <Bloque
+        id="talleres"
+        eyebrow="Talleres online"
+        titulo="Talleres online para masajistas"
+        desc="Para masajistas y terapeutas que quieren perfeccionar sus técnicas, sumar servicios nuevos y llenar su agenda."
+        items={[
+          { icono: 'video', titulo: 'En vivo por Zoom', texto: 'Participás y consultás tus dudas en el momento.' },
+          { icono: 'play', titulo: 'Con grabación', texto: 'Repasá la clase cuando quieras.' },
+          { icono: 'file', titulo: 'Material en PDF', texto: 'Apuntes de estudio para practicar a tu ritmo.' },
+          { icono: 'award', titulo: 'Certificado de participación', texto: 'Con tu nombre, al terminar el taller.' },
+        ]}
+        boxLabel="Talleres online"
+        boxMonto="En vivo"
+        boxSub="y con grabación incluida"
+        boton="Ver los talleres"
+        href="https://talleres.ribelgestion.com"
+        nota="Material en PDF · Certificado de participación"
+      />
 
-      <section className="numeros">
-        <div className="numeros-inner">
-          <NumeroAnimado end={5} suffix="+ hs" label="Recuperás por semana" desc="Menos tiempo organizando, más tiempo con clientes" delay={0} />
-          <NumeroAnimado end={100} suffix="%" label="Organizado en un solo lugar" desc="Agenda, clientes y finanzas juntos" delay={0.1} />
-          <NumeroAnimado end={15} suffix=" días" label="De prueba gratis" desc="Sin tarjeta, sin compromiso" delay={0.2} />
-        </div>
-      </section>
+      <Bloque
+        id="academia"
+        eyebrow="Academia"
+        titulo="El conocimiento que nadie te enseñó"
+        desc="Un programa completo para que dejes de improvisar y empieces a tomar decisiones con claridad: precios, clientes, agenda y finanzas explicados paso a paso."
+        items={[
+          { icono: 'video', titulo: 'Módulos en video', texto: 'A tu ritmo, cuando quieras.' },
+          { icono: 'file', titulo: 'Material descargable', texto: 'Guías en PDF para tener siempre a mano.' },
+          { icono: 'layers', titulo: 'Recursos y herramientas', texto: 'Prácticas, listas para usar en tu negocio.' },
+          { icono: 'infinity', titulo: 'Acceso de por vida', texto: 'Pagás una sola vez.' },
+        ]}
+        boxLabel="Pago único"
+        boxMonto="$25.000"
+        boxSub="USD 23 · un solo pago"
+        boton="Quiero la Academia"
+        href="https://wa.me/5493492219089?text=Hola!%20Quiero%20info%20de%20la%20Academia%20Ribel"
+        nota="MercadoPago · PayPal · Tarjeta"
+        externo
+      />
 
-      <section className="app-section" id="app">
-        <div className="section-inner">
-          <Reveal>
-            <div style={{ textAlign: 'center' }}>
-              <p className="section-eyebrow">Ribel Gestión</p>
-              <h2 className="section-title">Todo lo que necesitás, en una sola app</h2>
-              <p className="section-sub">Diseñada específicamente para profesionales independientes de la salud, belleza y bienestar.</p>
-            </div>
-          </Reveal>
-          <div className="features-grid">
-            {[
-              { icon: '📅', title: 'Agenda inteligente', desc: 'Configurá turnos de mañana y tarde. Tus clientes reservan solos, sin que vos muevas un dedo.' },
-              { icon: '👥', title: 'Gestión de clientes', desc: 'Historial completo, datos de contacto y seguimiento de cada clienta en un solo lugar.' },
-              { icon: '💰', title: 'Control de finanzas', desc: 'Registrá ingresos y gastos. Sabé exactamente cómo está tu negocio cada mes.' },
-              { icon: '🔔', title: 'Notificaciones al instante', desc: 'Te avisamos apenas alguien reserva, sin que tengas que estar revisando todo el día.' },
-            ].map((f, i) => (
-              <Reveal key={f.title} delay={i * 0.08}>
-                <div className="feature-card">
-                  <div className="feature-icon">{f.icon}</div>
-                  <div><h4>{f.title}</h4><p>{f.desc}</p></div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="testimonios" id="testimonios">
-        <Reveal>
-          <p className="section-eyebrow">Lo que dicen quienes ya usan Ribel</p>
-          <h2 className="section-title">Profesionales reales, resultados reales</h2>
-        </Reveal>
-        <div className="testi-grid">
-          {[
-            { quote: '"Antes perdía la cuenta de mis turnos en el cuaderno. Ahora todo está ordenado y mis clientas reservan solas."', nombre: 'Adriana', rol: 'Masajista', foto: '/testimonios/adriana.jpg' },
-            { quote: '"Saber cuánto gano cada mes cambió cómo manejo mi negocio. Antes no tenía idea."', nombre: 'Alejandro', rol: 'Kinesiólogo', foto: '/testimonios/alejandro.jpg' },
-            { quote: '"Es simple de usar, no soy nada tecnológica y la entendí en el momento."', nombre: 'Pablo', rol: 'Reiki', foto: '/testimonios/pablo.jpg' },
-          ].map((t, i) => (
-            <Reveal key={i} delay={i * 0.1}>
-              <div className="testi-card">
-                <p className="testi-stars">★★★★★</p>
-                <p className="testi-quote">{t.quote}</p>
-                <div className="testi-person">
-                  <div className="testi-avatar">
-                    {t.foto ? <img src={t.foto} alt={t.nombre} /> : '??'}
-                  </div>
-                  <div><p className="testi-name">{t.nombre}</p><p className="testi-role">{t.rol}</p></div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      <section className="pricing-section" id="precios">
-        <Reveal>
-          <div style={{ textAlign: 'center' }}>
-            <p className="section-eyebrow">Precios</p>
-            <h2 className="section-title">Elegí el plan que te conviene</h2>
-            <p className="section-sub">Probá 15 días gratis. Sin tarjeta de crédito.</p>
-          </div>
-        </Reveal>
-
-        <div className="planes-grid">
-          <Reveal delay={0}>
-            <div className="plan-card">
-              <p className="plan-nombre">Mensual</p>
-              <p className="plan-precio">$7.999 <span>/ mes</span></p>
-              <p className="plan-usd">USD 8 / mes</p>
-              <ul className="plan-feats">
-                <li>Agenda ilimitada</li>
-                <li>Gestión de clientes</li>
-                <li>Control de finanzas</li>
-                <li>Notificaciones en tiempo real</li>
-              </ul>
-              <a href="/login" className="plan-btn line">Empezar prueba gratis</a>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <div className="plan-card destacado">
-              <span className="plan-tag">Más elegido</span>
-              <p className="plan-nombre">Anual</p>
-              <p className="plan-precio">$47.999 <span>/ año</span></p>
-              <p className="plan-usd">USD 48 / año · ahorrás 2 meses</p>
-              <ul className="plan-feats">
-                <li>Todo lo del plan mensual</li>
-                <li>2 meses de descuento</li>
-                <li>Soporte prioritario</li>
-                <li>Actualizaciones incluidas</li>
-              </ul>
-              <a href="/login" className="plan-btn fill">Empezar prueba gratis</a>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.2}>
-            <div className="plan-card">
-              <p className="plan-nombre">De por vida</p>
-              <p className="plan-precio">$99.999</p>
-              <p className="plan-usd">USD 100 · pago único</p>
-              <ul className="plan-feats">
-                <li>Todo lo del plan anual</li>
-                <li>Un solo pago, para siempre</li>
-                <li>Sin renovaciones</li>
-                <li>Actualizaciones de por vida</li>
-              </ul>
-              <a href="/login" className="plan-btn line">Empezar prueba gratis</a>
-            </div>
-          </Reveal>
-        </div>
-
-        <p className="prueba-aviso">✦ Todos los planes incluyen 15 días de prueba gratis, sin tarjeta de crédito</p>
-      </section>
-
-      <section className="academia-section" id="academia">
-        <Reveal>
-          <p className="section-eyebrow" style={{ textAlign: 'center' }}>Ribel Academia</p>
-          <h2 className="section-title">El conocimiento que nadie te enseñó</h2>
-          <p className="section-sub">Aprendé a gestionar tu negocio como una profesional, a tu ritmo.</p>
-        </Reveal>
-
-        <Reveal delay={0.1}>
-          <div className="academia-card">
-            <div className="academia-info">
-              <h3>Academia Ribel</h3>
-              <p>Un programa completo para que dejes de improvisar y empieces a tomar decisiones con claridad: precios, clientes, agenda y finanzas explicados paso a paso.</p>
-              <ul className="academia-list">
-                <li>Módulos en video, a tu ritmo</li>
-                <li>Material descargable en PDF</li>
-                <li>Recursos y herramientas prácticas</li>
-                <li>Acceso de por vida</li>
-              </ul>
-            </div>
-            <div className="precio-box">
-              <p className="precio-label">Pago único</p>
-              <p className="precio-monto">$25.000</p>
-              <p className="precio-usd">USD 23 · un solo pago</p>
-              <a href="https://wa.me/5493492219089?text=Hola!%20Quiero%20info%20de%20la%20Academia%20Ribel" className="btn-arena" target="_blank" rel="noopener noreferrer">Quiero la Academia</a>
-              <p className="precio-nota">MercadoPago · PayPal · Tarjeta</p>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      <section className="faq-section" id="faqs">
-        <Reveal>
-          <div style={{ textAlign: 'center' }}>
-            <p className="section-eyebrow">Preguntas frecuentes</p>
-            <h2 className="section-title">Todo lo que necesitás saber</h2>
-          </div>
-        </Reveal>
-        <div className="faq-list">
-          <FaqItem q="¿Necesito tarjeta de crédito para probar Ribel?" a="No. Te registrás y tenés 15 días de prueba completa sin cargar ningún dato de pago." />
-          <FaqItem q="¿Mis clientes necesitan descargar algo para reservar turno?" a="No, reservan directamente desde un link que vos les compartís, sin instalar nada." />
-          <FaqItem q="¿Puedo cancelar cuando quiera?" a="Sí, no hay permanencia mínima. Cancelás tu suscripción cuando lo necesites." />
-          <FaqItem q="¿La Academia está incluida en la app?" a="No, son dos productos independientes. La Academia es un pago único separado de la suscripción de la app." />
-        </div>
-      </section>
-
-      <section className="cta-final">
-        <Reveal>
-          <h2>Empezá a organizar tu negocio hoy</h2>
-          <p>15 días de prueba gratis. Sin tarjeta de crédito.</p>
-          <a href="/login" className="btn-primario">Probar Ribel gratis</a>
-        </Reveal>
-      </section>
+      <Bloque
+        id="app-de-turnos"
+        eyebrow="App de turnos"
+        titulo="Gestioná turnos, clientes y finanzas sin perder tiempo ni plata."
+        desc="Ribel es la app que organiza tu negocio para que vos te enfoques en lo que sabés hacer: atender bien a tus clientes."
+        items={[
+          { icono: 'calendar', titulo: 'Agenda inteligente', texto: 'Tus clientes reservan solos.' },
+          { icono: 'users', titulo: 'Gestión de clientes', texto: 'Historial y datos en un solo lugar.' },
+          { icono: 'dollar', titulo: 'Control de finanzas', texto: 'Sabé cómo está tu negocio cada mes.' },
+          { icono: 'bell', titulo: 'Notificaciones al instante', texto: 'Te avisamos apenas alguien reserva.' },
+        ]}
+        boxLabel="Ribel Gestión"
+        boxMonto="15 días"
+        boxSub="de prueba gratis, sin tarjeta"
+        boton="Ver la app"
+        href="/app-de-turnos"
+        nota="Cancelás cuando quieras"
+      />
 
       <footer>
         <p>©️ 2026 Ribel Gestión · <a href="mailto:hola@ribelgestion.com">hola@ribelgestion.com</a></p>
